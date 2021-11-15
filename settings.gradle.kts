@@ -1,2 +1,2 @@
-rootProject.name = "Arrow-JVM-Template"
+rootProject.name = "KafkaPlayground"
 

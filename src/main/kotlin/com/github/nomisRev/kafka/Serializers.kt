@@ -6,7 +6,7 @@ import org.apache.kafka.common.serialization.Serializer
 /**
  * A [Serializer] for [Nothing], this way we signal in a typed way that `Key` is not used for a certain topic.
  */
-object NoOpSerializer : Serializer<Nothing> {
+object NothingSerializer : Serializer<Nothing> {
   override fun close() = Unit
   override fun configure(configs: MutableMap<String, *>?, isKey: Boolean) = Unit
   override fun serialize(topic: String?, data: Nothing?): ByteArray = ByteArray(0)
@@ -15,7 +15,7 @@ object NoOpSerializer : Serializer<Nothing> {
 /**
  * A [Deserializer] for [Nothing], this way we signal in a typed way that `Key` is not used for a certain topic.
  */
-object NoOpDeserializer : Deserializer<Nothing> {
+object NothingDeserializer : Deserializer<Nothing> {
   override fun close() = Unit
   override fun configure(configs: MutableMap<String, *>?, isKey: Boolean) = Unit
   override fun deserialize(topic: String?, data: ByteArray?): Nothing = TODO("Impossible")

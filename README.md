@@ -12,6 +12,5 @@ Goals:
 
 ### Repo
 #### Code
-There is an `example`, and `testcontainer` file in the root that has the content of goal `1` & `2`.
+There is an `example`, and `kafkaContainer` file in the root that has the content of goal `1` & `2`.
 And in the `com.github.nomisrev.kafka` package you can find the Kafka Kotlin extensions.
-
