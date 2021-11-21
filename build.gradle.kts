@@ -49,7 +49,7 @@ configure<KnitPluginExtension> {
 tasks {
     withType<DokkaTask>().configureEach {
         outputDirectory.set(rootDir.resolve("docs"))
-        moduleName.set("Kotlin Kafka")
+        moduleName.set("KotlinKafka")
         dokkaSourceSets {
             named("main") {
                 includes.from("README.md")

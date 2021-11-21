@@ -1,4 +1,4 @@
-# Kotlin Kafka
+Module KotlinKafka
 
 <!--- TEST_NAME ReadmeTest -->
 <!--- TOC -->
