@@ -10,14 +10,14 @@ import org.apache.kafka.clients.producer.ProducerConfig.KEY_SERIALIZER_CLASS_CON
 import org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG
 import org.apache.kafka.common.serialization.Serializer
 
-enum class Acks(val value: String) {
+public enum class Acks(public val value: String) {
   All("all"),
   MinusOne("-1"),
   Zero("0"),
   One("1")
 }
 
-data class ProducerSettings<K, V>(
+public data class ProducerSettings<K, V>(
   // BOOTSTRAP_SERVERS_CONFIG
   val bootstrapServers: String,
   // KEY_SERIALIZER_CLASS_CONFIG
@@ -27,7 +27,7 @@ data class ProducerSettings<K, V>(
   // ACKS_CONFIG
   val acks: Acks = Acks.One
 ) {
-  fun properties(): Properties =
+  public fun properties(): Properties =
     Properties().apply {
       put(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
       put(KEY_SERIALIZER_CLASS_CONFIG, keyDeserializer::class.qualifiedName)
@@ -63,11 +63,11 @@ data class ProducerSettings<K, V>(
    * kafkaProducer(Properties(), StringSerializer(), StringSerializer()).buffer(10)
    * ```
    */
-  fun kafkaProducer(): Flow<KafkaProducer<K, V>> =
+  public fun kafkaProducer(): Flow<KafkaProducer<K, V>> =
     kafkaProducer(properties(), keyDeserializer, valueDeserializer)
 }
 
-fun <K, V> kafkaProducer(
+public fun <K, V> kafkaProducer(
   props: Properties,
   keyDeserializer: Serializer<K>,
   valueDeserializer: Serializer<V>

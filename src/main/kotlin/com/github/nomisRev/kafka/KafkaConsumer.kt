@@ -12,14 +12,15 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener
 
-fun <K, V> kafkaConsumer(settings: ConsumerSettings<K, V>): Flow<KafkaConsumer<K, V>> = flow {
+public fun <K, V> kafkaConsumer(settings: ConsumerSettings<K, V>): Flow<KafkaConsumer<K, V>> =
+    flow {
   KafkaConsumer(settings.properties(), settings.keyDeserializer, settings.valueDeserializer).use {
     emit(it)
   }
 }
 
 @OptIn(FlowPreview::class)
-fun <K, V> Flow<KafkaConsumer<K, V>>.subscribeTo(
+public fun <K, V> Flow<KafkaConsumer<K, V>>.subscribeTo(
   name: String,
   listener: ConsumerRebalanceListener = NoOpConsumerRebalanceListener(),
   timeout: Duration = Duration.ofMillis(500)

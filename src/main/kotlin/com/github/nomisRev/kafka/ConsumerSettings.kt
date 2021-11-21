@@ -42,14 +42,14 @@ import org.apache.kafka.clients.consumer.RangeAssignor
 import org.apache.kafka.common.metrics.Sensor
 import org.apache.kafka.common.serialization.Deserializer
 
-enum class AutoOffsetReset(val value: String) {
+public enum class AutoOffsetReset(public val value: String) {
   Earliest("earliest"),
   Latest("latest"),
   None("none")
 }
 
 /** Default values taken from [org.apache.kafka.clients.consumer.ConsumerConfig] */
-data class ConsumerSettings<K, V>(
+public data class ConsumerSettings<K, V>(
   // BOOTSTRAP_SERVERS_CONFIG
   val bootstrapServers: String,
   // KEY_DESERIALIZER_CLASS_CONFIG
@@ -121,7 +121,7 @@ data class ConsumerSettings<K, V>(
   // Optional parameter that allows for setting properties not defined here
   private val properties: Properties? = null
 ) {
-  fun properties(): Properties =
+  public fun properties(): Properties =
     Properties().apply {
       properties?.let { putAll(it) }
       put(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)

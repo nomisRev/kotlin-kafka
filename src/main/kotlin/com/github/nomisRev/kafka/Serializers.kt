@@ -8,9 +8,9 @@ import org.apache.kafka.common.serialization.Serializer
  * A [Serializer] for [Nothing], this way we signal in a typed way that `Key` is not used for a
  * certain topic.
  */
-object NothingSerializer : Serializer<Nothing> {
-  override fun close() = Unit
-  override fun configure(configs: MutableMap<String, *>?, isKey: Boolean) = Unit
+public object NothingSerializer : Serializer<Nothing> {
+  override fun close(): Unit = Unit
+  override fun configure(configs: MutableMap<String, *>?, isKey: Boolean): Unit = Unit
   override fun serialize(topic: String?, data: Nothing?): ByteArray = ByteArray(0)
 }
 
@@ -18,15 +18,16 @@ object NothingSerializer : Serializer<Nothing> {
  * A [Deserializer] for [Nothing], this way we signal in a typed way that `Key` is not used for a
  * certain topic.
  */
-object NothingDeserializer : Deserializer<Nothing> {
-  override fun close() = Unit
-  override fun configure(configs: MutableMap<String, *>?, isKey: Boolean) = Unit
+public object NothingDeserializer : Deserializer<Nothing> {
+  override fun close(): Unit = Unit
+  override fun configure(configs: MutableMap<String, *>?, isKey: Boolean): Unit = Unit
   override fun deserialize(topic: String?, data: ByteArray?): Nothing = TODO("Impossible")
 }
 
-fun <A, B> Serializer<A>.imap(f: (B) -> A): Serializer<B> = MappedSerializer(this, f)
+public fun <A, B> Serializer<A>.imap(f: (B) -> A): Serializer<B> = MappedSerializer(this, f)
 
-class MappedSerializer<A, B>(val original: Serializer<A>, val imap: (B) -> A) : Serializer<B> {
+private class MappedSerializer<A, B>(val original: Serializer<A>, val imap: (B) -> A) :
+  Serializer<B> {
   override fun close() = original.close()
 
   override fun configure(configs: MutableMap<String, *>?, isKey: Boolean) =
@@ -38,9 +39,10 @@ class MappedSerializer<A, B>(val original: Serializer<A>, val imap: (B) -> A) : 
   override fun serialize(topic: String?, data: B): ByteArray = original.serialize(topic, imap(data))
 }
 
-fun <A, B> Deserializer<A>.map(f: (A) -> B): Deserializer<B> = MappedDeserializer(this, f)
+public fun <A, B> Deserializer<A>.map(f: (A) -> B): Deserializer<B> = MappedDeserializer(this, f)
 
-class MappedDeserializer<A, B>(val original: Deserializer<A>, val map: (A) -> B) : Deserializer<B> {
+private class MappedDeserializer<A, B>(val original: Deserializer<A>, val map: (A) -> B) :
+  Deserializer<B> {
   override fun close() = original.close()
 
   override fun configure(configs: MutableMap<String, *>?, isKey: Boolean) =

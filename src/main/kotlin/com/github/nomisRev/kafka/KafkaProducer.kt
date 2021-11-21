@@ -12,7 +12,7 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
 
 @FlowPreview
-suspend fun <A, B> Flow<ProducerRecord<A, B>>.produce(
+public suspend fun <A, B> Flow<ProducerRecord<A, B>>.produce(
   settings: ProducerSettings<A, B>
 ): Flow<RecordMetadata> =
   settings.kafkaProducer().flatMapConcat { producer ->
@@ -33,8 +33,9 @@ suspend fun <A, B> Flow<ProducerRecord<A, B>>.produce(
  *      See [kotlinx.coroutines.runInterruptible]
  * ```
  */
-suspend fun <A, B> KafkaProducer<A, B>.sendAwait(record: ProducerRecord<A, B>): RecordMetadata =
-    suspendCoroutine { cont ->
+public suspend fun <A, B> KafkaProducer<A, B>.sendAwait(
+  record: ProducerRecord<A, B>
+): RecordMetadata = suspendCoroutine { cont ->
   send(record) { a, e ->
     // null if an error occurred, see: org.apache.kafka.clients.producer.Callback
     if (a != null) cont.resume(a) else cont.resumeWithException(e)

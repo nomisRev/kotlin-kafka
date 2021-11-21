@@ -10,8 +10,11 @@ import org.apache.kafka.clients.admin.DescribeTopicsOptions
 import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.admin.TopicDescription
 
-data class AdminSettings(val bootStrapServer: String, private val props: Properties? = null) {
-  fun properties(): Properties =
+public data class AdminSettings(
+  val bootStrapServer: String,
+  private val props: Properties? = null
+) {
+  public fun properties(): Properties =
     Properties().apply {
       props?.let { putAll(it) }
       put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootStrapServer)
@@ -19,21 +22,21 @@ data class AdminSettings(val bootStrapServer: String, private val props: Propert
 }
 
 /** Construct an [Admin] with [AdminSettings] */
-fun Admin(settings: AdminSettings): Admin = Admin.create(settings.properties())
+public fun Admin(settings: AdminSettings): Admin = Admin.create(settings.properties())
 
-suspend fun Admin.createTopic(
+public suspend fun Admin.createTopic(
   topic: NewTopic,
   option: CreateTopicsOptions = CreateTopicsOptions()
 ): Unit {
   createTopics(listOf(topic), option).all().await()
 }
 
-suspend fun Admin.deleteTopic(
+public suspend fun Admin.deleteTopic(
   name: String,
   options: DeleteTopicsOptions = DeleteTopicsOptions()
 ): DeleteTopicsResult = deleteTopics(listOf(name), options)
 
-suspend fun Admin.describeTopic(
+public suspend fun Admin.describeTopic(
   name: String,
   options: DescribeTopicsOptions = DescribeTopicsOptions()
 ): TopicDescription? =

@@ -11,10 +11,10 @@ buildscript {
 @Suppress("DSL_SCOPE_VIOLATION")
 plugins {
     alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.arrowGradleConfig.kotlin)
     alias(libs.plugins.arrowGradleConfig.formatter)
     alias(libs.plugins.arrowGradleConfig.nexus)
     alias(libs.plugins.arrowGradleConfig.publish)
-    alias(libs.plugins.arrowGradleConfig.versioning)
     alias(libs.plugins.dokka)
 }
 
