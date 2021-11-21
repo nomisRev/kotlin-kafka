@@ -1,7 +1,7 @@
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 enableFeaturePreview("VERSION_CATALOGS")
 
-rootProject.name = "Kotlin Kafka"
+rootProject.name = "KotlinKafka"
 
 dependencyResolutionManagement {
   versionCatalogs {
