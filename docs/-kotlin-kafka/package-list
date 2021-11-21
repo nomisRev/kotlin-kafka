@@ -1,14 +1,14 @@
 $dokka.format:html-v1
 $dokka.linkExtension:html
 $dokka.location:com.github.nomisRev.kafka////PointingToDeclaration/-kotlin-kafka/com.github.nomisRev.kafka/index.html
-$dokka.location:com.github.nomisRev.kafka//adminClient/#com.github.nomisRev.kafka.AdminSettings/PointingToDeclaration/-kotlin-kafka/com.github.nomisRev.kafka/admin-client.html
+$dokka.location:com.github.nomisRev.kafka//Admin/#com.github.nomisRev.kafka.AdminSettings/PointingToDeclaration/-kotlin-kafka/com.github.nomisRev.kafka/-admin.html
 $dokka.location:com.github.nomisRev.kafka//asDeferred/org.apache.kafka.common.KafkaFuture[TypeParam(bounds=[kotlin.Any?])]#/PointingToDeclaration/-kotlin-kafka/com.github.nomisRev.kafka/as-deferred.html
 $dokka.location:com.github.nomisRev.kafka//await/org.apache.kafka.clients.admin.CreateTopicsResult#/PointingToDeclaration/-kotlin-kafka/com.github.nomisRev.kafka/await.html
 $dokka.location:com.github.nomisRev.kafka//await/org.apache.kafka.clients.admin.DeleteTopicsResult#/PointingToDeclaration/-kotlin-kafka/com.github.nomisRev.kafka/await.html
 $dokka.location:com.github.nomisRev.kafka//await/org.apache.kafka.common.KafkaFuture[TypeParam(bounds=[kotlin.Any?])]#/PointingToDeclaration/-kotlin-kafka/com.github.nomisRev.kafka/await.html
-$dokka.location:com.github.nomisRev.kafka//createTopic/org.apache.kafka.clients.admin.AdminClient#org.apache.kafka.clients.admin.NewTopic#org.apache.kafka.clients.admin.CreateTopicsOptions/PointingToDeclaration/-kotlin-kafka/com.github.nomisRev.kafka/create-topic.html
-$dokka.location:com.github.nomisRev.kafka//deleteTopic/org.apache.kafka.clients.admin.AdminClient#kotlin.String#org.apache.kafka.clients.admin.DeleteTopicsOptions/PointingToDeclaration/-kotlin-kafka/com.github.nomisRev.kafka/delete-topic.html
-$dokka.location:com.github.nomisRev.kafka//describeTopic/org.apache.kafka.clients.admin.AdminClient#kotlin.String#org.apache.kafka.clients.admin.DescribeTopicsOptions/PointingToDeclaration/-kotlin-kafka/com.github.nomisRev.kafka/describe-topic.html
+$dokka.location:com.github.nomisRev.kafka//createTopic/org.apache.kafka.clients.admin.Admin#org.apache.kafka.clients.admin.NewTopic#org.apache.kafka.clients.admin.CreateTopicsOptions/PointingToDeclaration/-kotlin-kafka/com.github.nomisRev.kafka/create-topic.html
+$dokka.location:com.github.nomisRev.kafka//deleteTopic/org.apache.kafka.clients.admin.Admin#kotlin.String#org.apache.kafka.clients.admin.DeleteTopicsOptions/PointingToDeclaration/-kotlin-kafka/com.github.nomisRev.kafka/delete-topic.html
+$dokka.location:com.github.nomisRev.kafka//describeTopic/org.apache.kafka.clients.admin.Admin#kotlin.String#org.apache.kafka.clients.admin.DescribeTopicsOptions/PointingToDeclaration/-kotlin-kafka/com.github.nomisRev.kafka/describe-topic.html
 $dokka.location:com.github.nomisRev.kafka//imap/org.apache.kafka.common.serialization.Serializer[TypeParam(bounds=[kotlin.Any?])]#kotlin.Function1[TypeParam(bounds=[kotlin.Any?]),TypeParam(bounds=[kotlin.Any?])]/PointingToDeclaration/-kotlin-kafka/com.github.nomisRev.kafka/imap.html
 $dokka.location:com.github.nomisRev.kafka//kafkaConsumer/#com.github.nomisRev.kafka.ConsumerSettings[TypeParam(bounds=[kotlin.Any?]),TypeParam(bounds=[kotlin.Any?])]/PointingToDeclaration/-kotlin-kafka/com.github.nomisRev.kafka/kafka-consumer.html
 $dokka.location:com.github.nomisRev.kafka//kafkaProducer/#java.util.Properties#org.apache.kafka.common.serialization.Serializer[TypeParam(bounds=[kotlin.Any?])]#org.apache.kafka.common.serialization.Serializer[TypeParam(bounds=[kotlin.Any?])]/PointingToDeclaration/-kotlin-kafka/com.github.nomisRev.kafka/kafka-producer.html
