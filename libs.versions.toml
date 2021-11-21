@@ -2,12 +2,12 @@
 # SNAPSHOT for resource DSL
 arrow = "1.0.2-SNAPSHOT"
 arrowGradleConfig = "0.6.0-alpha.1"
-kotest = "5.0.0.RC"
+kotest = "5.0.0.775-SNAPSHOT"
 kafka = "3.0.0"
 kotlin = "1.6.0"
 kotlinx-coroutines = "1.5.2"
 dokka = "1.5.31"
-knit = "0.2.3"
+knit = "0.3.0"
 
 [libraries]
 arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
