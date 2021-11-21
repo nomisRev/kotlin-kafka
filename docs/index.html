@@ -30,11 +30,12 @@ import com.github.nomisRev.kafka.Acks
 import com.github.nomisRev.kafka.AdminSettings
 import com.github.nomisRev.kafka.AutoOffsetReset
 import com.github.nomisRev.kafka.ConsumerSettings
-import com.github.nomisRev.kafka.NothingSerializer
 import com.github.nomisRev.kafka.ProducerSettings
 import com.github.nomisRev.kafka.adminClient
 import com.github.nomisRev.kafka.createTopic
 import com.github.nomisRev.kafka.kafkaConsumer
+import com.github.nomisRev.kafka.map
+import com.github.nomisRev.kafka.imap
 import com.github.nomisRev.kafka.produce
 import com.github.nomisRev.kafka.subscribeTo
 import java.util.UUID
@@ -50,6 +51,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.runInterruptible
 import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.common.serialization.IntegerDeserializer
+import org.apache.kafka.common.serialization.IntegerSerializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.testcontainers.containers.KafkaContainer
@@ -64,7 +67,7 @@ fun kafkaContainer(
   runInterruptible(IO) { kafka.start() }
   kafka
 }
---><div class="sample-container"><code class="" theme="idea"><pre>fun main(): Unit =<br>  runBlocking(Default) {<br>    kafkaContainer().use { kafka -&gt;<br>      val topicName = &quot;test-topic&quot;<br>      val msgCount = 20<br><br>      adminClient(AdminSettings(kafka.bootstrapServers)).use { client -&gt;<br>        client.createTopic(NewTopic(topicName, 1, 1))<br>      }<br><br>      coroutineScope { // Run produces and consumer in a single scope<br>        launch { // Send 20 messages, and then close the producer<br>          val settings =<br>            ProducerSettings(<br>              kafka.bootstrapServers,<br>              NothingSerializer,<br>              StringSerializer(),<br>              Acks.All<br>            )<br>          (1..msgCount)<br>            .map { ProducerRecord&lt;Nothing, String&gt;(topicName, &quot;msg: $it&quot;) }<br>            .asFlow()<br>            .produce(settings)<br>            .collect(::println)<br>        }<br><br>        launch { // Consume 20 messages as a stream, and then close the consumer<br>          val settings =<br>            ConsumerSettings(<br>              kafka.bootstrapServers,<br>              StringDeserializer(),<br>              StringDeserializer(),<br>              groupId = UUID.randomUUID().toString(),<br>              autoOffsetReset = AutoOffsetReset.Earliest<br>            )<br>          kafkaConsumer(settings)<br>            .subscribeTo(topicName)<br>            .take(msgCount)<br>            .map { it.value() }<br>            .collect(::println)<br>        }<br>      }<br>    }<br>  }</pre></code></div><div class="sample-container"><code class="" theme="idea"><pre><p class="paragraph">You can get the full code guide/example/example-readme-01.kt.</p></pre></code></div><div class="sample-container"><code class="" theme="idea"><pre>test-topic-0@0<br>test-topic-0@1<br>test-topic-0@2<br>test-topic-0@3<br>test-topic-0@4<br>test-topic-0@5<br>test-topic-0@6<br>test-topic-0@7<br>test-topic-0@8<br>test-topic-0@9<br>test-topic-0@10<br>test-topic-0@11<br>test-topic-0@12<br>test-topic-0@13<br>test-topic-0@14<br>test-topic-0@15<br>test-topic-0@16<br>test-topic-0@17<br>test-topic-0@18<br>test-topic-0@19<br>msg: 1<br>msg: 2<br>msg: 3<br>msg: 4<br>msg: 5<br>msg: 6<br>msg: 7<br>msg: 8<br>msg: 9<br>msg: 10<br>msg: 11<br>msg: 12<br>msg: 13<br>msg: 14<br>msg: 15<br>msg: 16<br>msg: 17<br>msg: 18<br>msg: 19<br>msg: 20</pre></code></div><!--- TEST --></div></div>
+--><div class="sample-container"><code class="" theme="idea"><pre></pre></code></div></div></div>
           </div>
           <h2 class="">Packages</h2>
           <div class="table"><a data-name="-1022263899%2FPackages%2F769193423" anchor-label="com.github.nomisRev.kafka" id="-1022263899%2FPackages%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
