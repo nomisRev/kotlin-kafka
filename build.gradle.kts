@@ -1,11 +1,20 @@
+import kotlinx.knit.KnitPluginExtension
 import org.jetbrains.dokka.gradle.DokkaTask
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
+buildscript {
+    dependencies {
+        classpath("org.jetbrains.kotlinx:kotlinx-knit:0.3.0")
+    }
+}
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.arrowGradleConfig.formatter)
     alias(libs.plugins.dokka)
 }
+
+apply(plugin = "kotlinx-knit")
 
 group = "com.github.nomirev"
 version = "1.0-SNAPSHOT"
@@ -18,21 +27,23 @@ allprojects {
 }
 
 dependencies {
-    implementation(libs.kotlin.stdlib)
-    implementation(libs.arrow.core)
-    implementation(libs.arrow.fx.coroutines)
-    implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.kotlinx.coroutines.jdk8)
+    api(libs.kotlin.stdlib)
+    api(libs.arrow.fx.coroutines)
+    api(libs.kotlinx.coroutines.core)
 
-    implementation(libs.testcontainers.kafka)
-    implementation(libs.kafka.clients)
-    implementation(libs.kafka.streams)
-    implementation(libs.kafka.connect)
+    // Kafka, TODO split into separate modules (?)
+    api(libs.kafka.clients)
+    api(libs.kafka.streams)
+    api(libs.kafka.connect)
 
     testImplementation(libs.kotest.runner.junit5)
     testImplementation(libs.kotest.property)
     testImplementation(libs.kotest.framework)
     testImplementation(libs.kotest.assertions)
+}
+
+configure<KnitPluginExtension> {
+    siteRoot = "https://nomisrev.github.io/KotlinKafka/"
 }
 
 tasks {
@@ -54,6 +65,8 @@ tasks {
             }
         }
     }
+
+    getByName("knitPrepare").dependsOn(getTasksByName("dokka", true))
 
     withType<Test>().configureEach {
         useJUnitPlatform()

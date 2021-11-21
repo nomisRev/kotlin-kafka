@@ -1,4 +1,5 @@
-import com.github.nomisRev.kafka.ConsumerSettings
+package com.github.nomisRev.kafka
+
 import java.time.Duration
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job

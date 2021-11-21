@@ -1,4 +1,5 @@
-import com.github.nomisRev.kafka.ProducerSettings
+package com.github.nomisRev.kafka
+
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
