@@ -11,7 +11,7 @@ dependencies {
   testImplementation(libs.arrow.fx.coroutines)
   testImplementation(libs.testcontainers.kafka)
   testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
-  testImplementation("org.jetbrains.kotlinx:kotlinx-knit-test:0.2.3")
+  testImplementation("org.jetbrains.kotlinx:kotlinx-knit-test:0.3.0")
 }
 
 sourceSets.test {
