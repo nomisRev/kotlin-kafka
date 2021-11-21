@@ -33,11 +33,12 @@ import com.github.nomisRev.kafka.Acks
 import com.github.nomisRev.kafka.AdminSettings
 import com.github.nomisRev.kafka.AutoOffsetReset
 import com.github.nomisRev.kafka.ConsumerSettings
-import com.github.nomisRev.kafka.NothingSerializer
 import com.github.nomisRev.kafka.ProducerSettings
 import com.github.nomisRev.kafka.adminClient
 import com.github.nomisRev.kafka.createTopic
 import com.github.nomisRev.kafka.kafkaConsumer
+import com.github.nomisRev.kafka.map
+import com.github.nomisRev.kafka.imap
 import com.github.nomisRev.kafka.produce
 import com.github.nomisRev.kafka.subscribeTo
 import java.util.UUID
@@ -53,6 +54,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.runInterruptible
 import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.common.serialization.IntegerDeserializer
+import org.apache.kafka.common.serialization.IntegerSerializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.testcontainers.containers.KafkaContainer
@@ -69,6 +72,12 @@ fun kafkaContainer(
 }
 -->
 ```kotlin
+@JvmInline
+value class Key(val index: Int)
+
+@JvmInline
+value class Message(val content: String)
+
 fun main(): Unit =
   runBlocking(Default) {
     kafkaContainer().use { kafka ->
@@ -81,33 +90,33 @@ fun main(): Unit =
 
       coroutineScope { // Run produces and consumer in a single scope
         launch { // Send 20 messages, and then close the producer
-          val settings =
+          val settings: ProducerSettings<Key, Message> =
             ProducerSettings(
               kafka.bootstrapServers,
-              NothingSerializer,
-              StringSerializer(),
+              IntegerSerializer().imap { key: Key -> key.index },
+              StringSerializer().imap { msg: Message -> msg.content },
               Acks.All
             )
           (1..msgCount)
-            .map { ProducerRecord<Nothing, String>(topicName, "msg: $it") }
+            .map { index -> ProducerRecord(topicName, Key(index), Message("msg: $index")) }
             .asFlow()
             .produce(settings)
             .collect(::println)
         }
 
         launch { // Consume 20 messages as a stream, and then close the consumer
-          val settings =
+          val settings: ConsumerSettings<Key, Message> =
             ConsumerSettings(
               kafka.bootstrapServers,
-              StringDeserializer(),
-              StringDeserializer(),
+              IntegerDeserializer().map(::Key),
+              StringDeserializer().map(::Message),
               groupId = UUID.randomUUID().toString(),
               autoOffsetReset = AutoOffsetReset.Earliest
             )
           kafkaConsumer(settings)
             .subscribeTo(topicName)
             .take(msgCount)
-            .map { it.value() }
+            .map { "${it.key()} -> ${it.value()}" }
             .collect(::println)
         }
       }
@@ -138,25 +147,25 @@ test-topic-0@16
 test-topic-0@17
 test-topic-0@18
 test-topic-0@19
-msg: 1
-msg: 2
-msg: 3
-msg: 4
-msg: 5
-msg: 6
-msg: 7
-msg: 8
-msg: 9
-msg: 10
-msg: 11
-msg: 12
-msg: 13
-msg: 14
-msg: 15
-msg: 16
-msg: 17
-msg: 18
-msg: 19
-msg: 20
+Key(index=1) -> Message(content=msg: 1)
+Key(index=2) -> Message(content=msg: 2)
+Key(index=3) -> Message(content=msg: 3)
+Key(index=4) -> Message(content=msg: 4)
+Key(index=5) -> Message(content=msg: 5)
+Key(index=6) -> Message(content=msg: 6)
+Key(index=7) -> Message(content=msg: 7)
+Key(index=8) -> Message(content=msg: 8)
+Key(index=9) -> Message(content=msg: 9)
+Key(index=10) -> Message(content=msg: 10)
+Key(index=11) -> Message(content=msg: 11)
+Key(index=12) -> Message(content=msg: 12)
+Key(index=13) -> Message(content=msg: 13)
+Key(index=14) -> Message(content=msg: 14)
+Key(index=15) -> Message(content=msg: 15)
+Key(index=16) -> Message(content=msg: 16)
+Key(index=17) -> Message(content=msg: 17)
+Key(index=18) -> Message(content=msg: 18)
+Key(index=19) -> Message(content=msg: 19)
+Key(index=20) -> Message(content=msg: 20)
 ```
 <!--- TEST -->

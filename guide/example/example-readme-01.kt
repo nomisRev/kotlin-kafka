@@ -8,11 +8,12 @@ import com.github.nomisRev.kafka.Acks
 import com.github.nomisRev.kafka.AdminSettings
 import com.github.nomisRev.kafka.AutoOffsetReset
 import com.github.nomisRev.kafka.ConsumerSettings
-import com.github.nomisRev.kafka.NothingSerializer
 import com.github.nomisRev.kafka.ProducerSettings
 import com.github.nomisRev.kafka.adminClient
 import com.github.nomisRev.kafka.createTopic
 import com.github.nomisRev.kafka.kafkaConsumer
+import com.github.nomisRev.kafka.map
+import com.github.nomisRev.kafka.imap
 import com.github.nomisRev.kafka.produce
 import com.github.nomisRev.kafka.subscribeTo
 import java.util.UUID
@@ -28,6 +29,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.runInterruptible
 import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.common.serialization.IntegerDeserializer
+import org.apache.kafka.common.serialization.IntegerSerializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.testcontainers.containers.KafkaContainer
@@ -43,6 +46,12 @@ fun kafkaContainer(
   kafka
 }
 
+@JvmInline
+value class Key(val index: Int)
+
+@JvmInline
+value class Message(val content: String)
+
 fun main(): Unit =
   runBlocking(Default) {
     kafkaContainer().use { kafka ->
@@ -55,33 +64,33 @@ fun main(): Unit =
 
       coroutineScope { // Run produces and consumer in a single scope
         launch { // Send 20 messages, and then close the producer
-          val settings =
+          val settings: ProducerSettings<Key, Message> =
             ProducerSettings(
               kafka.bootstrapServers,
-              NothingSerializer,
-              StringSerializer(),
+              IntegerSerializer().imap { key: Key -> key.index },
+              StringSerializer().imap { msg: Message -> msg.content },
               Acks.All
             )
           (1..msgCount)
-            .map { ProducerRecord<Nothing, String>(topicName, "msg: $it") }
+            .map { index -> ProducerRecord(topicName, Key(index), Message("msg: $index")) }
             .asFlow()
             .produce(settings)
             .collect(::println)
         }
 
         launch { // Consume 20 messages as a stream, and then close the consumer
-          val settings =
+          val settings: ConsumerSettings<Key, Message> =
             ConsumerSettings(
               kafka.bootstrapServers,
-              StringDeserializer(),
-              StringDeserializer(),
+              IntegerDeserializer().map(::Key),
+              StringDeserializer().map(::Message),
               groupId = UUID.randomUUID().toString(),
               autoOffsetReset = AutoOffsetReset.Earliest
             )
           kafkaConsumer(settings)
             .subscribeTo(topicName)
             .take(msgCount)
-            .map { it.value() }
+            .map { "${it.key()} -> ${it.value()}" }
             .collect(::println)
         }
       }
