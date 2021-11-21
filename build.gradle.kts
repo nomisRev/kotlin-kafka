@@ -45,13 +45,13 @@ dependencies {
 }
 
 configure<KnitPluginExtension> {
-    siteRoot = "https://nomisrev.github.io/KotlinKafka/"
+    siteRoot = "https://nomisrev.github.io/kotlin-kafka/"
 }
 
 tasks {
     withType<DokkaTask>().configureEach {
         outputDirectory.set(rootDir.resolve("docs"))
-        moduleName.set("KotlinKafka")
+        moduleName.set("kotlin-kafka")
         dokkaSourceSets {
             named("main") {
                 includes.from("README.md")
@@ -61,7 +61,7 @@ tasks {
                 }
                 sourceLink {
                     localDirectory.set(file("src/main/kotlin"))
-                    remoteUrl.set(uri("https://github.com/nomisRev/KotlinKafka/tree/main/src/main/kotlin").toURL())
+                    remoteUrl.set(uri("https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin").toURL())
                     remoteLineSuffix.set("#L")
                 }
             }
