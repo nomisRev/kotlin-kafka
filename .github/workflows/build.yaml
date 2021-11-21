@@ -98,7 +98,7 @@ jobs:
             gradle-${{ runner.os }}-
 
       - name: Publish to MavenCentral
-        run: ./gradlew build publishToSonatype closeAndReleaseSonatypeStagingRepository
+        run: ./gradlew build publishToSonatype -x test spotlessCheck
 
       - name: Stop Gradle daemons
         run: ./gradlew --stop
