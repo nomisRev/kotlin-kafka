@@ -1,0 +1,100 @@
+name: generate-tag
+
+on:
+  workflow_dispatch:
+    if: |
+      github.ref == 'refs/heads/main' ||
+      !contains(github.ref, 'SNAPSHOT') &&
+      github.event.inputs.scope = 'mayor' ||
+      github.event.inputs.scope = 'minor' ||
+      github.event.inputs.scope = 'patch' ||
+      github.event.inputs.scope = '' &&
+      github.event.inputs.stage = 'alpha' ||
+      github.event.inputs.stage = 'beta' ||
+      github.event.inputs.stage = 'rc' ||
+      github.event.inputs.stage = 'final'
+
+    inputs:
+      scope:
+        description: 'Scope one of [mayor, minor, patch] or empty'
+        default: 'patch'
+        required: true
+
+      stage:
+        description: 'Stage, one of [alpha, beta, rc, final]'
+        default: 'final'
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v2.3.1
+        with:
+          distribution: 'zulu'
+          java-version: 8
+
+      - name: Gradle cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle.properties', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Gradle build
+        run: ./gradlew build  -x spotlessCheck -P"reckon.scope"="${{ github.event.inputs.scope }}" -P"reckon.stage"="${{ github.event.inputs.stage }}"
+
+      - name: Stop Gradle daemons
+        run: ./gradlew --stop
+
+  generate-tag:
+    runs-on: ubuntu-latest
+
+    needs:
+      - build
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.TOKEN_GITHUB_ACTION }}
+
+      - name: Set up Java
+        uses: actions/setup-java@v2.3.1
+        with:
+          distribution: 'zulu'
+          java-version: 8
+
+      - name: Gradle cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle.properties', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Generate Tag
+        run: ./gradlew reckonTagCreate -P"reckon.scope"="${{ github.event.inputs.scope }}" -P"reckon.stage"="${{ github.event.inputs.stage }}"
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          branch: 'main'
+          tags: true
+          github_token: '${{ secrets.GITHUB_TOKEN }}'
+
+      - name: Stop Gradle daemons
+        run: ./gradlew --stop

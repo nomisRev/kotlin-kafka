@@ -12,13 +12,15 @@ buildscript {
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.arrowGradleConfig.formatter)
+    alias(libs.plugins.arrowGradleConfig.nexus)
+    alias(libs.plugins.arrowGradleConfig.publish)
     alias(libs.plugins.dokka)
 }
 
 apply(plugin = "kotlinx-knit")
 
-group = "com.github.nomirev"
-version = "1.0-SNAPSHOT"
+group = "io.github.nomisrev"
+version = "0.1-SNAPSHOT"
 
 allprojects {
     repositories {
@@ -76,5 +78,14 @@ tasks {
         kotlinOptions.jvmTarget = "1.8"
         sourceCompatibility = "1.8"
         targetCompatibility = "1.8"
+    }
+}
+
+nexusPublishing {
+    repositories {
+        named("sonatype") {
+            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+        }
     }
 }

@@ -1,0 +1,61 @@
+name: publish
+
+on:
+  push:
+    tags:
+      - '**'
+
+env:
+  OSS_USER: '${{ secrets.OSS_USER }}'
+  OSS_TOKEN: '${{ secrets.OSS_TOKEN }}'
+  OSS_STAGING_PROFILE_ID: '${{ secrets.OSS_STAGING_PROFILE_ID }}'
+  SIGNING_KEY_NAME: '${{ secrets.SIGNING_KEY_NAME }}'
+  SIGNING_KEY_ID: '${{ secrets.SIGNING_KEY_ID }}'
+  SIGNING_KEY_PASSPHRASE: '${{ secrets.SIGNING_KEY_PASSPHRASE }}'
+  SIGNING_KEY: '${{ secrets.SIGNING_KEY }}'
+  GRADLE_PUBLISH_KEY: '${{ secrets.GRADLE_PUBLISH_KEY }}'
+  GRADLE_PUBLISH_SECRET: '${{ secrets.GRADLE_PUBLISH_SECRET }}'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v2.3.1
+        with:
+          distribution: 'zulu'
+          java-version: 8
+
+      - name: Gradle cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle.properties', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Gradle build
+        run: ./gradlew build -x spotlessCheck
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v4
+        with:
+          gpg_private_key: ${{ secrets.SIGNING_KEY }}
+          passphrase: ${{ secrets.SIGNING_KEY_PASSPHRASE }}
+
+      - name: Publish to MavenCentral
+        run: ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository
+
+      - name: Publish to Gradle Plugin Portal
+        run: ./gradlew publishPlugins -P"gradle.publish.key"="${{ secrets.GRADLE_PUBLISH_KEY }}" -P"gradle.publish.secret"="${{ secrets.GRADLE_PUBLISH_SECRET }}"
+
+      - name: Stop Gradle daemons
+        run: ./gradlew --stop
