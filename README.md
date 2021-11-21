@@ -18,7 +18,7 @@ At the time of starting this repository I didn't find any bindings between Kafka
 These operators should be implemented low-level, so they can guarantee correct cancellation support, and high optimised runtimes.
 
 ## Goals
-
+ - Lean Core library built on top of Kotlin Std & KotlinX Coroutines (possible extensions with Arrow in additional module)
  - Extensions to easily operate over the Kafka SDK with KotlinX Coroutines and `suspend`.
  - Flow based operators, so you can easily compose KotlinX Flow based Kafka programs
  - example for testing Kafka with Test Containers in Kotlin.
@@ -34,7 +34,7 @@ import com.github.nomisRev.kafka.AdminSettings
 import com.github.nomisRev.kafka.AutoOffsetReset
 import com.github.nomisRev.kafka.ConsumerSettings
 import com.github.nomisRev.kafka.ProducerSettings
-import com.github.nomisRev.kafka.adminClient
+import com.github.nomisRev.kafka.Admin
 import com.github.nomisRev.kafka.createTopic
 import com.github.nomisRev.kafka.kafkaConsumer
 import com.github.nomisRev.kafka.map
@@ -84,7 +84,7 @@ fun main(): Unit =
       val topicName = "test-topic"
       val msgCount = 20
 
-      adminClient(AdminSettings(kafka.bootstrapServers)).use { client ->
+      Admin(AdminSettings(kafka.bootstrapServers)).use { client ->
         client.createTopic(NewTopic(topicName, 1, 1))
       }
 

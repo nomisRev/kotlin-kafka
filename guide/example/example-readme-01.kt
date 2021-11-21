@@ -9,7 +9,7 @@ import com.github.nomisRev.kafka.AdminSettings
 import com.github.nomisRev.kafka.AutoOffsetReset
 import com.github.nomisRev.kafka.ConsumerSettings
 import com.github.nomisRev.kafka.ProducerSettings
-import com.github.nomisRev.kafka.adminClient
+import com.github.nomisRev.kafka.Admin
 import com.github.nomisRev.kafka.createTopic
 import com.github.nomisRev.kafka.kafkaConsumer
 import com.github.nomisRev.kafka.map
@@ -58,7 +58,7 @@ fun main(): Unit =
       val topicName = "test-topic"
       val msgCount = 20
 
-      adminClient(AdminSettings(kafka.bootstrapServers)).use { client ->
+      Admin(AdminSettings(kafka.bootstrapServers)).use { client ->
         client.createTopic(NewTopic(topicName, 1, 1))
       }
 

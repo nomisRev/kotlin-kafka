@@ -1,9 +1,7 @@
 package com.github.nomisRev.kafka
 
-import arrow.fx.coroutines.Resource
-import arrow.fx.coroutines.fromAutoCloseable
 import java.util.Properties
-import org.apache.kafka.clients.admin.AdminClient
+import org.apache.kafka.clients.admin.Admin
 import org.apache.kafka.clients.admin.AdminClientConfig
 import org.apache.kafka.clients.admin.CreateTopicsOptions
 import org.apache.kafka.clients.admin.DeleteTopicsOptions
@@ -20,23 +18,22 @@ data class AdminSettings(val bootStrapServer: String, private val props: Propert
     }
 }
 
-/** Construct a AdminClient as a Resource */
-fun adminClient(settings: AdminSettings): Resource<AdminClient> =
-  Resource.fromAutoCloseable { AdminClient.create(settings.properties()) }
+/** Construct an [Admin] with [AdminSettings] */
+fun Admin(settings: AdminSettings): Admin = Admin.create(settings.properties())
 
-suspend fun AdminClient.createTopic(
+suspend fun Admin.createTopic(
   topic: NewTopic,
   option: CreateTopicsOptions = CreateTopicsOptions()
 ): Unit {
   createTopics(listOf(topic), option).all().await()
 }
 
-suspend fun AdminClient.deleteTopic(
+suspend fun Admin.deleteTopic(
   name: String,
   options: DeleteTopicsOptions = DeleteTopicsOptions()
 ): DeleteTopicsResult = deleteTopics(listOf(name), options)
 
-suspend fun AdminClient.describeTopic(
+suspend fun Admin.describeTopic(
   name: String,
   options: DescribeTopicsOptions = DescribeTopicsOptions()
 ): TopicDescription? =

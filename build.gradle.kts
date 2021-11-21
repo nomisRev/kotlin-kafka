@@ -8,6 +8,7 @@ buildscript {
     }
 }
 
+@Suppress("DSL_SCOPE_VIOLATION")
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.arrowGradleConfig.formatter)
@@ -28,7 +29,6 @@ allprojects {
 
 dependencies {
     api(libs.kotlin.stdlib)
-    api(libs.arrow.fx.coroutines)
     api(libs.kotlinx.coroutines.core)
 
     // Kafka, TODO split into separate modules (?)
