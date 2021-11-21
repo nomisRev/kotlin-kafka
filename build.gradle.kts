@@ -1,40 +1,67 @@
+import org.jetbrains.dokka.gradle.DokkaTask
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
-    kotlin("jvm") version "1.5.31"
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.arrowGradleConfig.formatter)
+    alias(libs.plugins.dokka)
 }
 
-group = "org.example"
+group = "com.github.nomirev"
 version = "1.0-SNAPSHOT"
-
-repositories {
-    mavenCentral()
-}
 
 allprojects {
     repositories {
         maven("https://oss.sonatype.org/content/repositories/snapshots/")
+        mavenCentral()
     }
 }
 
-tasks.withType<Test> {
-    useJUnitPlatform()
+dependencies {
+    implementation(libs.kotlin.stdlib)
+    implementation(libs.arrow.core)
+    implementation(libs.arrow.fx.coroutines)
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.jdk8)
+
+    implementation(libs.testcontainers.kafka)
+    implementation(libs.kafka.clients)
+    implementation(libs.kafka.streams)
+    implementation(libs.kafka.connect)
+
+    testImplementation(libs.kotest.runner.junit5)
+    testImplementation(libs.kotest.property)
+    testImplementation(libs.kotest.framework)
+    testImplementation(libs.kotest.assertions)
 }
 
-dependencies {
-    implementation(kotlin("stdlib"))
-    // SNAPSHOT for resource DSL
-    implementation("io.arrow-kt:arrow-core:1.0.2-SNAPSHOT")
-    implementation("io.arrow-kt:arrow-fx-coroutines:1.0.2-SNAPSHOT")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.5.2")
+tasks {
+    withType<DokkaTask>().configureEach {
+        outputDirectory.set(rootDir.resolve("docs"))
+        moduleName.set("Kotlin Kafka")
+        dokkaSourceSets {
+            named("main") {
+                includes.from("README.md")
+                perPackageOption {
+                    matchingRegex.set(".*\\.internal.*")
+                    suppress.set(true)
+                }
+                sourceLink {
+                    localDirectory.set(file("src/main/kotlin"))
+                    remoteUrl.set(uri("https://github.com/nomisRev/KotlinKafka/tree/main/src/main/kotlin").toURL())
+                    remoteLineSuffix.set("#L")
+                }
+            }
+        }
+    }
 
-    implementation("org.testcontainers:kafka:1.16.2")
-    implementation("org.apache.kafka:kafka-clients:2.1.0")
-    implementation("org.apache.kafka:kafka-streams:2.1.0")
-    implementation("org.apache.kafka:connect-runtime:2.1.0")
-//    implementation("io.confluent:kafka-json-serializer:5.0.1")
+    withType<Test>().configureEach {
+        useJUnitPlatform()
+    }
 
-    testImplementation("io.kotest:kotest-runner-junit5:4.6.3")
-    testImplementation("io.kotest:kotest-property:4.6.3")
-    testImplementation("io.kotest:kotest-framework-engine:4.6.3")
-    testImplementation("io.kotest:kotest-assertions-core:4.6.3")
+    withType<KotlinCompile>().configureEach {
+        kotlinOptions.jvmTarget = "1.8"
+        sourceCompatibility = "1.8"
+        targetCompatibility = "1.8"
+    }
 }

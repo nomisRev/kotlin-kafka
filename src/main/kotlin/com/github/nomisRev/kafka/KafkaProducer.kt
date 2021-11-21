@@ -11,11 +11,11 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
 
 @FlowPreview
-suspend fun <A, B> Flow<ProducerRecord<A, B>>.produce(settings: ProducerSettings<A, B>): Flow<RecordMetadata> =
+suspend fun <A, B> Flow<ProducerRecord<A, B>>.produce(
+  settings: ProducerSettings<A, B>
+): Flow<RecordMetadata> =
   settings.kafkaProducer().flatMapConcat { producer ->
-    this@produce.map { record ->
-      producer.sendAwait(record)
-    }
+    this@produce.map { record -> producer.sendAwait(record) }
   }
 
 /**
@@ -28,12 +28,14 @@ suspend fun <A, B> Flow<ProducerRecord<A, B>>.produce(settings: ProducerSettings
  * }
  * ```
  * TODO properly support interruptible `send`, whilst still working in a suspendig way.
+ * ```
  *      See [kotlinx.coroutines.runInterruptible]
+ * ```
  */
 suspend fun <A, B> KafkaProducer<A, B>.sendAwait(record: ProducerRecord<A, B>): RecordMetadata =
-  suspendCoroutine { cont ->
-    send(record) { a, e ->
-      // null if an error occurred, see: org.apache.kafka.clients.producer.Callback
-      if (a != null) cont.resume(a) else cont.resumeWithException(e)
-    }
+    suspendCoroutine { cont ->
+  send(record) { a, e ->
+    // null if an error occurred, see: org.apache.kafka.clients.producer.Callback
+    if (a != null) cont.resume(a) else cont.resumeWithException(e)
   }
+}

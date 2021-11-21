@@ -20,7 +20,6 @@ import org.apache.kafka.clients.consumer.ConsumerConfig.FETCH_MIN_BYTES_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG
-import org.apache.kafka.clients.consumer.ConsumerConfig.ISOLATION_LEVEL_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG
@@ -41,16 +40,15 @@ import org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFI
 import org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG
 import org.apache.kafka.clients.consumer.RangeAssignor
 import org.apache.kafka.common.metrics.Sensor
-import org.apache.kafka.common.requests.IsolationLevel
 import org.apache.kafka.common.serialization.Deserializer
 
 enum class AutoOffsetReset(val value: String) {
-  Earliest("earliest"), Latest("latest"), None("none")
+  Earliest("earliest"),
+  Latest("latest"),
+  None("none")
 }
 
-/**
- * Default values taken from [org.apache.kafka.clients.consumer.ConsumerConfig]
- */
+/** Default values taken from [org.apache.kafka.clients.consumer.ConsumerConfig] */
 data class ConsumerSettings<K, V>(
   // BOOTSTRAP_SERVERS_CONFIG
   val bootstrapServers: String,
@@ -61,7 +59,7 @@ data class ConsumerSettings<K, V>(
   // GROUP_ID_CONFIG
   val groupId: String,
   // CLIENT_DNS_LOOKUP_CONFIG
-  val clientDnsLookup: ClientDnsLookup = ClientDnsLookup.DEFAULT,
+  val clientDnsLookup: ClientDnsLookup = ClientDnsLookup.USE_ALL_DNS_IPS,
   // SESSION_TIMEOUT_MS_CONFIG
   val sessionTimeOut: Duration = Duration.ofMillis(10000),
   // HEARTBEAT_INTERVAL_MS_CONFIG
@@ -120,47 +118,51 @@ data class ConsumerSettings<K, V>(
   val maxPollInterval: Duration = Duration.ofMillis(300000),
   // EXCLUDE_INTERNAL_TOPICS_CONFIG
   val excludeInternalTopics: Boolean = ConsumerConfig.DEFAULT_EXCLUDE_INTERNAL_TOPICS,
-  // ISOLATION_LEVEL_CONFIG
-  val isolationLevel: IsolationLevel = IsolationLevel.READ_UNCOMMITTED,
   // Optional parameter that allows for setting properties not defined here
   private val properties: Properties? = null
 ) {
-  fun properties(): Properties = Properties().apply {
-    properties?.let { putAll(it) }
-    put(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
-    put(AUTO_OFFSET_RESET_CONFIG, autoOffsetReset.toString())
-    put(GROUP_ID_CONFIG, groupId)
-    put(CLIENT_DNS_LOOKUP_CONFIG, clientDnsLookup.toString())
-    put(SESSION_TIMEOUT_MS_CONFIG, sessionTimeOut.toMillis().toInt())
-    put(HEARTBEAT_INTERVAL_MS_CONFIG, heartbeatInterval.toMillis().toInt())
-    put(AUTO_OFFSET_RESET_CONFIG, autoOffsetReset.value)
-    put(PARTITION_ASSIGNMENT_STRATEGY_CONFIG, partitionAssignmentStrategy.joinToString(separator = ",") { it.name })
-    put(METADATA_MAX_AGE_CONFIG, metadataMaxAge)
-    put(ENABLE_AUTO_COMMIT_CONFIG, enableAutoCommit)
-    put(AUTO_COMMIT_INTERVAL_MS_CONFIG, autoCommitInterval.toMillis().toInt())
-    put(CLIENT_ID_CONFIG, clientId)
-    put(MAX_PARTITION_FETCH_BYTES_CONFIG, maxPartitionFetchBytes)
-    put(SEND_BUFFER_CONFIG, sendBuffer)
-    put(RECEIVE_BUFFER_CONFIG, receiveBuffer)
-    put(FETCH_MIN_BYTES_CONFIG, fetchMinBytes)
-    put(FETCH_MAX_BYTES_CONFIG, fetchMaxBytes)
-    put(RECONNECT_BACKOFF_MS_CONFIG, reconnectBackoff.toMillis().toInt())
-    put(RECONNECT_BACKOFF_MAX_MS_CONFIG, reconnectBackoffMax.toMillis().toInt())
-    put(RETRY_BACKOFF_MS_CONFIG, retryBackoff.toMillis().toInt())
-    put(CHECK_CRCS_CONFIG, checkCrcs)
-    put(METRICS_SAMPLE_WINDOW_MS_CONFIG, metricsSampleWindow.toMillis().toInt())
-    put(METRICS_NUM_SAMPLES_CONFIG, metricsNumSamples)
-    put(METRICS_RECORDING_LEVEL_CONFIG, metricsRecordingLevel.toString())
-    put(METRIC_REPORTER_CLASSES_CONFIG, metricsReporterClasses.joinToString(separator = ",") { it.name })
-    put(KEY_DESERIALIZER_CLASS_CONFIG, keyDeserializer::class.qualifiedName)
-    put(VALUE_DESERIALIZER_CLASS_CONFIG, valueDeserializer::class.qualifiedName)
-    put(REQUEST_TIMEOUT_MS_CONFIG, requestTimeout.toMillis().toInt())
-    put(DEFAULT_API_TIMEOUT_MS_CONFIG, defaultApiTimeout.toMillis().toInt())
-    put(CONNECTIONS_MAX_IDLE_MS_CONFIG, connectionsMaxIdle.toMillis().toInt())
-    put(INTERCEPTOR_CLASSES_CONFIG, interceptorClasses.joinToString(separator = ",") { it.name })
-    put(MAX_POLL_RECORDS_CONFIG, maxPollRecords)
-    put(MAX_POLL_INTERVAL_MS_CONFIG, maxPollInterval.toMillis().toInt())
-    put(EXCLUDE_INTERNAL_TOPICS_CONFIG, excludeInternalTopics)
-    put(ISOLATION_LEVEL_CONFIG, isolationLevel.name.lowercase())
-  }
+  fun properties(): Properties =
+    Properties().apply {
+      properties?.let { putAll(it) }
+      put(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+      put(AUTO_OFFSET_RESET_CONFIG, autoOffsetReset.toString())
+      put(GROUP_ID_CONFIG, groupId)
+      put(CLIENT_DNS_LOOKUP_CONFIG, clientDnsLookup.toString())
+      put(SESSION_TIMEOUT_MS_CONFIG, sessionTimeOut.toMillis().toInt())
+      put(HEARTBEAT_INTERVAL_MS_CONFIG, heartbeatInterval.toMillis().toInt())
+      put(AUTO_OFFSET_RESET_CONFIG, autoOffsetReset.value)
+      put(
+        PARTITION_ASSIGNMENT_STRATEGY_CONFIG,
+        partitionAssignmentStrategy.joinToString(separator = ",") { it.name }
+      )
+      put(METADATA_MAX_AGE_CONFIG, metadataMaxAge)
+      put(ENABLE_AUTO_COMMIT_CONFIG, enableAutoCommit)
+      put(AUTO_COMMIT_INTERVAL_MS_CONFIG, autoCommitInterval.toMillis().toInt())
+      put(CLIENT_ID_CONFIG, clientId)
+      put(MAX_PARTITION_FETCH_BYTES_CONFIG, maxPartitionFetchBytes)
+      put(SEND_BUFFER_CONFIG, sendBuffer)
+      put(RECEIVE_BUFFER_CONFIG, receiveBuffer)
+      put(FETCH_MIN_BYTES_CONFIG, fetchMinBytes)
+      put(FETCH_MAX_BYTES_CONFIG, fetchMaxBytes)
+      put(RECONNECT_BACKOFF_MS_CONFIG, reconnectBackoff.toMillis().toInt())
+      put(RECONNECT_BACKOFF_MAX_MS_CONFIG, reconnectBackoffMax.toMillis().toInt())
+      put(RETRY_BACKOFF_MS_CONFIG, retryBackoff.toMillis().toInt())
+      put(CHECK_CRCS_CONFIG, checkCrcs)
+      put(METRICS_SAMPLE_WINDOW_MS_CONFIG, metricsSampleWindow.toMillis().toInt())
+      put(METRICS_NUM_SAMPLES_CONFIG, metricsNumSamples)
+      put(METRICS_RECORDING_LEVEL_CONFIG, metricsRecordingLevel.toString())
+      put(
+        METRIC_REPORTER_CLASSES_CONFIG,
+        metricsReporterClasses.joinToString(separator = ",") { it.name }
+      )
+      put(KEY_DESERIALIZER_CLASS_CONFIG, keyDeserializer::class.qualifiedName)
+      put(VALUE_DESERIALIZER_CLASS_CONFIG, valueDeserializer::class.qualifiedName)
+      put(REQUEST_TIMEOUT_MS_CONFIG, requestTimeout.toMillis().toInt())
+      put(DEFAULT_API_TIMEOUT_MS_CONFIG, defaultApiTimeout.toMillis().toInt())
+      put(CONNECTIONS_MAX_IDLE_MS_CONFIG, connectionsMaxIdle.toMillis().toInt())
+      put(INTERCEPTOR_CLASSES_CONFIG, interceptorClasses.joinToString(separator = ",") { it.name })
+      put(MAX_POLL_RECORDS_CONFIG, maxPollRecords)
+      put(MAX_POLL_INTERVAL_MS_CONFIG, maxPollInterval.toMillis().toInt())
+      put(EXCLUDE_INTERNAL_TOPICS_CONFIG, excludeInternalTopics)
+    }
 }

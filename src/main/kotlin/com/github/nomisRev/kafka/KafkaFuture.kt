@@ -28,15 +28,14 @@ public suspend fun CreateTopicsResult.await() {
 }
 
 /**
- * Await a [KafkaFuture] in a suspending way.
- * Code inspired by [KotlinX Coroutines JDK8](https://github.com/Kotlin/kotlinx.coroutines/tree/master/integration/kotlinx-coroutines-jdk8)
+ * Await a [KafkaFuture] in a suspending way. Code inspired by
+ * [KotlinX Coroutines JDK8](https://github.com/Kotlin/kotlinx.coroutines/tree/master/integration/kotlinx-coroutines-jdk8)
  */
 public suspend fun <T> KafkaFuture<T>.await(): T {
   // fast path when CompletableFuture is already done (does not suspend)
   if (isDone) {
     try {
-      @Suppress("UNCHECKED_CAST", "BlockingMethodInNonBlockingContext")
-      return get() as T
+      @Suppress("UNCHECKED_CAST", "BlockingMethodInNonBlockingContext") return get() as T
     } catch (e: ExecutionException) {
       throw e.cause ?: e // unwrap original cause from ExecutionException
     }
@@ -52,9 +51,8 @@ public suspend fun <T> KafkaFuture<T>.await(): T {
   }
 }
 
-private class ContinuationConsumer<T>(
-  @Volatile @JvmField var cont: Continuation<T>?
-) : KafkaFuture.BiConsumer<T?, Throwable?> {
+private class ContinuationConsumer<T>(@Volatile @JvmField var cont: Continuation<T>?) :
+  KafkaFuture.BiConsumer<T?, Throwable?> {
   @Suppress("UNCHECKED_CAST")
   override fun accept(result: T?, exception: Throwable?) {
     val cont = this.cont ?: return // atomically read current value unless null
@@ -62,7 +60,8 @@ private class ContinuationConsumer<T>(
       // the future has completed normally
       cont.resume(result as T)
     } else {
-      // the future has completed with an exception, unwrap it to provide consistent view of .await() result and to propagate only original exception
+      // the future has completed with an exception, unwrap it to provide consistent view of
+      // .await() result and to propagate only original exception
       cont.resumeWithException((exception as? CompletionException)?.cause ?: exception)
     }
   }
@@ -79,8 +78,7 @@ public fun <T> KafkaFuture<T>.asDeferred(): Deferred<T> {
   // Fast path if already completed
   if (isDone) {
     return try {
-      @Suppress("UNCHECKED_CAST")
-      (CompletableDeferred(get() as T))
+      @Suppress("UNCHECKED_CAST") (CompletableDeferred(get() as T))
     } catch (e: Throwable) {
       // unwrap original cause from ExecutionException
       val original = (e as? ExecutionException)?.cause ?: e

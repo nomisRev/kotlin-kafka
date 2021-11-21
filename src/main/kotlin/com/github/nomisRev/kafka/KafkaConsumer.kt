@@ -12,11 +12,9 @@ import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener
 
 fun <K, V> kafkaConsumer(settings: ConsumerSettings<K, V>): Flow<KafkaConsumer<K, V>> = flow {
-  KafkaConsumer(
-    settings.properties(),
-    settings.keyDeserializer,
-    settings.valueDeserializer
-  ).use { emit(it) }
+  KafkaConsumer(settings.properties(), settings.keyDeserializer, settings.valueDeserializer).use {
+    emit(it)
+  }
 }
 
 @OptIn(FlowPreview::class)

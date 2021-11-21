@@ -4,7 +4,8 @@ import org.apache.kafka.common.serialization.Deserializer
 import org.apache.kafka.common.serialization.Serializer
 
 /**
- * A [Serializer] for [Nothing], this way we signal in a typed way that `Key` is not used for a certain topic.
+ * A [Serializer] for [Nothing], this way we signal in a typed way that `Key` is not used for a
+ * certain topic.
  */
 object NothingSerializer : Serializer<Nothing> {
   override fun close() = Unit
@@ -13,7 +14,8 @@ object NothingSerializer : Serializer<Nothing> {
 }
 
 /**
- * A [Deserializer] for [Nothing], this way we signal in a typed way that `Key` is not used for a certain topic.
+ * A [Deserializer] for [Nothing], this way we signal in a typed way that `Key` is not used for a
+ * certain topic.
  */
 object NothingDeserializer : Deserializer<Nothing> {
   override fun close() = Unit
