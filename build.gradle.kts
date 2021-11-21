@@ -21,7 +21,6 @@ plugins {
 apply(plugin = "kotlinx-knit")
 
 group = "io.github.nomisrev"
-version = "0.1-SNAPSHOT"
 
 allprojects {
     repositories {
