@@ -21,7 +21,7 @@
             </div>
           </div>
           <div class="cover ">
-            <h1 class="cover"><span>Kotlin</span><wbr></wbr><span><span>Kafka</span></span></h1>
+            <h1 class="cover"><span><span>kotlin-kafka</span></span></h1>
             <div class="platform-hinted UnderCoverText" data-platform-hinted="data-platform-hinted"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><!--- TEST_NAME ReadmeTest --><!--- TOC --><ul><li><p class="paragraph">#rationale</p></li><li><p class="paragraph">#goals</p></li><li><p class="paragraph">#example</p></li></ul><!--- END --><p class="paragraph">This project is still under development, andd started as a playground where I was playing around with Kafka in Kotlin and the Kafka SDK whilst reading the Kafka book Definite Guide from Confluent. https://www.confluent.io/resources/kafka-the-definitive-guide-v2/</p><h2 class=""> Rationale</h2><p class="paragraph">At the time of starting this repository I didn't find any bindings between Kafka SDK and Kotlin suspension. These operators should be implemented low-level, so they can guarantee correct cancellation support, and high optimised runtimes.</p><h2 class=""> Goals</h2><ul><li><p class="paragraph">Lean Core library built on top of Kotlin Std & KotlinX Coroutines (possible extensions with Arrow in additional module)</p></li><li><p class="paragraph">Extensions to easily operate over the Kafka SDK with KotlinX Coroutines and <code>suspend</code>.</p></li><li><p class="paragraph">Flow based operators, so you can easily compose KotlinX Flow based Kafka programs</p></li><li><p class="paragraph">example for testing Kafka with Test Containers in Kotlin.</p></li></ul><h2 class=""> Example</h2><!--- INCLUDE
 import arrow.fx.coroutines.Resource
 import arrow.fx.coroutines.computations.resource
@@ -74,7 +74,7 @@ fun kafkaContainer(
             <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
               <div>
                 <div class="main-subrow ">
-                  <div class=""><span class="inline-flex"><a href="-kotlin-kafka/com.github.nomisRev.kafka/index.html">com.github.nomisRev.kafka</a><span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1022263899%2FPackages%2F769193423"></span>
+                  <div class=""><span class="inline-flex"><a href="kotlin-kafka/com.github.nomisRev.kafka/index.html">com.github.nomisRev.kafka</a><span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1022263899%2FPackages%2F769193423"></span>
                         <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                       </span></span></div>
                   <div class="pull-right"></div>
