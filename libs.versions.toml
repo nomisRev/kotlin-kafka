@@ -2,7 +2,7 @@
 # SNAPSHOT for resource DSL
 arrow = "1.0.2-SNAPSHOT"
 arrowGradleConfig = "0.6.0-alpha.1"
-kotest = "5.0.0.775-SNAPSHOT"
+kotest = "5.0.0.793-SNAPSHOT"
 kafka = "3.0.0"
 kotlin = "1.6.0"
 kotlinx-coroutines = "1.5.2"
