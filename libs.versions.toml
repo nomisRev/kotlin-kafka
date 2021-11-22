@@ -7,7 +7,7 @@ kafka = "3.0.0"
 kotlin = "1.6.0"
 kotlinx-coroutines = "1.5.2"
 dokka = "1.5.31"
-knit = "0.2.3"
+knit = "0.3.0"
 kover = "0.4.2"
 
 [libraries]
