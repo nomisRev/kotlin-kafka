@@ -12,7 +12,6 @@ buildscript {
 plugins {
   alias(libs.plugins.kotlin.jvm)
   alias(libs.plugins.arrowGradleConfig.kotlin)
-//    alias(libs.plugins.arrowGradleConfig.formatter)
   alias(libs.plugins.arrowGradleConfig.nexus)
   alias(libs.plugins.arrowGradleConfig.publish)
   alias(libs.plugins.dokka)
@@ -79,9 +78,6 @@ tasks {
     sourceCompatibility = "1.8"
     targetCompatibility = "1.8"
   }
-
-  // Fake spotless task
-  named("spotlessCheck")
 }
 
 nexusPublishing {
