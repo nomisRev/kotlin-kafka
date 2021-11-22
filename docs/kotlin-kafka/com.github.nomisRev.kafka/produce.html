@@ -28,12 +28,18 @@
   <div>
     <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><div class="block"><div class="block">@<span data-unresolved-link="kotlinx.coroutines/FlowPreview///PointingToDeclaration/">FlowPreview</span></div></div>suspend fun &lt;<a href="produce.html">A</a>, <a href="produce.html">B</a>&gt; <span data-unresolved-link="kotlinx.coroutines.flow/Flow///PointingToDeclaration/">Flow</span>&lt;<span data-unresolved-link="org.apache.kafka.clients.producer/ProducerRecord///PointingToDeclaration/">ProducerRecord</span>&lt;<a href="produce.html">A</a>, <a href="produce.html">B</a>&gt;&gt;.<a href="produce.html">produce</a>(settings: <a href="-producer-settings/index.html">ProducerSettings</a>&lt;<a href="produce.html">A</a>, <a href="produce.html">B</a>&gt;): <span data-unresolved-link="kotlinx.coroutines.flow/Flow///PointingToDeclaration/">Flow</span>&lt;<span data-unresolved-link="org.apache.kafka.clients.producer/RecordMetadata///PointingToDeclaration/">RecordMetadata</span>&gt;<span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
   </div>
+<p class="paragraph">Produces all <span data-unresolved-link="org.apache.kafka.clients.producer/ProducerRecord///PointingToDeclaration/">ProducerRecord</span> in this <span data-unresolved-link="kotlinx.coroutines.flow/Flow///PointingToDeclaration/">Flow</span> with the provided <a href="-producer-settings/index.html">ProducerSettings</a>. A new <span data-unresolved-link="org.apache.kafka.clients.producer/KafkaProducer///PointingToDeclaration/">KafkaProducer</span> is creating from the <a href="-producer-settings/index.html">ProducerSettings</a> and, all <span data-unresolved-link="org.apache.kafka.clients.producer/ProducerRecord///PointingToDeclaration/">ProducerRecord</span> are published <i>in-order</i> in a synchronous way.</p><!--- INCLUDE
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.collect
+import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.common.serialization.IntegerSerializer
+import org.apache.kafka.common.serialization.StringSerializer
 </div>
           <h2 class="">Sources</h2>
-          <div class="table" data-togglable="Sources"><a data-name="863169605%2FSource%2F769193423" anchor-label="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/com/github/nomisRev/kafka/KafkaProducer.kt#L14" id="863169605%2FSource%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table" data-togglable="Sources"><a data-name="863169605%2FSource%2F769193423" anchor-label="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/com/github/nomisRev/kafka/Producer.kt#L19" id="863169605%2FSource%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
             <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
               <div class="main-subrow keyValue ">
-                <div class=""><span class="inline-flex"><a href="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/com/github/nomisRev/kafka/KafkaProducer.kt#L14">jvm source</a><span class="anchor-wrapper"><span class="anchor-icon" pointing-to="863169605%2FSource%2F769193423"></span>
+                <div class=""><span class="inline-flex"><a href="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/com/github/nomisRev/kafka/Producer.kt#L19">jvm source</a><span class="anchor-wrapper"><span class="anchor-icon" pointing-to="863169605%2FSource%2F769193423"></span>
                       <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                     </span></span></div>
                 <div></div>

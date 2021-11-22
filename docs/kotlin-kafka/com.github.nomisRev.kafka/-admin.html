@@ -28,12 +28,16 @@
   <div>
     <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace">fun <a href="-admin.html">Admin</a>(settings: <a href="-admin-settings/index.html">AdminSettings</a>): <span data-unresolved-link="org.apache.kafka.clients.admin/Admin///PointingToDeclaration/">Admin</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
   </div>
-<p class="paragraph">Construct an <span data-unresolved-link="org.apache.kafka.clients.admin/Admin///PointingToDeclaration/">Admin</span> with <a href="-admin-settings/index.html">AdminSettings</a></p></div>
+<!--- TEST_NAME AdminSpec --><p class="paragraph">Construct an <span data-unresolved-link="org.apache.kafka.clients.admin/Admin///PointingToDeclaration/">AutoCloseable</span> with <a href="-admin-settings/index.html">AdminSettings</a>. Always consume safely with <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/index.html">kotlin.use</a>, or arrow.fx.coroutines.Resource.</p><!--- INCLUDE
+import org.apache.kafka.clients.ClientDnsLookup
+import org.apache.kafka.clients.admin.AdminClientConfig.CLIENT_DNS_LOOKUP_CONFIG
+import org.apache.kafka.clients.admin.NewTopic
+--><div class="sample-container"><code class="" theme="idea"><pre>fun main() = runBlocking {<br>  val settings = AdminSettings(<br>    Kafka.container.bootstrapServers,<br>    Properties().apply {<br>      put(CLIENT_DNS_LOOKUP_CONFIG, ClientDnsLookup.USE_ALL_DNS_IPS)<br>    }<br>  )<br>  Admin(settings).use { admin -&gt;<br>    admin.createTopic(NewTopic(&quot;admin-settings-example&quot;, 1, 1))<br>    val topics = admin.listTopics().namesToListings().await()<br>    println(topics)<br>    admin.deleteTopic(&quot;admin-settings-example&quot;)<br>  }<br>}</pre></code></div><!--- KNIT example-admin-01.kt --><!--- TEST lines.isNotEmpty() --></div>
           <h2 class="">Sources</h2>
-          <div class="table" data-togglable="Sources"><a data-name="1282220074%2FSource%2F769193423" anchor-label="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/com/github/nomisRev/kafka/AdminSettings.kt#L24" id="1282220074%2FSource%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table" data-togglable="Sources"><a data-name="1282220074%2FSource%2F769193423" anchor-label="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/com/github/nomisRev/kafka/Admin.kt#L12" id="1282220074%2FSource%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
             <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
               <div class="main-subrow keyValue ">
-                <div class=""><span class="inline-flex"><a href="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/com/github/nomisRev/kafka/AdminSettings.kt#L24">jvm source</a><span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1282220074%2FSource%2F769193423"></span>
+                <div class=""><span class="inline-flex"><a href="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/com/github/nomisRev/kafka/Admin.kt#L12">jvm source</a><span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1282220074%2FSource%2F769193423"></span>
                       <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                     </span></span></div>
                 <div></div>

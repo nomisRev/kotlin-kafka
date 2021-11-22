@@ -24,7 +24,7 @@ $dokka.location:com.github.nomisRev.kafka/Acks///PointingToDeclaration/kotlin-k
 $dokka.location:com.github.nomisRev.kafka/Acks/value/#/PointingToDeclaration/kotlin-kafka/com.github.nomisRev.kafka/-acks/value.html
 $dokka.location:com.github.nomisRev.kafka/AdminSettings///PointingToDeclaration/kotlin-kafka/com.github.nomisRev.kafka/-admin-settings/index.html
 $dokka.location:com.github.nomisRev.kafka/AdminSettings/AdminSettings/#kotlin.String#java.util.Properties?/PointingToDeclaration/kotlin-kafka/com.github.nomisRev.kafka/-admin-settings/-admin-settings.html
-$dokka.location:com.github.nomisRev.kafka/AdminSettings/bootStrapServer/#/PointingToDeclaration/kotlin-kafka/com.github.nomisRev.kafka/-admin-settings/boot-strap-server.html
+$dokka.location:com.github.nomisRev.kafka/AdminSettings/bootstrapServer/#/PointingToDeclaration/kotlin-kafka/com.github.nomisRev.kafka/-admin-settings/bootstrap-server.html
 $dokka.location:com.github.nomisRev.kafka/AdminSettings/properties/#/PointingToDeclaration/kotlin-kafka/com.github.nomisRev.kafka/-admin-settings/properties.html
 $dokka.location:com.github.nomisRev.kafka/AutoOffsetReset.Earliest///PointingToDeclaration/kotlin-kafka/com.github.nomisRev.kafka/-auto-offset-reset/-earliest/index.html
 $dokka.location:com.github.nomisRev.kafka/AutoOffsetReset.Latest///PointingToDeclaration/kotlin-kafka/com.github.nomisRev.kafka/-auto-offset-reset/-latest/index.html
