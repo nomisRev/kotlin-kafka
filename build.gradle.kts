@@ -10,12 +10,12 @@ buildscript {
 
 @Suppress("DSL_SCOPE_VIOLATION")
 plugins {
-    alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.arrowGradleConfig.kotlin)
+  alias(libs.plugins.kotlin.jvm)
+  alias(libs.plugins.arrowGradleConfig.kotlin)
 //    alias(libs.plugins.arrowGradleConfig.formatter)
-    alias(libs.plugins.arrowGradleConfig.nexus)
-    alias(libs.plugins.arrowGradleConfig.publish)
-    alias(libs.plugins.dokka)
+  alias(libs.plugins.arrowGradleConfig.nexus)
+  alias(libs.plugins.arrowGradleConfig.publish)
+  alias(libs.plugins.dokka)
 }
 
 apply(plugin = "kotlinx-knit")
@@ -79,6 +79,9 @@ tasks {
     sourceCompatibility = "1.8"
     targetCompatibility = "1.8"
   }
+
+  // Fake spotless task
+  named("spotlessCheck")
 }
 
 nexusPublishing {
