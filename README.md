@@ -30,21 +30,6 @@ runtimes.
 ## Example
 
 <!--- INCLUDE
-import arrow.fx.coroutines.Resource
-import arrow.fx.coroutines.computations.resource
-import arrow.fx.coroutines.fromAutoCloseable
-import com.github.nomisRev.kafka.Acks
-import com.github.nomisRev.kafka.AdminSettings
-import com.github.nomisRev.kafka.AutoOffsetReset
-import com.github.nomisRev.kafka.ConsumerSettings
-import com.github.nomisRev.kafka.ProducerSettings
-import com.github.nomisRev.kafka.Admin
-import com.github.nomisRev.kafka.createTopic
-import com.github.nomisRev.kafka.kafkaConsumer
-import com.github.nomisRev.kafka.map
-import com.github.nomisRev.kafka.imap
-import com.github.nomisRev.kafka.produce
-import com.github.nomisRev.kafka.subscribeTo
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers.Default
 import kotlinx.coroutines.coroutineScope
@@ -53,7 +38,6 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.IntegerDeserializer

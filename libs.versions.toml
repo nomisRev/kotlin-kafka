@@ -1,6 +1,5 @@
 [versions]
 # SNAPSHOT for resource DSL
-arrow = "1.0.2-SNAPSHOT"
 arrowGradleConfig = "0.6.0-alpha.1"
 kotest = "5.0.0.793-SNAPSHOT"
 kafka = "3.0.0"
@@ -11,8 +10,6 @@ knit = "0.3.0"
 kover = "0.4.2"
 
 [libraries]
-arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
-arrow-fx-coroutines = { module = "io.arrow-kt:arrow-fx-coroutines", version.ref = "arrow" }
 kotest-assertions = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
 kotest-framework = { module = "io.kotest:kotest-framework-engine", version.ref = "kotest" }
 kotest-property = { module = "io.kotest:kotest-property", version.ref = "kotest" }
