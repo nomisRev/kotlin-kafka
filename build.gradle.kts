@@ -31,6 +31,7 @@ allprojects {
 dependencies {
   api(libs.kotlin.stdlib)
   api(libs.kotlinx.coroutines.core)
+  api(libs.kotlinx.coroutines.jdk8)
 
   // Kafka, TODO split into separate modules (?)
   api(libs.kafka.clients)
