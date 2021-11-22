@@ -1,3 +1,4 @@
+@file:JvmName("KafkaFutureExt")
 package com.github.nomisRev.kafka
 
 import java.util.concurrent.CompletionException

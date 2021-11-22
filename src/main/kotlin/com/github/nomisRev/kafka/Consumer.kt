@@ -1,8 +1,19 @@
+@file:JvmName("Consumer")
 package com.github.nomisRev.kafka
 
 import java.time.Duration
 import java.util.Properties
+import kotlin.coroutines.coroutineContext
+import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapConcat
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.runInterruptible
 import org.apache.kafka.clients.ClientDnsLookup
+import org.apache.kafka.clients.admin.Admin
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG
@@ -38,9 +49,65 @@ import org.apache.kafka.clients.consumer.ConsumerConfig.RETRY_BACKOFF_MS_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerConfig.SEND_BUFFER_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener
+import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.consumer.RangeAssignor
+import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener
 import org.apache.kafka.common.metrics.Sensor
 import org.apache.kafka.common.serialization.Deserializer
+
+/**
+ * <!--- INCLUDE
+ * import java.util.UUID
+ * import kotlinx.coroutines.flow.map
+ * import kotlinx.coroutines.flow.collect
+ * import org.apache.kafka.common.serialization.IntegerDeserializer
+ * import org.apache.kafka.common.serialization.StringDeserializer
+ * @JvmInline value class Key(val index: Int)
+ * @JvmInline value class Message(val content: String)
+ * -->
+ * ```kotlin
+ * fun main() = runBlocking {
+ *   val settings: ConsumerSettings<Key, Message> = ConsumerSettings(
+ *     Kafka.container.bootstrapServers,
+ *     IntegerDeserializer().map(::Key),
+ *     StringDeserializer().map(::Message),
+ *     groupId = UUID.randomUUID().toString()
+ *   )
+ *   kafkaConsumer(settings)
+ *     .subscribeTo("example-topic")
+ *     .map { record -> record.value() }
+ *     .collect { msg: Message -> println(msg) }
+ * }
+ * ```
+ * <!--- KNIT example-consumer-01.kt -->
+ */
+public fun <K, V> kafkaConsumer(settings: ConsumerSettings<K, V>): Flow<KafkaConsumer<K, V>> =
+  flow {
+    KafkaConsumer(settings.properties(), settings.keyDeserializer, settings.valueDeserializer).use {
+      emit(it)
+    }
+  }
+
+/** Subscribes to the [KafkaConsumer] and polls for events in an interruptible way. */
+@OptIn(FlowPreview::class)
+public fun <K, V> Flow<KafkaConsumer<K, V>>.subscribeTo(
+  name: String,
+  listener: ConsumerRebalanceListener = NoOpConsumerRebalanceListener(),
+  timeout: Duration = Duration.ofMillis(500)
+): Flow<ConsumerRecord<K, V>> = flatMapConcat { consumer ->
+  flow {
+    consumer.subscribe(listOf(name), listener)
+    val job: Job? = coroutineContext[Job]
+    while (true) {
+      job?.ensureActive()
+      runInterruptible(IO) {
+        consumer.poll(timeout)
+      }.forEach { record -> emit(record) }
+    }
+  }
+}
 
 public enum class AutoOffsetReset(public val value: String) {
   Earliest("earliest"),
