@@ -5,7 +5,7 @@ kotest = "5.0.0.793-SNAPSHOT"
 kafka = "3.0.0"
 kotlin = "1.6.0"
 kotlinx-coroutines = "1.5.2"
-dokka = "1.5.31"
+dokka = "1.6.0"
 knit = "0.3.0"
 kover = "0.4.2"
 
