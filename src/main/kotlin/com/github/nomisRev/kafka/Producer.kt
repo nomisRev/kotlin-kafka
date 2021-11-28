@@ -76,6 +76,9 @@ public suspend fun <A, B> Flow<ProducerRecord<A, B>>.produce(
 public suspend fun <A, B> KafkaProducer<A, B>.sendAwait(
   record: ProducerRecord<A, B>
 ): RecordMetadata = suspendCoroutine { cont ->
+  // Those can be a SerializationException when it fails to serialize the message,
+  // a BufferExhaustedException or TimeoutException if the buffer is full,
+  // or an InterruptException if the sending thread was interrupted.
   send(record) { a, e ->
     // null if an error occurred, see: org.apache.kafka.clients.producer.Callback
     if (a != null) cont.resume(a) else cont.resumeWithException(e)
@@ -102,14 +105,14 @@ public enum class Acks(public val value: String) {
   One("1")
 }
 
+/**
+ *
+ * @see http://kafka.apache.org/documentation.html#producerconfigs
+ */
 public data class ProducerSettings<K, V>(
-  // BOOTSTRAP_SERVERS_CONFIG
   val bootstrapServers: String,
-  // KEY_SERIALIZER_CLASS_CONFIG
   val keyDeserializer: Serializer<K>,
-  // VALUE_SERIALIZER_CLASS_CONFIG
   val valueDeserializer: Serializer<V>,
-  // ACKS_CONFIG
   val acks: Acks = Acks.One
 ) {
   public fun properties(): Properties =
