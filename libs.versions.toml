@@ -7,7 +7,7 @@ kotlin = "1.6.0"
 kotlinx-coroutines = "1.5.2"
 dokka = "1.6.0"
 knit = "0.3.0"
-kover = "0.4.2"
+kover = "0.4.4"
 
 [libraries]
 kotest-assertions = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
