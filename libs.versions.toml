@@ -1,9 +1,9 @@
 [versions]
 # SNAPSHOT for resource DSL
 arrowGradleConfig = "0.6.0"
-kotest = "5.0.1"
+kotest = "5.0.3"
 kafka = "3.0.0"
-kotlin = "1.6.0"
+kotlin = "1.6.10"
 kotlinx-coroutines = "1.5.2"
 dokka = "1.6.0"
 knit = "0.3.0"
