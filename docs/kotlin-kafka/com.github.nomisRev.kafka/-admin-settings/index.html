@@ -7,7 +7,7 @@ const savedDarkMode = storage ? JSON.parse(storage) : false
 if(savedDarkMode === true){
     document.getElementsByTagName("html")[0].classList.add("theme-dark")
 }</script>
-<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async="async"></script><link href="../../../styles/style.css" rel="Stylesheet"><link href="../../../styles/jetbrains-mono.css" rel="Stylesheet"><link href="../../../styles/main.css" rel="Stylesheet"><link href="../../../styles/prism.css" rel="Stylesheet"><link href="../../../styles/logo-styles.css" rel="Stylesheet"><script type="text/javascript" src="../../../scripts/clipboard.js" async="async"></script><script type="text/javascript" src="../../../scripts/navigation-loader.js" async="async"></script><script type="text/javascript" src="../../../scripts/platform-content-handler.js" async="async"></script><script type="text/javascript" src="../../../scripts/main.js" async="async"></script><script type="text/javascript" src="../../../scripts/prism.js" async="async"></script>  </head>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async="async"></script><link href="../../../styles/style.css" rel="Stylesheet"><link href="../../../styles/jetbrains-mono.css" rel="Stylesheet"><link href="../../../styles/main.css" rel="Stylesheet"><link href="../../../styles/prism.css" rel="Stylesheet"><link href="../../../styles/logo-styles.css" rel="Stylesheet"><script type="text/javascript" src="../../../scripts/clipboard.js" async="async"></script><script type="text/javascript" src="../../../scripts/navigation-loader.js" async="async"></script><script type="text/javascript" src="../../../scripts/platform-content-handler.js" async="async"></script><script type="text/javascript" src="../../../scripts/main.js" defer="defer"></script><script type="text/javascript" src="../../../scripts/prism.js" async="async"></script>  </head>
   <body>
     <div class="navigation-wrapper" id="navigation-wrapper">
       <div id="leftToggler"><span class="icon-toggler"></span></div>
@@ -21,7 +21,7 @@ if(savedDarkMode === true){
       <div id="leftColumn">
         <div id="sideMenu"></div>
       </div>
-      <div id="main"><script type="text/javascript" src="../../../scripts/main.js"></script>
+      <div id="main">
         <div class="main-content" id="content" pageIds="kotlin-kafka::com.github.nomisRev.kafka/AdminSettings///PointingToDeclaration//769193423">
           <div class="breadcrumbs"><a href="../../../index.html">kotlin-kafka</a>/<a href="../index.html">com.github.nomisRev.kafka</a>/<a href="index.html">AdminSettings</a></div>
           <div class="cover ">
@@ -33,13 +33,15 @@ if(savedDarkMode === true){
             <div class="tabs-section-body">
               <h2 class="">See also</h2>
               <div data-togglable="See also">
-                <div class="platform-hinted WithExtraAttributes" data-platform-hinted="data-platform-hinted" data-togglable="See also"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><div data-togglable="See also"><div class="table" data-togglable="See also"><div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main"><div class="main-subrow keyValue WithExtraAttributes"><div class=""><span class="inline-flex"><span data-unresolved-link="org.apache.kafka.clients.admin/AdminClientConfig///PointingToDeclaration/">org.apache.kafka.clients.admin.AdminClientConfig</span></span></div><div><div class="title"><div data-togglable="See also"><p class="paragraph">for additional kafka <span data-unresolved-link="org.apache.kafka.clients.admin/Admin///PointingToDeclaration/">Admin</span> parameters</p><p class="paragraph">If you want to request an important <i>stable</i> kafka parameter to be added to the data class, please open an issue on the kotlin-kafka repo.</p></div></div></div></div></div></div></div></div></div>
+                <div class="platform-hinted WithExtraAttributes" data-platform-hinted="data-platform-hinted" data-togglable="See also"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><div data-togglable="See also"><div class="table" data-togglable="See also"><div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main"><div class="main-subrow keyValue WithExtraAttributes"><div class=""><span class="inline-flex"><div><span data-unresolved-link="org.apache.kafka.clients.admin/AdminClientConfig///PointingToDeclaration/"><span>org.</span><wbr></wbr><span>apache.</span><wbr></wbr><span>kafka.</span><wbr></wbr><span>clients.</span><wbr></wbr><span>admin.</span><wbr></wbr><span>Admin</span><wbr></wbr><span>Client</span><wbr></wbr><span><span>Config</span></span></span></div></span></div><div><div class="title"><div data-togglable="See also"><p class="paragraph">for additional kafka <span data-unresolved-link="org.apache.kafka.clients.admin/Admin///PointingToDeclaration/">Admin</span> parameters</p><p class="paragraph">If you want to request an important <i>stable</i> kafka parameter to be added to the data class, please open an issue on the kotlin-kafka repo.</p></div></div></div></div></div></div></div></div></div>
               </div>
               <h2 class="tabbedcontent">Constructors</h2>
               <div class="table" data-togglable="Constructors"><a data-name="477929191%2FConstructors%2F769193423" anchor-label="AdminSettings" id="477929191%2FConstructors%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
                 <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
                   <div class="main-subrow keyValue TabbedContent">
-                    <div class=""><span class="inline-flex"><a href="-admin-settings.html">AdminSettings</a><span class="anchor-wrapper"><span class="anchor-icon" pointing-to="477929191%2FConstructors%2F769193423"></span>
+                    <div class=""><span class="inline-flex">
+                        <div><a href="-admin-settings.html"><span>Admin</span><wbr></wbr><span><span>Settings</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="477929191%2FConstructors%2F769193423"></span>
                           <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                         </span></span></div>
                     <div>
@@ -54,7 +56,9 @@ if(savedDarkMode === true){
               <div class="table" data-togglable="Functions"><a data-name="-342987199%2FFunctions%2F769193423" anchor-label="properties" id="-342987199%2FFunctions%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
                 <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
                   <div class="main-subrow keyValue ">
-                    <div class=""><span class="inline-flex"><a href="properties.html"><span><span>properties</span></span></a><span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-342987199%2FFunctions%2F769193423"></span>
+                    <div class=""><span class="inline-flex">
+                        <div><a href="properties.html"><span><span>properties</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-342987199%2FFunctions%2F769193423"></span>
                           <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                         </span></span></div>
                     <div>
@@ -69,7 +73,9 @@ if(savedDarkMode === true){
               <div class="table" data-togglable="Properties"><a data-name="1425696661%2FProperties%2F769193423" anchor-label="bootstrapServer" id="1425696661%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
                 <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
                   <div class="main-subrow keyValue ">
-                    <div class=""><span class="inline-flex"><a href="bootstrap-server.html">bootstrapServer</a><span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1425696661%2FProperties%2F769193423"></span>
+                    <div class=""><span class="inline-flex">
+                        <div><a href="bootstrap-server.html">bootstrapServer</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1425696661%2FProperties%2F769193423"></span>
                           <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                         </span></span></div>
                     <div>
@@ -84,7 +90,9 @@ if(savedDarkMode === true){
               <div class="table" data-togglable="Sources"><a data-name="249682699%2FSource%2F769193423" anchor-label="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/com/github/nomisRev/kafka/Admin.kt#L67" id="249682699%2FSource%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
                 <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
                   <div class="main-subrow keyValue ">
-                    <div class=""><span class="inline-flex"><a href="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/com/github/nomisRev/kafka/Admin.kt#L67">jvm source</a><span class="anchor-wrapper"><span class="anchor-icon" pointing-to="249682699%2FSource%2F769193423"></span>
+                    <div class=""><span class="inline-flex">
+                        <div><a href="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/com/github/nomisRev/kafka/Admin.kt#L67">jvm source</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="249682699%2FSource%2F769193423"></span>
                           <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                         </span></span></div>
                     <div></div>

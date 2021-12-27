@@ -7,7 +7,7 @@ const savedDarkMode = storage ? JSON.parse(storage) : false
 if(savedDarkMode === true){
     document.getElementsByTagName("html")[0].classList.add("theme-dark")
 }</script>
-<script type="text/javascript" src="scripts/sourceset_dependencies.js" async="async"></script><link href="styles/style.css" rel="Stylesheet"><link href="styles/jetbrains-mono.css" rel="Stylesheet"><link href="styles/main.css" rel="Stylesheet"><link href="styles/prism.css" rel="Stylesheet"><link href="styles/logo-styles.css" rel="Stylesheet"><script type="text/javascript" src="scripts/clipboard.js" async="async"></script><script type="text/javascript" src="scripts/navigation-loader.js" async="async"></script><script type="text/javascript" src="scripts/platform-content-handler.js" async="async"></script><script type="text/javascript" src="scripts/main.js" async="async"></script><script type="text/javascript" src="scripts/prism.js" async="async"></script>  </head>
+<script type="text/javascript" src="scripts/sourceset_dependencies.js" async="async"></script><link href="styles/style.css" rel="Stylesheet"><link href="styles/jetbrains-mono.css" rel="Stylesheet"><link href="styles/main.css" rel="Stylesheet"><link href="styles/prism.css" rel="Stylesheet"><link href="styles/logo-styles.css" rel="Stylesheet"><script type="text/javascript" src="scripts/clipboard.js" async="async"></script><script type="text/javascript" src="scripts/navigation-loader.js" async="async"></script><script type="text/javascript" src="scripts/platform-content-handler.js" async="async"></script><script type="text/javascript" src="scripts/main.js" defer="defer"></script><script type="text/javascript" src="scripts/prism.js" async="async"></script>  </head>
   <body>
     <div class="navigation-wrapper" id="navigation-wrapper">
       <div id="leftToggler"><span class="icon-toggler"></span></div>
@@ -21,7 +21,7 @@ if(savedDarkMode === true){
       <div id="leftColumn">
         <div id="sideMenu"></div>
       </div>
-      <div id="main"><script type="text/javascript" src="scripts/main.js"></script>
+      <div id="main">
         <div class="main-content" id="content" pageIds="kotlin-kafka::////PointingToDeclaration//769193423">
           <div class="breadcrumbs"></div>
           <div class="cover ">
@@ -48,7 +48,9 @@ import org.apache.kafka.common.serialization.StringSerializer
             <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
               <div>
                 <div class="main-subrow ">
-                  <div class=""><span class="inline-flex"><a href="kotlin-kafka/com.github.nomisRev.kafka/index.html">com.github.nomisRev.kafka</a><span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1022263899%2FPackages%2F769193423"></span>
+                  <div class=""><span class="inline-flex">
+                      <div><a href="kotlin-kafka/com.github.nomisRev.kafka/index.html">com.github.nomisRev.kafka</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1022263899%2FPackages%2F769193423"></span>
                         <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                       </span></span></div>
                   <div class="pull-right"></div>
