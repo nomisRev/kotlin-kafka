@@ -1,0 +1,601 @@
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>ConsumerSettings</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>    <script>const storage = localStorage.getItem("dokka-dark-mode")
+const savedDarkMode = storage ? JSON.parse(storage) : false
+if(savedDarkMode === true){
+    document.getElementsByTagName("html")[0].classList.add("theme-dark")
+}</script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async="async"></script><link href="../../../styles/style.css" rel="Stylesheet"><link href="../../../styles/jetbrains-mono.css" rel="Stylesheet"><link href="../../../styles/main.css" rel="Stylesheet"><link href="../../../styles/prism.css" rel="Stylesheet"><link href="../../../styles/logo-styles.css" rel="Stylesheet"><script type="text/javascript" src="../../../scripts/clipboard.js" async="async"></script><script type="text/javascript" src="../../../scripts/navigation-loader.js" async="async"></script><script type="text/javascript" src="../../../scripts/platform-content-handler.js" async="async"></script><script type="text/javascript" src="../../../scripts/main.js" defer="defer"></script><script type="text/javascript" src="../../../scripts/prism.js" async="async"></script>  </head>
+  <body>
+    <div class="navigation-wrapper" id="navigation-wrapper">
+      <div id="leftToggler"><span class="icon-toggler"></span></div>
+      <div class="library-name"><a href="../../../index.html">kotlin-kafka</a></div>
+      <div></div>
+      <div class="pull-right d-flex"><button id="theme-toggle-button"><span id="theme-toggle"></span></button>
+        <div id="searchBar"></div>
+      </div>
+    </div>
+    <div id="container">
+      <div id="leftColumn">
+        <div id="sideMenu"></div>
+      </div>
+      <div id="main">
+        <div class="main-content" id="content" pageIds="kotlin-kafka::com.github.nomisRev.kafka/ConsumerSettings///PointingToDeclaration//769193423">
+          <div class="breadcrumbs"><a href="../../../index.html">kotlin-kafka</a>/<a href="../index.html">com.github.nomisRev.kafka</a>/<a href="index.html">ConsumerSettings</a></div>
+          <div class="cover ">
+            <h1 class="cover"><span>Consumer</span><wbr></wbr><span><span>Settings</span></span></h1>
+            <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="index.html">ConsumerSettings</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">K</a><span class="token punctuation">, </span><span class="token keyword"></span><a href="index.html">V</a><span class="token operator">&gt;</span><span class="token punctuation">(</span>bootstrapServers<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span>keyDeserializer<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Deserializer///PointingToDeclaration/">Deserializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">K</a><span class="token operator">&gt;</span><span class="token punctuation">, </span>valueDeserializer<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Deserializer///PointingToDeclaration/">Deserializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">V</a><span class="token operator">&gt;</span><span class="token punctuation">, </span>groupId<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span>clientDnsLookup<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.clients/ClientDnsLookup///PointingToDeclaration/">ClientDnsLookup</span><span class="token punctuation">, </span>sessionTimeOut<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token punctuation">, </span>heartbeatInterval<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token punctuation">, </span>autoOffsetReset<span class="token operator">: </span><a href="../-auto-offset-reset/index.html">AutoOffsetReset</a><span class="token punctuation">, </span>partitionAssignmentStrategy<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Class.html">Class</a><span class="token operator">&lt;</span><span class="token operator">*</span><span class="token operator">&gt;</span><span class="token operator">&gt;</span><span class="token punctuation">, </span>metadataMaxAge<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><span class="token punctuation">, </span>enableAutoCommit<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token punctuation">, </span>autoCommitInterval<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token punctuation">, </span>clientId<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span>maxPartitionFetchBytes<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span>sendBuffer<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span>receiveBuffer<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span>fetchMinBytes<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span>fetchMaxBytes<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span>fetchMaxWait<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token punctuation">, </span>reconnectBackoff<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token punctuation">, </span>reconnectBackoffMax<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token punctuation">, </span>retryBackoff<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token punctuation">, </span>checkCrcs<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token punctuation">, </span>metricsSampleWindow<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token punctuation">, </span>metricsNumSamples<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span>metricsRecordingLevel<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.metrics/Sensor.RecordingLevel///PointingToDeclaration/">Sensor.RecordingLevel</span><span class="token punctuation">, </span>metricsReporterClasses<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Class.html">Class</a><span class="token operator">&lt;</span><span class="token operator">*</span><span class="token operator">&gt;</span><span class="token operator">&gt;</span><span class="token punctuation">, </span>requestTimeout<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token punctuation">, </span>defaultApiTimeout<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token punctuation">, </span>connectionsMaxIdle<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token punctuation">, </span>interceptorClasses<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Class.html">Class</a><span class="token operator">&lt;</span><span class="token operator">*</span><span class="token operator">&gt;</span><span class="token operator">&gt;</span><span class="token punctuation">, </span>maxPollRecords<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span>maxPollInterval<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token punctuation">, </span>excludeInternalTopics<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token punctuation">, </span>properties<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/util/Properties.html">Properties</a><span class="token operator">?</span><span class="token punctuation">)</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><p class="paragraph">Default values taken from <span data-unresolved-link="org.apache.kafka.clients.consumer/ConsumerConfig///PointingToDeclaration/">org.apache.kafka.clients.consumer.ConsumerConfig</span></p></div></div>
+          </div>
+          <div class="tabbedcontent">
+            <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="Constructors">Constructors</button><button class="section-tab" data-togglable="Functions">Functions</button><button class="section-tab" data-togglable="Properties">Properties</button><button class="section-tab" data-togglable="Sources">Sources</button></div>
+            <div class="tabs-section-body">
+              <h2 class="tabbedcontent">Constructors</h2>
+              <div class="table" data-togglable="Constructors"><a data-name="1298342449%2FConstructors%2F769193423" anchor-label="ConsumerSettings" id="1298342449%2FConstructors%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue TabbedContent">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="-consumer-settings.html"><span>Consumer</span><wbr></wbr><span><span>Settings</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1298342449%2FConstructors%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">K</a><span class="token punctuation">, </span><span class="token keyword"></span><a href="index.html">V</a><span class="token operator">&gt; </span><a href="-consumer-settings.html"><span class="token function">ConsumerSettings</span></a><span class="token punctuation">(</span>bootstrapServers<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span>keyDeserializer<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Deserializer///PointingToDeclaration/">Deserializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">K</a><span class="token operator">&gt;</span><span class="token punctuation">, </span>valueDeserializer<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Deserializer///PointingToDeclaration/">Deserializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">V</a><span class="token operator">&gt;</span><span class="token punctuation">, </span>groupId<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span>clientDnsLookup<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.clients/ClientDnsLookup///PointingToDeclaration/">ClientDnsLookup</span><span class="token operator"> = </span>ClientDnsLookup.USE_ALL_DNS_IPS<span class="token punctuation">, </span>sessionTimeOut<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token operator"> = </span>Duration.ofMillis(10000)<span class="token punctuation">, </span>heartbeatInterval<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token operator"> = </span>Duration.ofMillis(3000)<span class="token punctuation">, </span>autoOffsetReset<span class="token operator">: </span><a href="../-auto-offset-reset/index.html">AutoOffsetReset</a><span class="token operator"> = </span>AutoOffsetReset.Latest<span class="token punctuation">, </span>partitionAssignmentStrategy<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Class.html">Class</a><span class="token operator">&lt;</span><span class="token operator">*</span><span class="token operator">&gt;</span><span class="token operator">&gt;</span><span class="token operator"> = </span>listOf(RangeAssignor::class.java)<span class="token punctuation">, </span>metadataMaxAge<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><span class="token operator"> = </span>(5 * 60 * 1000).toLong()<span class="token punctuation">, </span>enableAutoCommit<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">true</span><span class="token punctuation">, </span>autoCommitInterval<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token operator"> = </span>Duration.ofMillis(5000)<span class="token punctuation">, </span>clientId<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">&quot;&quot;</span><span class="token punctuation">, </span>maxPartitionFetchBytes<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span>DEFAULT_MAX_PARTITION_FETCH_BYTES<span class="token punctuation">, </span>sendBuffer<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span>128 * 1024<span class="token punctuation">, </span>receiveBuffer<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span>64 * 1024<span class="token punctuation">, </span>fetchMinBytes<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">1</span><span class="token punctuation">, </span>fetchMaxBytes<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span>ConsumerConfig.DEFAULT_FETCH_MAX_BYTES<span class="token punctuation">, </span>fetchMaxWait<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token operator"> = </span>Duration.ofMillis(500)<span class="token punctuation">, </span>reconnectBackoff<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token operator"> = </span>Duration.ofMillis(50L)<span class="token punctuation">, </span>reconnectBackoffMax<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token operator"> = </span>Duration.ofMillis(1000)<span class="token punctuation">, </span>retryBackoff<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token operator"> = </span>Duration.ofMillis(100)<span class="token punctuation">, </span>checkCrcs<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">true</span><span class="token punctuation">, </span>metricsSampleWindow<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token operator"> = </span>Duration.ofMillis(30000)<span class="token punctuation">, </span>metricsNumSamples<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">2</span><span class="token punctuation">, </span>metricsRecordingLevel<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.metrics/Sensor.RecordingLevel///PointingToDeclaration/">Sensor.RecordingLevel</span><span class="token operator"> = </span>Sensor.RecordingLevel.INFO<span class="token punctuation">, </span>metricsReporterClasses<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Class.html">Class</a><span class="token operator">&lt;</span><span class="token operator">*</span><span class="token operator">&gt;</span><span class="token operator">&gt;</span><span class="token operator"> = </span>emptyList()<span class="token punctuation">, </span>requestTimeout<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token operator"> = </span>Duration.ofMillis(30000)<span class="token punctuation">, </span>defaultApiTimeout<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token operator"> = </span>Duration.ofMillis(60 * 1000)<span class="token punctuation">, </span>connectionsMaxIdle<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token operator"> = </span>Duration.ofMillis(9 * 60 * 1000)<span class="token punctuation">, </span>interceptorClasses<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Class.html">Class</a><span class="token operator">&lt;</span><span class="token operator">*</span><span class="token operator">&gt;</span><span class="token operator">&gt;</span><span class="token operator"> = </span>emptyList()<span class="token punctuation">, </span>maxPollRecords<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">500</span><span class="token punctuation">, </span>maxPollInterval<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token operator"> = </span>Duration.ofMillis(300000)<span class="token punctuation">, </span>excludeInternalTopics<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span>ConsumerConfig.DEFAULT_EXCLUDE_INTERNAL_TOPICS<span class="token punctuation">, </span>properties<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/util/Properties.html">Properties</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">)</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <h2 class="">Functions</h2>
+              <div class="table" data-togglable="Functions"><a data-name="-1493530304%2FFunctions%2F769193423" anchor-label="properties" id="-1493530304%2FFunctions%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="properties.html"><span><span>properties</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1493530304%2FFunctions%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><a href="properties.html"><span class="token function">properties</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/util/Properties.html">Properties</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <h2 class="">Properties</h2>
+              <div class="table" data-togglable="Properties"><a data-name="-559570744%2FProperties%2F769193423" anchor-label="autoCommitInterval" id="-559570744%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="auto-commit-interval.html">autoCommitInterval</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-559570744%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-559570744%2FProperties%2F769193423" anchor-label="autoCommitInterval" id="-559570744%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="auto-commit-interval.html">autoCommitInterval</a><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="-1213267078%2FProperties%2F769193423" anchor-label="autoOffsetReset" id="-1213267078%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="auto-offset-reset.html">autoOffsetReset</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1213267078%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-1213267078%2FProperties%2F769193423" anchor-label="autoOffsetReset" id="-1213267078%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="auto-offset-reset.html">autoOffsetReset</a><span class="token operator">: </span><a href="../-auto-offset-reset/index.html">AutoOffsetReset</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="896749969%2FProperties%2F769193423" anchor-label="bootstrapServers" id="896749969%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="bootstrap-servers.html">bootstrapServers</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="896749969%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="896749969%2FProperties%2F769193423" anchor-label="bootstrapServers" id="896749969%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="bootstrap-servers.html">bootstrapServers</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="-501605056%2FProperties%2F769193423" anchor-label="checkCrcs" id="-501605056%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="check-crcs.html">checkCrcs</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-501605056%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-501605056%2FProperties%2F769193423" anchor-label="checkCrcs" id="-501605056%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="check-crcs.html">checkCrcs</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">true</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="1743840431%2FProperties%2F769193423" anchor-label="clientDnsLookup" id="1743840431%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="client-dns-lookup.html">clientDnsLookup</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1743840431%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="1743840431%2FProperties%2F769193423" anchor-label="clientDnsLookup" id="1743840431%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="client-dns-lookup.html">clientDnsLookup</a><span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.clients/ClientDnsLookup///PointingToDeclaration/">ClientDnsLookup</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="-1337390835%2FProperties%2F769193423" anchor-label="clientId" id="-1337390835%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="client-id.html">clientId</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1337390835%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-1337390835%2FProperties%2F769193423" anchor-label="clientId" id="-1337390835%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="client-id.html">clientId</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="585001520%2FProperties%2F769193423" anchor-label="connectionsMaxIdle" id="585001520%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="connections-max-idle.html">connectionsMaxIdle</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="585001520%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="585001520%2FProperties%2F769193423" anchor-label="connectionsMaxIdle" id="585001520%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="connections-max-idle.html">connectionsMaxIdle</a><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="1134902687%2FProperties%2F769193423" anchor-label="defaultApiTimeout" id="1134902687%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="default-api-timeout.html">defaultApiTimeout</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1134902687%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="1134902687%2FProperties%2F769193423" anchor-label="defaultApiTimeout" id="1134902687%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="default-api-timeout.html">defaultApiTimeout</a><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="-1870978806%2FProperties%2F769193423" anchor-label="enableAutoCommit" id="-1870978806%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="enable-auto-commit.html">enableAutoCommit</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1870978806%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-1870978806%2FProperties%2F769193423" anchor-label="enableAutoCommit" id="-1870978806%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="enable-auto-commit.html">enableAutoCommit</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">true</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="-718120884%2FProperties%2F769193423" anchor-label="excludeInternalTopics" id="-718120884%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="exclude-internal-topics.html">excludeInternalTopics</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-718120884%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-718120884%2FProperties%2F769193423" anchor-label="excludeInternalTopics" id="-718120884%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="exclude-internal-topics.html">excludeInternalTopics</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="790362502%2FProperties%2F769193423" anchor-label="fetchMaxBytes" id="790362502%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="fetch-max-bytes.html">fetchMaxBytes</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="790362502%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="790362502%2FProperties%2F769193423" anchor-label="fetchMaxBytes" id="790362502%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="fetch-max-bytes.html">fetchMaxBytes</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="-1799385708%2FProperties%2F769193423" anchor-label="fetchMaxWait" id="-1799385708%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="fetch-max-wait.html">fetchMaxWait</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1799385708%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-1799385708%2FProperties%2F769193423" anchor-label="fetchMaxWait" id="-1799385708%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="fetch-max-wait.html">fetchMaxWait</a><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="-1618598412%2FProperties%2F769193423" anchor-label="fetchMinBytes" id="-1618598412%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="fetch-min-bytes.html">fetchMinBytes</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1618598412%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-1618598412%2FProperties%2F769193423" anchor-label="fetchMinBytes" id="-1618598412%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="fetch-min-bytes.html">fetchMinBytes</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">1</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="-548519571%2FProperties%2F769193423" anchor-label="groupId" id="-548519571%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="group-id.html">groupId</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-548519571%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-548519571%2FProperties%2F769193423" anchor-label="groupId" id="-548519571%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="group-id.html">groupId</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="15123686%2FProperties%2F769193423" anchor-label="heartbeatInterval" id="15123686%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="heartbeat-interval.html">heartbeatInterval</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="15123686%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="15123686%2FProperties%2F769193423" anchor-label="heartbeatInterval" id="15123686%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="heartbeat-interval.html">heartbeatInterval</a><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="-1530165774%2FProperties%2F769193423" anchor-label="interceptorClasses" id="-1530165774%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="interceptor-classes.html">interceptorClasses</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1530165774%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-1530165774%2FProperties%2F769193423" anchor-label="interceptorClasses" id="-1530165774%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="interceptor-classes.html">interceptorClasses</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Class.html">Class</a><span class="token operator">&lt;</span><span class="token operator">*</span><span class="token operator">&gt;</span><span class="token operator">&gt;</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="2146977173%2FProperties%2F769193423" anchor-label="keyDeserializer" id="2146977173%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="key-deserializer.html">keyDeserializer</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2146977173%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="2146977173%2FProperties%2F769193423" anchor-label="keyDeserializer" id="2146977173%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="key-deserializer.html">keyDeserializer</a><span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Deserializer///PointingToDeclaration/">Deserializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">K</a><span class="token operator">&gt;</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="867325340%2FProperties%2F769193423" anchor-label="maxPartitionFetchBytes" id="867325340%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="max-partition-fetch-bytes.html">maxPartitionFetchBytes</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="867325340%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="867325340%2FProperties%2F769193423" anchor-label="maxPartitionFetchBytes" id="867325340%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="max-partition-fetch-bytes.html">maxPartitionFetchBytes</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="-985272833%2FProperties%2F769193423" anchor-label="maxPollInterval" id="-985272833%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="max-poll-interval.html">maxPollInterval</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-985272833%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-985272833%2FProperties%2F769193423" anchor-label="maxPollInterval" id="-985272833%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="max-poll-interval.html">maxPollInterval</a><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="-23792780%2FProperties%2F769193423" anchor-label="maxPollRecords" id="-23792780%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="max-poll-records.html">maxPollRecords</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-23792780%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-23792780%2FProperties%2F769193423" anchor-label="maxPollRecords" id="-23792780%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="max-poll-records.html">maxPollRecords</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">500</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="-1039666615%2FProperties%2F769193423" anchor-label="metadataMaxAge" id="-1039666615%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="metadata-max-age.html">metadataMaxAge</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1039666615%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-1039666615%2FProperties%2F769193423" anchor-label="metadataMaxAge" id="-1039666615%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="metadata-max-age.html">metadataMaxAge</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="2105348001%2FProperties%2F769193423" anchor-label="metricsNumSamples" id="2105348001%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="metrics-num-samples.html">metricsNumSamples</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2105348001%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="2105348001%2FProperties%2F769193423" anchor-label="metricsNumSamples" id="2105348001%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="metrics-num-samples.html">metricsNumSamples</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">2</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="593514417%2FProperties%2F769193423" anchor-label="metricsRecordingLevel" id="593514417%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="metrics-recording-level.html">metricsRecordingLevel</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="593514417%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="593514417%2FProperties%2F769193423" anchor-label="metricsRecordingLevel" id="593514417%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="metrics-recording-level.html">metricsRecordingLevel</a><span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.metrics/Sensor.RecordingLevel///PointingToDeclaration/">Sensor.RecordingLevel</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="-1719189615%2FProperties%2F769193423" anchor-label="metricsReporterClasses" id="-1719189615%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="metrics-reporter-classes.html">metricsReporterClasses</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1719189615%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-1719189615%2FProperties%2F769193423" anchor-label="metricsReporterClasses" id="-1719189615%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="metrics-reporter-classes.html">metricsReporterClasses</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Class.html">Class</a><span class="token operator">&lt;</span><span class="token operator">*</span><span class="token operator">&gt;</span><span class="token operator">&gt;</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="-1954636502%2FProperties%2F769193423" anchor-label="metricsSampleWindow" id="-1954636502%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="metrics-sample-window.html">metricsSampleWindow</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1954636502%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-1954636502%2FProperties%2F769193423" anchor-label="metricsSampleWindow" id="-1954636502%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="metrics-sample-window.html">metricsSampleWindow</a><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="-2038843267%2FProperties%2F769193423" anchor-label="partitionAssignmentStrategy" id="-2038843267%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="partition-assignment-strategy.html">partitionAssignmentStrategy</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2038843267%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-2038843267%2FProperties%2F769193423" anchor-label="partitionAssignmentStrategy" id="-2038843267%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="partition-assignment-strategy.html">partitionAssignmentStrategy</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Class.html">Class</a><span class="token operator">&lt;</span><span class="token operator">*</span><span class="token operator">&gt;</span><span class="token operator">&gt;</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="-721537788%2FProperties%2F769193423" anchor-label="receiveBuffer" id="-721537788%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="receive-buffer.html">receiveBuffer</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-721537788%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-721537788%2FProperties%2F769193423" anchor-label="receiveBuffer" id="-721537788%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="receive-buffer.html">receiveBuffer</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="-747879454%2FProperties%2F769193423" anchor-label="reconnectBackoff" id="-747879454%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="reconnect-backoff.html">reconnectBackoff</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-747879454%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-747879454%2FProperties%2F769193423" anchor-label="reconnectBackoff" id="-747879454%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="reconnect-backoff.html">reconnectBackoff</a><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="-452633420%2FProperties%2F769193423" anchor-label="reconnectBackoffMax" id="-452633420%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="reconnect-backoff-max.html">reconnectBackoffMax</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-452633420%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-452633420%2FProperties%2F769193423" anchor-label="reconnectBackoffMax" id="-452633420%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="reconnect-backoff-max.html">reconnectBackoffMax</a><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="369170561%2FProperties%2F769193423" anchor-label="requestTimeout" id="369170561%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="request-timeout.html">requestTimeout</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="369170561%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="369170561%2FProperties%2F769193423" anchor-label="requestTimeout" id="369170561%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="request-timeout.html">requestTimeout</a><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="677847603%2FProperties%2F769193423" anchor-label="retryBackoff" id="677847603%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="retry-backoff.html">retryBackoff</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="677847603%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="677847603%2FProperties%2F769193423" anchor-label="retryBackoff" id="677847603%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="retry-backoff.html">retryBackoff</a><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="-262876629%2FProperties%2F769193423" anchor-label="sendBuffer" id="-262876629%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="send-buffer.html">sendBuffer</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-262876629%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-262876629%2FProperties%2F769193423" anchor-label="sendBuffer" id="-262876629%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="send-buffer.html">sendBuffer</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="-1215831896%2FProperties%2F769193423" anchor-label="sessionTimeOut" id="-1215831896%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="session-time-out.html">sessionTimeOut</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1215831896%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-1215831896%2FProperties%2F769193423" anchor-label="sessionTimeOut" id="-1215831896%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="session-time-out.html">sessionTimeOut</a><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+<a data-name="704201539%2FProperties%2F769193423" anchor-label="valueDeserializer" id="704201539%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="value-deserializer.html">valueDeserializer</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="704201539%2FProperties%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div>
+                      <div class="title">
+                        <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="704201539%2FProperties%2F769193423" anchor-label="valueDeserializer" id="704201539%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="value-deserializer.html">valueDeserializer</a><span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Deserializer///PointingToDeclaration/">Deserializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">V</a><span class="token operator">&gt;</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <h2 class="">Sources</h2>
+              <div class="table" data-togglable="Sources"><a data-name="-1827100308%2FSource%2F769193423" anchor-label="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/com/github/nomisRev/kafka/Consumer.kt#L118" id="-1827100308%2FSource%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+                <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+                  <div class="main-subrow keyValue ">
+                    <div class=""><span class="inline-flex">
+                        <div><a href="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/com/github/nomisRev/kafka/Consumer.kt#L118">jvm source</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1827100308%2FSource%2F769193423"></span>
+                          <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                        </span></span></div>
+                    <div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="footer"><span class="go-to-top-icon"><a href="#content" id="go-to-top-link"></a></span><span>© 2022 Copyright</span><span class="pull-right"><span>Generated by </span><a href="https://github.com/Kotlin/dokka"><span>dokka</span><span class="padded-icon"></span></a></span></div>
+      </div>
+    </div>
+  </body>
+</html>
+
