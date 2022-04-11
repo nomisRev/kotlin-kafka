@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 buildscript {
   dependencies {
-    classpath("org.jetbrains.kotlinx:kotlinx-knit:0.3.0")
+    classpath("org.jetbrains.kotlinx:kotlinx-knit:0.4.0")
   }
 }
 
