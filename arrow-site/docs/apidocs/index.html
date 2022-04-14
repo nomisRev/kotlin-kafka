@@ -1,32 +1,52 @@
+<!DOCTYPE html>
 <html>
-  <head>
+<head>
     <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
     <title>kotlin-kafka</title>
-<link href="images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "";</script>    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    <link href="images/logo-icon.svg" rel="icon" type="image/svg">
+    <script>var pathToRoot = "";</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
 const savedDarkMode = storage ? JSON.parse(storage) : false
 if(savedDarkMode === true){
     document.getElementsByTagName("html")[0].classList.add("theme-dark")
 }</script>
-<script type="text/javascript" src="scripts/sourceset_dependencies.js" async="async"></script><link href="styles/style.css" rel="Stylesheet"><link href="styles/jetbrains-mono.css" rel="Stylesheet"><link href="styles/main.css" rel="Stylesheet"><link href="styles/prism.css" rel="Stylesheet"><link href="styles/logo-styles.css" rel="Stylesheet"><script type="text/javascript" src="scripts/clipboard.js" async="async"></script><script type="text/javascript" src="scripts/navigation-loader.js" async="async"></script><script type="text/javascript" src="scripts/platform-content-handler.js" async="async"></script><script type="text/javascript" src="scripts/main.js" defer="defer"></script><script type="text/javascript" src="scripts/prism.js" async="async"></script>  </head>
-  <body>
-    <div class="navigation-wrapper" id="navigation-wrapper">
-      <div id="leftToggler"><span class="icon-toggler"></span></div>
-      <div class="library-name"><a href="index.html">kotlin-kafka</a></div>
-      <div></div>
-      <div class="pull-right d-flex"><button id="theme-toggle-button"><span id="theme-toggle"></span></button>
-        <div id="searchBar"></div>
-      </div>
+<script type="text/javascript" src="scripts/sourceset_dependencies.js" async="async"></script>
+<link href="styles/style.css" rel="Stylesheet">
+<link href="styles/jetbrains-mono.css" rel="Stylesheet">
+<link href="styles/main.css" rel="Stylesheet">
+<link href="styles/prism.css" rel="Stylesheet">
+<link href="styles/logo-styles.css" rel="Stylesheet">
+<script type="text/javascript" src="scripts/clipboard.js" async="async"></script>
+<script type="text/javascript" src="scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="scripts/prism.js" async="async"></script>
+</head>
+<body>
+<div class="navigation-wrapper" id="navigation-wrapper">
+    <div id="leftToggler"><span class="icon-toggler"></span></div>
+    <div class="library-name">
+            <a href="index.html">
+                    <span>kotlin-kafka</span>
+            </a>
     </div>
-    <div id="container">
-      <div id="leftColumn">
+    <div>
+    </div>
+    <div class="pull-right d-flex">
+        <button id="theme-toggle-button"><span id="theme-toggle"></span></button>
+        <div id="searchBar"></div>
+    </div>
+</div>
+<div id="container">
+    <div id="leftColumn">
         <div id="sideMenu"></div>
-      </div>
-      <div id="main">
-        <div class="main-content" id="content" pageIds="kotlin-kafka::////PointingToDeclaration//769193423">
-          <div class="breadcrumbs"></div>
-          <div class="cover ">
-            <h1 class="cover"><span><span>kotlin-kafka</span></span></h1>
-            <div class="platform-hinted UnderCoverText" data-platform-hinted="data-platform-hinted"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><!--- TEST_NAME ReadmeTest --><!--- TOC --><ul><li><p class="paragraph">#rationale</p></li><li><p class="paragraph">#goals</p></li><li><p class="paragraph">#example</p></li></ul><!--- END --><p class="paragraph">This project is still under development, andd started as a playground where I was playing around with Kafka in Kotlin and the Kafka SDK whilst reading the Kafka book Definite Guide from Confluent. https://www.confluent.io/resources/kafka-the-definitive-guide-v2/</p><h2 class=""> Rationale</h2><p class="paragraph">At the time of starting this repository I didn't find any bindings between Kafka SDK and Kotlin suspension. These operators should be implemented low-level, so they can guarantee correct cancellation support, and high optimised runtimes.</p><h2 class=""> Goals</h2><ul><li><p class="paragraph">Lean Core library built on top of Kotlin Std & KotlinX Coroutines (possible extensions with Arrow in additional   module)</p></li><li><p class="paragraph">Extensions to easily operate over the Kafka SDK with KotlinX Coroutines and <code class="lang-kotlin">suspend</code>.</p></li><li><p class="paragraph">Flow based operators, so you can easily compose KotlinX Flow based Kafka programs</p></li><li><p class="paragraph">example for testing Kafka with Test Containers in Kotlin.</p></li></ul><h2 class=""> Example</h2><!--- INCLUDE
+    </div>
+    <div id="main">
+<div class="main-content" id="content" pageIds="kotlin-kafka::////PointingToDeclaration//769193423">
+  <div class="breadcrumbs"></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>kotlin-kafka</span></span></h1>
+    <div class="platform-hinted UnderCoverText" data-platform-hinted="data-platform-hinted"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><!--- TEST_NAME ReadmeTest --><!--- TOC --><ul><li><p class="paragraph">#rationale</p></li><li><p class="paragraph">#goals</p></li><li><p class="paragraph">#example</p></li></ul><!--- END --><p class="paragraph">This project is still under development, andd started as a playground where I was playing around with Kafka in Kotlin and the Kafka SDK whilst reading the Kafka book Definite Guide from Confluent. https://www.confluent.io/resources/kafka-the-definitive-guide-v2/</p><h2 class=""> Rationale</h2><p class="paragraph">At the time of starting this repository I didn't find any bindings between Kafka SDK and Kotlin suspension. These operators should be implemented low-level, so they can guarantee correct cancellation support, and high optimised runtimes.</p><h2 class=""> Goals</h2><ul><li><p class="paragraph">Lean Core library built on top of Kotlin Std & KotlinX Coroutines (possible extensions with Arrow in additional   module)</p></li><li><p class="paragraph">Extensions to easily operate over the Kafka SDK with KotlinX Coroutines and <code class="lang-kotlin">suspend</code>.</p></li><li><p class="paragraph">Flow based operators, so you can easily compose KotlinX Flow based Kafka programs</p></li><li><p class="paragraph">example for testing Kafka with Test Containers in Kotlin.</p></li></ul><h2 class=""> Example</h2><!--- INCLUDE
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers.Default
 import kotlinx.coroutines.coroutineScope
@@ -41,28 +61,30 @@ import org.apache.kafka.common.serialization.IntegerDeserializer
 import org.apache.kafka.common.serialization.IntegerSerializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
---><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea"></code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
-          </div>
-          <h2 class="">Packages</h2>
-          <div class="table"><a data-name="-1022263899%2FPackages%2F769193423" anchor-label="com.github.nomisRev.kafka" id="-1022263899%2FPackages%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-            <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-              <div>
-                <div class="main-subrow ">
-                  <div class=""><span class="inline-flex">
-                      <div><a href="kotlin-kafka/com.github.nomisRev.kafka/index.html">com.github.nomisRev.kafka</a></div>
+--><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">@JvmInline<br>value class Key(val index: Int)<br><br>@JvmInline<br>value class Message(val content: String)<br><br>fun main(): Unit =<br>  runBlocking(Default) {<br>    val topicName = &quot;test-topic&quot;<br>    val msgCount = 10<br>    val kafka = Kafka.container<br><br>    Admin(AdminSettings(kafka.bootstrapServers)).use { client -&gt;<br>      client.createTopic(NewTopic(topicName, 1, 1))<br>    }<br><br>    coroutineScope { // Run produces and consumer in a single scope<br>      launch { // Send 20 messages, and then close the producer<br>        val settings: ProducerSettings&lt;Key, Message&gt; =<br>          ProducerSettings(<br>            kafka.bootstrapServers,<br>            IntegerSerializer().imap { key: Key -&gt; key.index },<br>            StringSerializer().imap { msg: Message -&gt; msg.content },<br>            Acks.All<br>          )<br>        (1..msgCount)<br>          .map { index -&gt; ProducerRecord(topicName, Key(index), Message(&quot;msg: $index&quot;)) }<br>          .asFlow()<br>          .produce(settings)<br>          .collect(::println)<br>      }<br><br>      launch { // Consume 20 messages as a stream, and then close the consumer<br>        val settings: ConsumerSettings&lt;Key, Message&gt; =<br>          ConsumerSettings(<br>            kafka.bootstrapServers,<br>            IntegerDeserializer().map(::Key),<br>            StringDeserializer().map(::Message),<br>            groupId = UUID.randomUUID().toString(),<br>            autoOffsetReset = AutoOffsetReset.Earliest<br>          )<br>        kafkaConsumer(settings)<br>          .subscribeTo(topicName)<br>          .take(msgCount)<br>          .map { &quot;${it.key()} -&gt; ${it.value()}&quot; }<br>          .collect(::println)<br>      }<br>    }<br>  }</code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea"><p class="paragraph">You can get the full code guide/example/example-readme-01.kt.</p></code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><div class="sample-container"><pre><code class="block lang-text" theme="idea">test-topic-0@0<br>test-topic-0@1<br>test-topic-0@2<br>test-topic-0@3<br>test-topic-0@4<br>test-topic-0@5<br>test-topic-0@6<br>test-topic-0@7<br>test-topic-0@8<br>test-topic-0@9<br>Key(index=1) -&gt; Message(content=msg: 1)<br>Key(index=2) -&gt; Message(content=msg: 2)<br>Key(index=3) -&gt; Message(content=msg: 3)<br>Key(index=4) -&gt; Message(content=msg: 4)<br>Key(index=5) -&gt; Message(content=msg: 5)<br>Key(index=6) -&gt; Message(content=msg: 6)<br>Key(index=7) -&gt; Message(content=msg: 7)<br>Key(index=8) -&gt; Message(content=msg: 8)<br>Key(index=9) -&gt; Message(content=msg: 9)<br>Key(index=10) -&gt; Message(content=msg: 10)</code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><!--- TEST --></div></div>
+  </div>
+  <h2 class="">Packages</h2>
+  <div class="table"><a data-name="-1022263899%2FPackages%2F769193423" anchor-label="com.github.nomisRev.kafka" id="-1022263899%2FPackages%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+    <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="kotlin-kafka/com.github.nomisRev.kafka/index.html">com.github.nomisRev.kafka</a></div>
 <span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1022263899%2FPackages%2F769193423"></span>
-                        <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                      </span></span></div>
-                  <div class="pull-right"></div>
-                </div>
-                <div></div>
-              </div>
-            </div>
-          </div>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right"></div>
         </div>
-        <div class="footer"><span class="go-to-top-icon"><a href="#content" id="go-to-top-link"></a></span><span>© 2022 Copyright</span><span class="pull-right"><span>Generated by </span><a href="https://github.com/Kotlin/dokka"><span>dokka</span><span class="padded-icon"></span></a></span></div>
+        <div></div>
       </div>
     </div>
-  </body>
+  </div>
+</div>
+        <div class="footer"><span class="go-to-top-icon"><a href="#content" id="go-to-top-link"></a></span><span>© 2022 Copyright</span><span
+                class="pull-right"><span>Generated by </span><a
+                href="https://github.com/Kotlin/dokka"><span>dokka</span><span class="padded-icon"></span></a></span>
+        </div>
+    </div>
+</div>
+</body>
 </html>
-
