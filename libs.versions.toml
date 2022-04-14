@@ -5,7 +5,7 @@ kotest = "5.2.3"
 kafka = "3.1.0"
 kotlin = "1.6.20"
 kotlinx-coroutines = "1.6.1"
-dokka = "1.6.10"
+dokka = "1.6.20"
 knit = "0.4.0"
 kover = "0.5.0"
 
