@@ -76,8 +76,6 @@ tasks {
 
   withType<KotlinCompile>().configureEach {
     kotlinOptions.jvmTarget = "1.8"
-    sourceCompatibility = "1.8"
-    targetCompatibility = "1.8"
   }
 }
 
