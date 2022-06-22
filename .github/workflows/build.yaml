@@ -78,7 +78,7 @@ jobs:
           java-version: 11
 
       - name: Publish to MavenCentral
-        run: ./gradlew build publishToSonatype -x test
+        run: ./gradlew build publishToSonatype
 
       - name: Stop Gradle daemons
         run: ./gradlew --stop
