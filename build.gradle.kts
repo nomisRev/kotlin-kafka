@@ -77,6 +77,12 @@ tasks {
   withType<KotlinCompile>().configureEach {
     kotlinOptions.jvmTarget = "1.8"
   }
+
+  val cleanDocs = register<Delete>("cleanDocs") {
+    val folder = file("docs")
+    val docsContent = folder.listFiles().filter { it != folder }
+    delete(docsContent)
+  }
 }
 
 nexusPublishing {

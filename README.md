@@ -1,10 +1,13 @@
 Module kotlin-kafka
 
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.nomisrev/kotlin-kafka?color=4caf50&label=latest%20release)](https://maven-badges.herokuapp.com/maven-central/io.github.nomisrev/kotlin-kafka)
+
 <!--- TEST_NAME ReadmeTest -->
 <!--- TOC -->
 
 * [Rationale](#rationale)
 * [Goals](#goals)
+* [Adding Dependency](#adding-dependency)
 * [Example](#example)
 
 <!--- END -->
@@ -26,6 +29,16 @@ runtimes.
 - Extensions to easily operate over the Kafka SDK with KotlinX Coroutines and `suspend`.
 - Flow based operators, so you can easily compose KotlinX Flow based Kafka programs
 - example for testing Kafka with Test Containers in Kotlin.
+
+## Adding Dependency
+
+Simply add the following dependency as `implementation` in the `build.gradle` dependencies` block.
+
+```kotlin
+dependencies {
+  implementation("io.github.nomisrev:kotlin-kafka:0.1")
+}
+```
 
 ## Example
 

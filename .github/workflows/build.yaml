@@ -46,7 +46,7 @@ jobs:
 
       - name: Dokka
         id: Dokka
-        run: ./gradlew dokkaHtml
+        run: ./gradlew cleanDocs dokkaHtml
 
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
