@@ -19,13 +19,13 @@ plugins {
 
 apply(plugin = "kotlinx-knit")
 
-group = "io.github.nomisrev"
-
 allprojects {
   repositories {
     maven("https://oss.sonatype.org/content/repositories/snapshots/")
     mavenCentral()
   }
+  group = property("projects.group").toString()
+  version = property("projects.version").toString()
 }
 
 dependencies {
