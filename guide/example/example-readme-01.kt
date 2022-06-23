@@ -4,6 +4,9 @@ import com.github.nomisRev.kafka.*
 import java.util.Properties
 import kotlinx.coroutines.runBlocking
 
+dependencies {
+  implementation("io.github.nomisrev:kotlin-kafka:0.1")
+}
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers.Default
 import kotlinx.coroutines.coroutineScope
