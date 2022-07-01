@@ -19,10 +19,19 @@ jobs:
 
     steps:
       - name: Checkout the repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3.0.2
+        with:
+          fetch-depth: 0
 
-      - name: Run Check
-        run: ./gradlew check
+      - name: Set up Java
+        uses: actions/setup-java@v3.3.0
+        with:
+          distribution: 'zulu'
+
+      - name: Build
+        uses: gradle/gradle-build-action@v2.1.6
+        with:
+          arguments: build --scan --full-stacktrace
 
       - name: Bundle the build report
         if: failure()
