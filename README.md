@@ -34,7 +34,7 @@ runtimes.
 
 Simply add the following dependency as `implementation` in the `build.gradle` dependencies` block.
 
-```kotlin
+```groovy
 dependencies {
   implementation("io.github.nomisrev:kotlin-kafka:0.1")
 }
