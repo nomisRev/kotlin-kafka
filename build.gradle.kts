@@ -38,10 +38,7 @@ dependencies {
   api(libs.kafka.streams)
   api(libs.kafka.connect)
 
-  testImplementation(libs.kotest.runner.junit5)
-  testImplementation(libs.kotest.property)
-  testImplementation(libs.kotest.framework)
-  testImplementation(libs.kotest.assertions)
+  testImplementation(libs.bundles.kotest)
 }
 
 configure<KnitPluginExtension> {

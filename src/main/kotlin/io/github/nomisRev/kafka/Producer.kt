@@ -1,5 +1,6 @@
 @file:JvmName("Producer")
-package com.github.nomisRev.kafka
+
+package io.github.nomisRev.kafka
 
 import java.util.Properties
 import kotlin.coroutines.resume
@@ -72,18 +73,26 @@ public suspend fun <A, B> Flow<ProducerRecord<A, B>>.produce(
  * }
  * ```
  * <!--- KNIT example-producer-02.kt -->
- */ // TODO properly support interruptible `send`, whilst still working in a suspending way.
+ */
 public suspend fun <A, B> KafkaProducer<A, B>.sendAwait(
   record: ProducerRecord<A, B>
-): RecordMetadata = suspendCoroutine { cont ->
-  // Those can be a SerializationException when it fails to serialize the message,
-  // a BufferExhaustedException or TimeoutException if the buffer is full,
-  // or an InterruptException if the sending thread was interrupted.
-  send(record) { a, e ->
-    // null if an error occurred, see: org.apache.kafka.clients.producer.Callback
-    if (a != null) cont.resume(a) else cont.resumeWithException(e)
+): RecordMetadata =
+  suspendCoroutine { cont ->
+    // Those can be a SerializationException when it fails to serialize the message,
+    // a BufferExhaustedException or TimeoutException if the buffer is full,
+    // or an InterruptException if the sending thread was interrupted.
+    send(record) { a, e ->
+      // null if an error occurred, see: org.apache.kafka.clients.producer.Callback
+      if (a != null) cont.resume(a) else cont.resumeWithException(e)
+    }
   }
-}
+
+public fun <K, V> KafkaProducer(
+  props: Properties,
+  keyDeserializer: Serializer<K>,
+  valueDeserializer: Serializer<V>
+): KafkaProducer<K, V> =
+  KafkaProducer(props, keyDeserializer, valueDeserializer)
 
 public fun <K, V> kafkaProducer(
   props: Properties,
@@ -113,7 +122,8 @@ public data class ProducerSettings<K, V>(
   val bootstrapServers: String,
   val keyDeserializer: Serializer<K>,
   val valueDeserializer: Serializer<V>,
-  val acks: Acks = Acks.One
+  val acks: Acks = Acks.One,
+  val other: Properties? = null
 ) {
   public fun properties(): Properties =
     Properties().apply {
@@ -121,12 +131,12 @@ public data class ProducerSettings<K, V>(
       put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, keyDeserializer::class.qualifiedName)
       put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueDeserializer::class.qualifiedName)
       put(ProducerConfig.ACKS_CONFIG, acks.value)
+      other?.let { putAll(other) }
     }
 
   /**
-   * // TODO Support Transactional behavior Kafka producer as a [Flow]. Will automatically close,
-   * and flush when finished streaming. The [Flow] will close when the [KafkaProducer] is consumed
-   * from the [Flow].
+   * Will automatically close, and flush when finished streaming.
+   * The [Flow] will close when the [KafkaProducer] is consumed from the [Flow].
    *
    * This means that the [KafkaProducer] will not be closed for a synchronous running stream, but
    * when running the [Flow] is offloaded in a separate Coroutine it's prone to be collected, closed

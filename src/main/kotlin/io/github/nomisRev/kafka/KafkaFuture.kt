@@ -1,5 +1,5 @@
 @file:JvmName("KafkaFutureExt")
-package com.github.nomisRev.kafka
+package io.github.nomisRev.kafka
 
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.InternalCoroutinesApi

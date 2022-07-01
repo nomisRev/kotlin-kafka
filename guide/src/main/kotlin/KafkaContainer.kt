@@ -1,7 +1,7 @@
 import com.github.dockerjava.api.command.InspectContainerResponse
-import com.github.nomisRev.kafka.Admin
-import com.github.nomisRev.kafka.AdminSettings
-import com.github.nomisRev.kafka.await
+import io.github.nomisRev.kafka.Admin
+import io.github.nomisRev.kafka.AdminSettings
+import io.github.nomisRev.kafka.await
 import kotlinx.coroutines.runBlocking
 import org.testcontainers.containers.KafkaContainer
 import org.testcontainers.utility.DockerImageName
@@ -33,7 +33,7 @@ class Kafka private constructor(imageName: DockerImageName) : KafkaContainer(ima
 
   companion object {
     val container: KafkaContainer by lazy {
-      Kafka(DockerImageName.parse("confluentinc/cp-kafka:6.2.1"))
+      Kafka(DockerImageName.parse("niciqy/cp-kafka-arm64:7.0.1").asCompatibleSubstituteFor("confluentinc/cp-kafka"))
         .withReuse(true)
         .withNetwork(null)
         .withLabel("io.github.nomisrev.kafka", "fqn-testcontainers-reuse")
@@ -41,16 +41,16 @@ class Kafka private constructor(imageName: DockerImageName) : KafkaContainer(ima
     }
   }
 
-  override fun containerIsStarted(containerInfo: InspectContainerResponse?, reused: Boolean) {
-    super.containerIsStarted(containerInfo, reused)
-    // If we're reusing the container, we want to reset the state of the container. We do this by
-    // deleting all topics.
-    //    if (reused)
-    runBlocking<Unit> {
-      Admin(AdminSettings(bootstrapServers)).use { admin ->
-        val names = admin.listTopics().listings().await()
-        admin.deleteTopics(names.map { it.name() }).all().await()
-      }
-    }
-  }
+  // override fun containerIsStarted(containerInfo: InspectContainerResponse?, reused: Boolean) {
+  //   super.containerIsStarted(containerInfo, reused)
+  //   // If we're reusing the container, we want to reset the state of the container. We do this by
+  //   // deleting all topics.
+  //   //    if (reused)
+  //   runBlocking<Unit> {
+  //     Admin(AdminSettings(bootstrapServers)).use { admin ->
+  //       val names = admin.listTopics().listings().await()
+  //       admin.deleteTopics(names.map { it.name() }).all().await()
+  //     }
+  //   }
+  // }
 }

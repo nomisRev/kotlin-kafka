@@ -1,19 +1,26 @@
 @file:JvmName("Consumer")
-package com.github.nomisRev.kafka
 
+package io.github.nomisRev.kafka
+
+import io.github.nomisRev.kafka.internal.chunked
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import java.time.Duration
 import java.util.Properties
 import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.runInterruptible
 import org.apache.kafka.clients.ClientDnsLookup
-import org.apache.kafka.clients.admin.Admin
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG
@@ -51,11 +58,23 @@ import org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFI
 import org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.clients.consumer.ConsumerRecords
 import org.apache.kafka.clients.consumer.KafkaConsumer
+import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.clients.consumer.RangeAssignor
 import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener
 import org.apache.kafka.common.metrics.Sensor
 import org.apache.kafka.common.serialization.Deserializer
+import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.errors.InterruptException
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.toJavaDuration
+
+public fun <K, V> KafkaConsumer(settings: ConsumerSettings<K, V>): KafkaConsumer<K, V> =
+  KafkaConsumer(settings.properties(), settings.keyDeserializer, settings.valueDeserializer)
 
 /**
  * <!--- INCLUDE
@@ -85,34 +104,125 @@ import org.apache.kafka.common.serialization.Deserializer
  */
 public fun <K, V> kafkaConsumer(settings: ConsumerSettings<K, V>): Flow<KafkaConsumer<K, V>> =
   flow {
-    KafkaConsumer(settings.properties(), settings.keyDeserializer, settings.valueDeserializer).use {
+    KafkaConsumer(settings).use {
       emit(it)
+      println("kafkaConsumer closed")
     }
   }
 
-/** Subscribes to the [KafkaConsumer] and polls for events in an interruptible way. */
-@OptIn(FlowPreview::class)
+/**
+ * Commits offsets in batches of every [count] offsets or a certain [duration] has passed, whichever happens first.
+ */
+@FlowPreview
+@ExperimentalCoroutinesApi
+@JvmName("commitBatchesWithin")
+public fun <K, V> Flow<ConsumerRecords<K, V>>.commitBatchWithin(
+  settings: ConsumerSettings<K, V>,
+  count: Int,
+  duration: kotlin.time.Duration,
+  metadata: ((record: ConsumerRecord<K, V>) -> String)? = null,
+): Flow<Map<TopicPartition, OffsetAndMetadata>> = kafkaConsumer(settings).flatMapConcat { consumer ->
+  chunked(count, duration).mapNotNull { records ->
+    if (records.isNotEmpty()) consumer.commitAwait(records.offsets(metadata))
+    else null
+  }
+}
+
+@FlowPreview
+@ExperimentalCoroutinesApi
+public fun <K, V> Flow<ConsumerRecord<K, V>>.commitBatchWithin(
+  settings: ConsumerSettings<K, V>,
+  count: Int,
+  duration: kotlin.time.Duration,
+  metadata: ((record: ConsumerRecord<K, V>) -> String)? = null,
+): Flow<Unit> = kafkaConsumer(settings).flatMapConcat { consumer ->
+  chunked(count, duration).mapNotNull { records ->
+    val commitAsyncMap = records.offsets(metadata)
+    (if (records.isNotEmpty()) consumer.commitAsync(commitAsyncMap) { _, e ->
+      if (e != null) throw e
+    } else Unit)
+  }
+}
+
+public suspend fun <K, V> KafkaConsumer<K, V>.commitAwait(
+  offsets: Map<TopicPartition, OffsetAndMetadata>,
+): Map<TopicPartition, OffsetAndMetadata> =
+  suspendCoroutine { cont ->
+    commitAsync(offsets) { offsets, e ->
+      if (e != null) cont.resumeWithException(e)
+      else cont.resume(offsets)
+    }
+  }
+
+public operator fun <K, V> ConsumerRecord<K, V>.component1(): K = key()
+public operator fun <K, V> ConsumerRecord<K, V>.component2(): V = value()
+
+public fun <K, V> Iterable<ConsumerRecord<K, V>>.offsets(
+  metadata: ((record: ConsumerRecord<K, V>) -> String)? = null,
+): Map<TopicPartition, OffsetAndMetadata> = mutableMapOf<TopicPartition, OffsetAndMetadata>().apply {
+  this@offsets.forEach { record ->
+    val key = TopicPartition(record.topic(), record.partition())
+    val value = metadata?.let {
+      OffsetAndMetadata(record.offset(), record.leaderEpoch(), metadata(record))
+    } ?: OffsetAndMetadata(record.offset())
+    put(key, value)
+  }
+}
+
+public fun <K, V> ConsumerRecord<K, V>.offsets(
+  metadata: ((record: ConsumerRecord<K, V>) -> String)? = null,
+): Map<TopicPartition, OffsetAndMetadata> = buildMap {
+  val key = TopicPartition(topic(), partition())
+  val value = metadata?.let {
+    OffsetAndMetadata(offset(), leaderEpoch(), metadata(this@offsets))
+  } ?: OffsetAndMetadata(offset())
+  put(key, value)
+}
+
+@JvmName("offsetsBatches")
+public fun <K, V> List<ConsumerRecords<K, V>>.offsets(
+  metadata: ((record: ConsumerRecord<K, V>) -> String)? = null,
+): Map<TopicPartition, OffsetAndMetadata> = buildMap {
+  this@offsets.forEach {
+    putAll(it.offsets(metadata))
+  }
+}
+
+@FlowPreview
 public fun <K, V> Flow<KafkaConsumer<K, V>>.subscribeTo(
   name: String,
+  dispatcher: CoroutineDispatcher = IO,
   listener: ConsumerRebalanceListener = NoOpConsumerRebalanceListener(),
-  timeout: Duration = Duration.ofMillis(500)
+  timeout: kotlin.time.Duration = 500.milliseconds,
 ): Flow<ConsumerRecord<K, V>> = flatMapConcat { consumer ->
-  flow {
-    consumer.subscribe(listOf(name), listener)
-    val job: Job? = coroutineContext[Job]
-    while (true) {
-      job?.ensureActive()
-      runInterruptible(IO) {
-        consumer.poll(timeout)
-      }.forEach { record -> emit(record) }
+  consumer.subscribeTo(name, dispatcher, listener, timeout)
+}
+
+/** Subscribes to the [KafkaConsumer] and polls for events in an interruptible way. */
+public fun <K, V> KafkaConsumer<K, V>.subscribeTo(
+  name: String,
+  dispatcher: CoroutineDispatcher = IO,
+  listener: ConsumerRebalanceListener = NoOpConsumerRebalanceListener(),
+  timeout: kotlin.time.Duration = 500.milliseconds,
+): Flow<ConsumerRecord<K, V>> = flow {
+  subscribe(listOf(name), listener)
+  val job: Job? = coroutineContext[Job]
+  while (true) {
+    job?.ensureActive()
+    // KotlinX Coroutines catches java.util.InterruptedException,
+    // but Kafka uses its own runtime with org.apache.kafka.common.errors.InterruptException
+    try {
+      runInterruptible(dispatcher) {
+        poll(timeout.toJavaDuration())
+      }.let { emitAll(it.asFlow()) }
+    } catch (e: InterruptException) {
+      throw CancellationException("Blocking call was interrupted due to parent cancellation").initCause(e)
     }
   }
 }
 
 public enum class AutoOffsetReset(public val value: String) {
-  Earliest("earliest"),
-  Latest("latest"),
-  None("none")
+  Earliest("earliest"), Latest("latest"), None("none")
 }
 
 /** Default values taken from [org.apache.kafka.clients.consumer.ConsumerConfig] */
@@ -181,55 +291,48 @@ public data class ConsumerSettings<K, V>(
   val interceptorClasses: List<Class<*>> = emptyList(),
   // MAX_POLL_RECORDS_CONFIG (AT LEAST 1)
   val maxPollRecords: Int = 500,
-  // MAX_POLL_INTERVAL_MS_CONFIG (AT LEASTT 1)
-  val maxPollInterval: Duration = Duration.ofMillis(300000),
+  // MAX_POLL_INTERVAL_MS_CONFIG (AT LEAST 1)
+  val maxPollInterval: Duration = Duration.ofMillis(300_000),
   // EXCLUDE_INTERNAL_TOPICS_CONFIG
   val excludeInternalTopics: Boolean = ConsumerConfig.DEFAULT_EXCLUDE_INTERNAL_TOPICS,
   // Optional parameter that allows for setting properties not defined here
-  private val properties: Properties? = null
+  private val properties: Properties? = null,
 ) {
-  public fun properties(): Properties =
-    Properties().apply {
-      properties?.let { putAll(it) }
-      put(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
-      put(AUTO_OFFSET_RESET_CONFIG, autoOffsetReset.toString())
-      put(GROUP_ID_CONFIG, groupId)
-      put(CLIENT_DNS_LOOKUP_CONFIG, clientDnsLookup.toString())
-      put(SESSION_TIMEOUT_MS_CONFIG, sessionTimeOut.toMillis().toInt())
-      put(HEARTBEAT_INTERVAL_MS_CONFIG, heartbeatInterval.toMillis().toInt())
-      put(AUTO_OFFSET_RESET_CONFIG, autoOffsetReset.value)
-      put(
-        PARTITION_ASSIGNMENT_STRATEGY_CONFIG,
-        partitionAssignmentStrategy.joinToString(separator = ",") { it.name }
-      )
-      put(METADATA_MAX_AGE_CONFIG, metadataMaxAge)
-      put(ENABLE_AUTO_COMMIT_CONFIG, enableAutoCommit)
-      put(AUTO_COMMIT_INTERVAL_MS_CONFIG, autoCommitInterval.toMillis().toInt())
-      put(CLIENT_ID_CONFIG, clientId)
-      put(MAX_PARTITION_FETCH_BYTES_CONFIG, maxPartitionFetchBytes)
-      put(SEND_BUFFER_CONFIG, sendBuffer)
-      put(RECEIVE_BUFFER_CONFIG, receiveBuffer)
-      put(FETCH_MIN_BYTES_CONFIG, fetchMinBytes)
-      put(FETCH_MAX_BYTES_CONFIG, fetchMaxBytes)
-      put(RECONNECT_BACKOFF_MS_CONFIG, reconnectBackoff.toMillis().toInt())
-      put(RECONNECT_BACKOFF_MAX_MS_CONFIG, reconnectBackoffMax.toMillis().toInt())
-      put(RETRY_BACKOFF_MS_CONFIG, retryBackoff.toMillis().toInt())
-      put(CHECK_CRCS_CONFIG, checkCrcs)
-      put(METRICS_SAMPLE_WINDOW_MS_CONFIG, metricsSampleWindow.toMillis().toInt())
-      put(METRICS_NUM_SAMPLES_CONFIG, metricsNumSamples)
-      put(METRICS_RECORDING_LEVEL_CONFIG, metricsRecordingLevel.toString())
-      put(
-        METRIC_REPORTER_CLASSES_CONFIG,
-        metricsReporterClasses.joinToString(separator = ",") { it.name }
-      )
-      put(KEY_DESERIALIZER_CLASS_CONFIG, keyDeserializer::class.qualifiedName)
-      put(VALUE_DESERIALIZER_CLASS_CONFIG, valueDeserializer::class.qualifiedName)
-      put(REQUEST_TIMEOUT_MS_CONFIG, requestTimeout.toMillis().toInt())
-      put(DEFAULT_API_TIMEOUT_MS_CONFIG, defaultApiTimeout.toMillis().toInt())
-      put(CONNECTIONS_MAX_IDLE_MS_CONFIG, connectionsMaxIdle.toMillis().toInt())
-      put(INTERCEPTOR_CLASSES_CONFIG, interceptorClasses.joinToString(separator = ",") { it.name })
-      put(MAX_POLL_RECORDS_CONFIG, maxPollRecords)
-      put(MAX_POLL_INTERVAL_MS_CONFIG, maxPollInterval.toMillis().toInt())
-      put(EXCLUDE_INTERNAL_TOPICS_CONFIG, excludeInternalTopics)
-    }
+  public fun properties(): Properties = Properties().apply {
+    properties?.let { putAll(it) }
+    put(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+    put(AUTO_OFFSET_RESET_CONFIG, autoOffsetReset.value)
+    put(GROUP_ID_CONFIG, groupId)
+    put(CLIENT_DNS_LOOKUP_CONFIG, clientDnsLookup.toString())
+    put(SESSION_TIMEOUT_MS_CONFIG, sessionTimeOut.toMillis().toInt())
+    put(HEARTBEAT_INTERVAL_MS_CONFIG, heartbeatInterval.toMillis().toInt())
+    put(AUTO_OFFSET_RESET_CONFIG, autoOffsetReset.value)
+    put(PARTITION_ASSIGNMENT_STRATEGY_CONFIG, partitionAssignmentStrategy.joinToString(separator = ",") { it.name })
+    put(METADATA_MAX_AGE_CONFIG, metadataMaxAge)
+    put(ENABLE_AUTO_COMMIT_CONFIG, enableAutoCommit)
+    put(AUTO_COMMIT_INTERVAL_MS_CONFIG, autoCommitInterval.toMillis().toInt())
+    put(CLIENT_ID_CONFIG, clientId)
+    put(MAX_PARTITION_FETCH_BYTES_CONFIG, maxPartitionFetchBytes)
+    put(SEND_BUFFER_CONFIG, sendBuffer)
+    put(RECEIVE_BUFFER_CONFIG, receiveBuffer)
+    put(FETCH_MIN_BYTES_CONFIG, fetchMinBytes)
+    put(FETCH_MAX_BYTES_CONFIG, fetchMaxBytes)
+    put(RECONNECT_BACKOFF_MS_CONFIG, reconnectBackoff.toMillis().toInt())
+    put(RECONNECT_BACKOFF_MAX_MS_CONFIG, reconnectBackoffMax.toMillis().toInt())
+    put(RETRY_BACKOFF_MS_CONFIG, retryBackoff.toMillis().toInt())
+    put(CHECK_CRCS_CONFIG, checkCrcs)
+    put(METRICS_SAMPLE_WINDOW_MS_CONFIG, metricsSampleWindow.toMillis().toInt())
+    put(METRICS_NUM_SAMPLES_CONFIG, metricsNumSamples)
+    put(METRICS_RECORDING_LEVEL_CONFIG, metricsRecordingLevel.toString())
+    put(METRIC_REPORTER_CLASSES_CONFIG, metricsReporterClasses.joinToString(separator = ",") { it.name })
+    put(KEY_DESERIALIZER_CLASS_CONFIG, keyDeserializer::class.qualifiedName)
+    put(VALUE_DESERIALIZER_CLASS_CONFIG, valueDeserializer::class.qualifiedName)
+    put(REQUEST_TIMEOUT_MS_CONFIG, requestTimeout.toMillis().toInt())
+    put(DEFAULT_API_TIMEOUT_MS_CONFIG, defaultApiTimeout.toMillis().toInt())
+    put(CONNECTIONS_MAX_IDLE_MS_CONFIG, connectionsMaxIdle.toMillis().toInt())
+    put(INTERCEPTOR_CLASSES_CONFIG, interceptorClasses.joinToString(separator = ",") { it.name })
+    put(MAX_POLL_RECORDS_CONFIG, maxPollRecords)
+    put(MAX_POLL_INTERVAL_MS_CONFIG, maxPollInterval.toMillis().toInt())
+    put(EXCLUDE_INTERNAL_TOPICS_CONFIG, excludeInternalTopics)
+  }
 }
