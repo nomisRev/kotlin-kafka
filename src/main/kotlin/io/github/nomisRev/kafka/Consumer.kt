@@ -106,7 +106,6 @@ public fun <K, V> kafkaConsumer(settings: ConsumerSettings<K, V>): Flow<KafkaCon
   flow {
     KafkaConsumer(settings).use {
       emit(it)
-      println("kafkaConsumer closed")
     }
   }
 
