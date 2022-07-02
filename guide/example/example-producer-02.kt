@@ -1,6 +1,6 @@
 package example.exampleProducer02
 
-import com.github.nomisRev.kafka.*
+import io.github.nomisRev.kafka.*
 import java.util.Properties
 import kotlinx.coroutines.runBlocking
 

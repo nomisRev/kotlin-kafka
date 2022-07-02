@@ -34,11 +34,8 @@ dependencies {
   api(libs.kotlinx.coroutines.core)
   api(libs.kotlinx.coroutines.jdk8)
   api(libs.kafka.clients)
-  
-  testImplementation(libs.kotest.runner.junit5)
-  testImplementation(libs.kotest.property)
-  testImplementation(libs.kotest.framework)
-  testImplementation(libs.kotest.assertions)
+
+  testImplementation(libs.bundles.kotest)
 }
 
 configure<KnitPluginExtension> {

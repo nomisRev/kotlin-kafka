@@ -1,4 +1,4 @@
-package com.github.nomisRev.kafka
+package io.github.nomisRev.kafka
 
 import java.util.Properties
 import org.apache.kafka.clients.admin.Admin
@@ -6,6 +6,7 @@ import org.apache.kafka.clients.admin.AdminClientConfig
 import org.apache.kafka.clients.admin.CreateTopicsOptions
 import org.apache.kafka.clients.admin.DeleteTopicsOptions
 import org.apache.kafka.clients.admin.DescribeTopicsOptions
+import org.apache.kafka.clients.admin.ListTopicsOptions
 import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.admin.TopicDescription
 
@@ -41,18 +42,29 @@ import org.apache.kafka.clients.admin.TopicDescription
  */
 public fun Admin(settings: AdminSettings): Admin = Admin.create(settings.properties())
 
-/** Extension method on [Admin] to create a single Topic in a suspending way. */
+/** Extension method on [Admin] to create a Topic in a suspending way. */
 public suspend fun Admin.createTopic(
   topic: NewTopic,
-  option: CreateTopicsOptions = CreateTopicsOptions()
+  option: CreateTopicsOptions = CreateTopicsOptions(),
+): Unit = createTopic(listOf(topic), option)
+
+/** Extension method on [Admin] to create Topics in a suspending way. */
+public suspend fun Admin.createTopic(
+  topic: Iterable<NewTopic>,
+  option: CreateTopicsOptions = CreateTopicsOptions(),
 ): Unit {
-  createTopics(listOf(topic), option).all().await()
+  createTopics(topic.toList(), option).all().await()
 }
+
+public suspend fun Admin.topicExists(
+  topic: NewTopic,
+  listTopicsOptions: ListTopicsOptions = ListTopicsOptions(),
+): Boolean = listTopics(listTopicsOptions).names().await().contains(topic.name())
 
 /** Extension method on [Admin] to delete a single Topic in a suspending way. */
 public suspend fun Admin.deleteTopic(
   name: String,
-  options: DeleteTopicsOptions = DeleteTopicsOptions()
+  options: DeleteTopicsOptions = DeleteTopicsOptions(),
 ): Unit {
   deleteTopics(listOf(name), options).all().await()
 }
@@ -60,9 +72,9 @@ public suspend fun Admin.deleteTopic(
 /** Extension method to describe a single Topic */
 public suspend fun Admin.describeTopic(
   name: String,
-  options: DescribeTopicsOptions = DescribeTopicsOptions()
+  options: DescribeTopicsOptions = DescribeTopicsOptions(),
 ): TopicDescription? =
-  describeTopics(listOf(name), options).values().getOrDefault(name, null)?.await()
+  describeTopics(listOf(name), options).topicNameValues().getOrDefault(name, null)?.await()
 
 /**
  * Typed data class for creating a valid [Admin] instance. The only required parameter is the
@@ -75,7 +87,7 @@ public suspend fun Admin.describeTopic(
  */
 public data class AdminSettings(
   val bootstrapServer: String,
-  private val props: Properties? = null
+  private val props: Properties? = null,
 ) {
   public fun properties(): Properties =
     Properties().apply {
