@@ -1,6 +1,6 @@
 [versions]
 arrowGradleConfig = "0.10.2"
-kotest = "5.3.1"
+kotest = "5.3.2"
 kafka = "3.2.0"
 kotlin = "1.7.0"
 kotlinx-coroutines = "1.6.3"
@@ -20,7 +20,7 @@ kotlin-scripting-compiler-embeddable = { module = "org.jetbrains.kotlin:kotlin-s
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-jdk8 = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8", version.ref = "kotlinx-coroutines" }
-testcontainers-kafka = "org.testcontainers:kafka:1.17.2"
+testcontainers-kafka = "org.testcontainers:kafka:1.17.3"
 
 [bundles]
 kotest = [
