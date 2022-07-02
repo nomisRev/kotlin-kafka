@@ -79,7 +79,7 @@ tasks {
   }
 
   val cleanDocs = register<Delete>("cleanDocs") {
-    val folder = file("docs")
+    val folder = file("docs").also { it.mkdir() }
     val docsContent = folder.listFiles().filter { it != folder }
     delete(docsContent)
   }
