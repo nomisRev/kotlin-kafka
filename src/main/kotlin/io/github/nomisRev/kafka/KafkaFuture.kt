@@ -1,8 +1,8 @@
 @file:JvmName("KafkaFutureExt")
+
 package io.github.nomisRev.kafka
 
 import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.future.asDeferred
 import kotlinx.coroutines.future.await
 import org.apache.kafka.clients.admin.CreateTopicsResult
@@ -31,7 +31,6 @@ public suspend fun <T> KafkaFuture<T>.await(): T =
  *
  * The [KafkaFuture] is cancelled when the resulting deferred is cancelled.
  */
-@OptIn(InternalCoroutinesApi::class)
 @Suppress("DeferredIsResult")
 public fun <T> KafkaFuture<T>.asDeferred(): Deferred<T> =
   toCompletionStage().asDeferred()

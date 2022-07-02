@@ -50,9 +50,9 @@ import org.apache.kafka.common.serialization.Serializer
  */
 @FlowPreview
 public suspend fun <A, B> Flow<ProducerRecord<A, B>>.produce(
-  settings: ProducerSettings<A, B>
+  settings: ProducerSettings<A, B>,
 ): Flow<RecordMetadata> =
-  settings.kafkaProducer().flatMapConcat { producer ->
+  kafkaProducer(settings).flatMapConcat { producer ->
     this@produce.map { record -> producer.sendAwait(record) }
   }
 
@@ -75,7 +75,7 @@ public suspend fun <A, B> Flow<ProducerRecord<A, B>>.produce(
  * <!--- KNIT example-producer-02.kt -->
  */
 public suspend fun <A, B> KafkaProducer<A, B>.sendAwait(
-  record: ProducerRecord<A, B>
+  record: ProducerRecord<A, B>,
 ): RecordMetadata =
   suspendCoroutine { cont ->
     // Those can be a SerializationException when it fails to serialize the message,
@@ -87,23 +87,49 @@ public suspend fun <A, B> KafkaProducer<A, B>.sendAwait(
     }
   }
 
-public fun <K, V> KafkaProducer(
-  props: Properties,
-  keyDeserializer: Serializer<K>,
-  valueDeserializer: Serializer<V>
-): KafkaProducer<K, V> =
-  KafkaProducer(props, keyDeserializer, valueDeserializer)
+/**
+ * KafkaKafkaProducer for [K] - [V] which takes
+ */
+@Suppress("FunctionName")
+public fun <K, V> KafkaProducer(setting: ProducerSettings<K, V>): KafkaProducer<K, V> =
+  KafkaProducer(setting.properties(), setting.keyDeserializer, setting.valueDeserializer)
 
+/**
+ * Will automatically close, and flush when finished streaming.
+ * The [Flow] will close when the [KafkaProducer] is consumed from the [Flow].
+ *
+ * This means that the [KafkaProducer] will not be closed for a synchronous running stream, but
+ * when running the [Flow] is offloaded in a separate Coroutine it's prone to be collected, closed
+ * and flushed. In the example below we construct a producer stream that produces 100 indexed
+ * messages.
+ *
+ * ```kotlin
+ * fun <Key, Value> KafkaProducer<Key, Value>.produce(topicName: String, count: Int): Flow<Unit> =
+ *   (0..count).asFlow().map { sendAwait(ProducerRecord(topicName, "message #it")) }
+ *
+ * val producerStream = kafkaProducer(Properties(), StringSerializer(), StringSerializer())
+ *   .flatMapConcat { producer -> producer.produce("topic-name", 100) }
+ * ```
+ *
+ * Here the `KafkaProducer` will only get collected (and closed/flushed) when all 100 messages
+ * were produced.
+ *
+ * **DO NOT** If instead we'd do something like the following, where we offload in a buffer then
+ * the `KafkaProducer` gets collected into the buffer and thus closed/flushed.
+ *
+ * ```kotlin
+ * kafkaProducer(Properties(), StringSerializer(), StringSerializer()).buffer(10)
+ * ```
+ */
 public fun <K, V> kafkaProducer(
-  props: Properties,
-  keyDeserializer: Serializer<K>,
-  valueDeserializer: Serializer<V>
+  setting: ProducerSettings<K, V>,
 ): Flow<KafkaProducer<K, V>> = flow {
-  val producer = KafkaProducer(props, keyDeserializer, valueDeserializer)
-  try {
-    producer.use { emit(it) }
-  } finally {
-    producer.flush()
+  KafkaProducer(setting).use { producer ->
+    try {
+      emit(producer)
+    } finally {
+      producer.flush()
+    }
   }
 }
 
@@ -115,6 +141,9 @@ public enum class Acks(public val value: String) {
 }
 
 /**
+ * A type-safe constructor for [KafkaProducer] settings.
+ * It forces you to specify the bootstrapServer, and serializers for [K] and [V].
+ * These are the minimum requirements for constructing a valid [KafkaProducer].
  *
  * @see http://kafka.apache.org/documentation.html#producerconfigs
  */
@@ -123,7 +152,7 @@ public data class ProducerSettings<K, V>(
   val keyDeserializer: Serializer<K>,
   val valueDeserializer: Serializer<V>,
   val acks: Acks = Acks.One,
-  val other: Properties? = null
+  val other: Properties? = null,
 ) {
   public fun properties(): Properties =
     Properties().apply {
@@ -133,34 +162,4 @@ public data class ProducerSettings<K, V>(
       put(ProducerConfig.ACKS_CONFIG, acks.value)
       other?.let { putAll(other) }
     }
-
-  /**
-   * Will automatically close, and flush when finished streaming.
-   * The [Flow] will close when the [KafkaProducer] is consumed from the [Flow].
-   *
-   * This means that the [KafkaProducer] will not be closed for a synchronous running stream, but
-   * when running the [Flow] is offloaded in a separate Coroutine it's prone to be collected, closed
-   * and flushed. In the example below we construct a producer stream that produces 100 indexed
-   * messages.
-   *
-   * ```kotlin
-   * fun <Key, Value> KafkaProducer<Key, Value>.produce(topicName: String, count: Int): Flow<Unit> =
-   *   (0..count).asFlow().map { sendAwait(ProducerRecord(topicName, "message #it")) }
-   *
-   * val producerStream = kafkaProducer(Properties(), StringSerializer(), StringSerializer())
-   *   .flatMapConcat { producer -> producer.produce("topic-name", 100) }
-   * ```
-   *
-   * Here the `KafkaProducer` will only get collected (and closed/flushed) when all 100 messages
-   * were produced.
-   *
-   * **DO NOT** If instead we'd do something like the following, where we offload in a buffer then
-   * the `KafkaProducer` gets collected into the buffer and thus closed/flushed.
-   *
-   * ```kotlin
-   * kafkaProducer(Properties(), StringSerializer(), StringSerializer()).buffer(10)
-   * ```
-   */
-  public fun kafkaProducer(): Flow<KafkaProducer<K, V>> =
-    kafkaProducer(properties(), keyDeserializer, valueDeserializer)
 }
