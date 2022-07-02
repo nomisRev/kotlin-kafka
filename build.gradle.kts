@@ -26,17 +26,14 @@ allprojects {
   }
   group = property("projects.group").toString()
   version = property("projects.version").toString()
+  extra.set("dokka.outputDirectory", rootDir.resolve("docs"))
 }
 
 dependencies {
   api(libs.kotlin.stdlib)
   api(libs.kotlinx.coroutines.core)
   api(libs.kotlinx.coroutines.jdk8)
-
-  // Kafka, TODO split into separate modules (?)
   api(libs.kafka.clients)
-  api(libs.kafka.streams)
-  api(libs.kafka.connect)
 
   testImplementation(libs.bundles.kotest)
 }
@@ -64,17 +61,17 @@ tasks {
       }
     }
   }
-
+  
   getByName("knitPrepare").dependsOn(getTasksByName("dokka", true))
-
+  
   withType<Test>().configureEach {
     useJUnitPlatform()
   }
-
+  
   withType<KotlinCompile>().configureEach {
     kotlinOptions.jvmTarget = "1.8"
   }
-
+  
   val cleanDocs = register<Delete>("cleanDocs") {
     val folder = file("docs").also { it.mkdir() }
     val docsContent = folder.listFiles().filter { it != folder }
