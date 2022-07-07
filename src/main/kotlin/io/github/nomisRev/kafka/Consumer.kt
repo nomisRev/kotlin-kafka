@@ -162,8 +162,8 @@ public fun <K, V> Iterable<ConsumerRecord<K, V>>.offsets(
   this@offsets.forEach { record ->
     val key = TopicPartition(record.topic(), record.partition())
     val value = metadata?.let {
-      OffsetAndMetadata(record.offset(), record.leaderEpoch(), metadata(record))
-    } ?: OffsetAndMetadata(record.offset())
+      OffsetAndMetadata(record.offset() + 1, record.leaderEpoch(), metadata(record))
+    } ?: OffsetAndMetadata(record.offset() + 1)
     put(key, value)
   }
 }
@@ -173,8 +173,8 @@ public fun <K, V> ConsumerRecord<K, V>.offsets(
 ): Map<TopicPartition, OffsetAndMetadata> = buildMap {
   val key = TopicPartition(topic(), partition())
   val value = metadata?.let {
-    OffsetAndMetadata(offset(), leaderEpoch(), metadata(this@offsets))
-  } ?: OffsetAndMetadata(offset())
+    OffsetAndMetadata(offset() + 1, leaderEpoch(), metadata(this@offsets))
+  } ?: OffsetAndMetadata(offset() + 1)
   put(key, value)
 }
 
