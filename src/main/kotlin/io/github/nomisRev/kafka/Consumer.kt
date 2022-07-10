@@ -224,6 +224,8 @@ public enum class AutoOffsetReset(public val value: String) {
   Earliest("earliest"), Latest("latest"), None("none")
 }
 
+// TODO Compare with reactor-kafka
+// TODO should be easier to use `null`/`Nothing` Key
 /** Default values taken from [org.apache.kafka.clients.consumer.ConsumerConfig] */
 public data class ConsumerSettings<K, V>(
   // BOOTSTRAP_SERVERS_CONFIG

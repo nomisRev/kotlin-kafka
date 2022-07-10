@@ -1,7 +1,9 @@
 package io.github.nomisRev.kafka
 
+import io.github.nomisRev.kafka.reactor.internals.subscribeTo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.collect
@@ -26,7 +28,7 @@ value class Message(val content: String)
 
 fun main(): Unit = runBlocking(Dispatchers.Default) {
   val topicName = "test-topic"
-  val msgCount = 10
+  val msgCount = 50
   val kafka = Kafka.container
   
   Admin(AdminSettings(kafka.bootstrapServers)).use { client ->
@@ -42,8 +44,11 @@ fun main(): Unit = runBlocking(Dispatchers.Default) {
         Acks.All
       )
       (1..msgCount)
-        .map { index -> ProducerRecord(topicName, Key(index), Message("msg: $index")) }
         .asFlow()
+        .map { index ->
+          delay(index * 50L)
+          ProducerRecord(topicName, Key(index), Message("msg: $index"))
+        }
         .produce(settings)
         .collect(::println)
     }
@@ -57,13 +62,20 @@ fun main(): Unit = runBlocking(Dispatchers.Default) {
         autoOffsetReset = AutoOffsetReset.Earliest,
         enableAutoCommit = false
       )
+      subscribeTo(settings, setOf(topicName))
+        .take(msgCount)
+        .collect {
+          delay(75)
+          println("${Thread.currentThread().name} => ${it.key()} -> ${it.value()}")
+          it.receiverOffset.acknowledge()
+        }
       
-      KafkaConsumer(settings).asFlow()
-        .subscribeTo(topicName)
-        .tap { (key, value) -> println("$key -> $value") }
-        .commitBatchWithin(settings, 3, 10.milliseconds)
-        .take(4)
-        .collect()
+      // KafkaConsumer(settings).asFlow()
+      //   .subscribeTo(topicName)
+      //   .tap { (key, value) -> println("$key -> $value") }
+      //   .commitBatchWithin(settings, 3, 10.milliseconds)
+      //   .take(4)
+      //   .collect()
     }
   }
 }

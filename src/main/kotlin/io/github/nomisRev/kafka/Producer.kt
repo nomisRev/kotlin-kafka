@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -163,3 +164,6 @@ public data class ProducerSettings<K, V>(
       other?.let { putAll(other) }
     }
 }
+
+public operator fun <K, V> ProducerRecord<K, V>.component1(): K = key()
+public operator fun <K, V> ProducerRecord<K, V>.component2(): V = value()
