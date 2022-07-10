@@ -8,6 +8,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.concurrent.ThreadFactory
@@ -16,19 +18,19 @@ import java.util.concurrent.atomic.AtomicLong
 private const val PREFIX = "kotlin-kafka-"
 private val COUNTER_REFERENCE = AtomicLong()
 
-internal suspend inline fun <A> kafkaScheduler(
+internal fun kafkaScheduler(
   groupId: String,
-  block: (scope: CoroutineScope, dispatcher: ExecutorCoroutineDispatcher) -> A
-): A =
+): Flow<Pair<CoroutineScope, ExecutorCoroutineDispatcher>> = flow {
   kafkaConsumerDispatcher(groupId).use { dispatcher: ExecutorCoroutineDispatcher ->
     val job = Job()
     val scope = CoroutineScope(job + dispatcher + defaultCoroutineExceptionHandler)
     try {
-      block(scope, dispatcher)
+      emit(Pair(scope, dispatcher))
     } finally {
       job.cancelAndJoin()
     }
   }
+}
 
 // All exceptions inside the library code should be handled.
 // So any uncaught errors on the KafkaConsumer dispatcher is a bug.

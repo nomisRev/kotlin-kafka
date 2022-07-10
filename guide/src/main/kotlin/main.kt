@@ -1,12 +1,11 @@
 package io.github.nomisRev.kafka
 
-import io.github.nomisRev.kafka.reactor.internals.subscribeTo
+import io.github.nomisRev.kafka.reactor.internals.KConsumer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
@@ -18,7 +17,6 @@ import org.apache.kafka.common.serialization.IntegerSerializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import java.util.UUID
-import kotlin.time.Duration.Companion.milliseconds
 
 @JvmInline
 value class Key(val index: Int)
@@ -28,7 +26,7 @@ value class Message(val content: String)
 
 fun main(): Unit = runBlocking(Dispatchers.Default) {
   val topicName = "test-topic"
-  val msgCount = 50
+  val msgCount = 25
   val kafka = Kafka.container
   
   Admin(AdminSettings(kafka.bootstrapServers)).use { client ->
@@ -62,8 +60,10 @@ fun main(): Unit = runBlocking(Dispatchers.Default) {
         autoOffsetReset = AutoOffsetReset.Earliest,
         enableAutoCommit = false
       )
-      subscribeTo(settings, setOf(topicName))
-        .take(msgCount)
+      KConsumer.subscribe(
+        settings,
+        setOf(topicName)
+      ).take(msgCount)
         .collect {
           delay(75)
           println("${Thread.currentThread().name} => ${it.key()} -> ${it.value()}")

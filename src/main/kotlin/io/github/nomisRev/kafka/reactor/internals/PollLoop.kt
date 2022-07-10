@@ -1,20 +1,19 @@
 package io.github.nomisRev.kafka.reactor.internals
 
 import io.github.nomisRev.kafka.ConsumerSettings
-import io.github.nomisRev.kafka.KafkaConsumer
 import io.github.nomisRev.kafka.custom.log
+import io.github.nomisRev.kafka.kafkaConsumer
 import io.github.nomisRev.kafka.reactor.ReceiverOffset
 import io.github.nomisRev.kafka.reactor.ReceiverRecord
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.onClosed
 import kotlinx.coroutines.channels.onFailure
-import kotlinx.coroutines.channels.onSuccess
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
@@ -22,7 +21,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flatMapConcat
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.launch
@@ -44,31 +42,28 @@ import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 import kotlin.time.toKotlinDuration
 
-public fun <K, V> subscribeTo(
-  settings: ConsumerSettings<K, V>,
-  topicNames: Collection<String>,
-): Flow<ReceiverRecord<K, V>> = flow {
-  kafkaScheduler(settings.groupId) { scope, dispatcher ->
-    KafkaConsumer(settings).use { consumer ->
-      val loop = PollLoop(
-        topicNames,
-        settings,
-        consumer,
-        scope
-      )
-      try {
-        loop.receive()
-          .flatMapConcat { records ->
-            records.map { record ->
-              ReceiverRecord(record, loop.toCommittableOffset(record))
-            }.asFlow()
-          }.flowOn(dispatcher)
-          .collect(this@flow)
-      } finally {
-      
+public object KConsumer {
+  
+  @FlowPreview
+  public fun <K, V> subscribe(
+    settings: ConsumerSettings<K, V>,
+    topicNames: Collection<String>,
+  ): Flow<ReceiverRecord<K, V>> =
+    kafkaScheduler(settings.groupId).flatMapConcat { (scope, dispatcher) ->
+      kafkaConsumer(settings).flatMapConcat { consumer ->
+        val loop = PollLoop(
+          topicNames,
+          settings,
+          consumer,
+          scope
+        )
+        loop.receive().flatMapConcat { records ->
+          records.map { record ->
+            ReceiverRecord(record, loop.toCommittableOffset(record))
+          }.asFlow()
+        }.flowOn(dispatcher)
       }
     }
-  }
 }
 
 internal class PollLoop<K, V>(
@@ -121,21 +116,15 @@ internal class PollLoop<K, V>(
   fun receive(): Flow<ConsumerRecords<K, V>> = channelFlow {
     loop.init(this)
     loop.subscriber(topicNames)
-    loop.pollEvent.schedule(this)
-    awaitClose {
-      log.debug("Kafka Consumer channelFlow closed")
-    }
+    loop.poll()
+    awaitClose()
   }.onCompletion { stop() }
   
-  private suspend fun stop(): Unit = try {
+  private suspend fun stop(): Unit {
     if (!isActive.compareAndSet(true, false)) Unit
-    commitJob.cancel()
+    commitJob.cancel() // TODO test cancelAndJoin
     consumer.wakeup()
-    withContext(scope.coroutineContext) {
-      loop.close(closeTimeout)
-    }
-  } catch (e: Throwable) {
-    log.warn("Cancel exception $e")
+    loop.close(closeTimeout)
   }
   
   internal fun toCommittableOffset(record: ConsumerRecord<K, V>): CommittableOffset<K, V> =
@@ -191,8 +180,9 @@ internal class EventLoop<K, V>(
   val isActive: AtomicBoolean,
   val awaitingTransaction: AtomicBoolean,
 ) {
-  val requesting = AtomicBoolean(true)
-  val pollEvent = PollEvent()
+  private val requesting = AtomicBoolean(true)
+  private val pausedByUs = AtomicBoolean(false)
+  
   val commitEvent = CommitEvent()
   lateinit var channel: ProducerScope<ConsumerRecords<K, V>>
   
@@ -223,7 +213,7 @@ internal class EventLoop<K, V>(
           log.debug("onPartitionsAssigned $partitions")
           // onAssign methods may perform seek. It is safe to use the consumer here since we are in a poll()
           if (partitions.isNotEmpty()) {
-            if (pollEvent.pausedByUs.get()) {
+            if (pausedByUs.get()) {
               log.debug("Rebalance during back pressure, re-pausing new assignments")
               consumer.pause(partitions)
             }
@@ -262,12 +252,24 @@ internal class EventLoop<K, V>(
     }
   }
   
-  inner class PollEvent : suspend CoroutineScope.() -> Unit {
-    private val pausedByUser: MutableSet<TopicPartition> = HashSet()
-    private val scheduled = AtomicBoolean()
-    val pausedByUs = AtomicBoolean(false)
-    
-    override suspend fun invoke(scope: CoroutineScope) {
+  private fun checkAndSetPausedByUs(): Boolean {
+    log.debug("checkAndSetPausedByUs")
+    val pausedNow = !pausedByUs.getAndSet(true)
+    if (pausedNow && requesting.get() && !commitEvent.retrying.get()) {
+      consumer.wakeup()
+    }
+    return pausedNow
+  }
+  
+  /*
+   * TODO this can probably be removed
+   * Race condition where onRequest was called to increase requested but we
+   * hadn't yet paused the consumer; wake immediately in this case.
+   */
+  private val scheduled = AtomicBoolean()
+  private val pausedByUser: MutableSet<TopicPartition> = HashSet()
+  fun poll(): Job? =
+    if (!scheduled.getAndSet(true)) scope.launch {
       try {
         scheduled.set(false)
         if (isActive.get()) {
@@ -309,7 +311,7 @@ internal class EventLoop<K, V>(
             log.debug("Consumer woken")
             ConsumerRecords.empty()
           }
-          if (isActive.get()) schedule(scope)
+          if (isActive.get()) poll()
           if (!records.isEmpty) {
             if (maxDeferredCommits > 0) {
               commitBatch.addUncommitted(records)
@@ -334,41 +336,19 @@ internal class EventLoop<K, V>(
                    */
                   channel.send(records)
                   channel.send(ConsumerRecords.empty())
-                  if (pollEvent.isPaused) consumer.wakeup()
+                  if (pausedByUs.get()) {
+                    consumer.wakeup()
+                  }
                   requesting.set(true)
                 }
               }
           }
         }
       } catch (e: Exception) {
-        if (isActive.get()) {
-          log.error("Unexpected exception", e)
-          // sink.emitError(e, this@ConsumerEventLoop)
-          channel.close(e)
-        }
+        log.error("Unexpected exception", e)
+        channel.close(e)
       }
-    }
-    
-    /*
-     * Race condition where onRequest was called to increase requested but we
-     * hadn't yet paused the consumer; wake immediately in this case.
-     */
-    private fun checkAndSetPausedByUs(): Boolean {
-      log.debug("checkAndSetPausedByUs")
-      val pausedNow = !pausedByUs.getAndSet(true)
-      if (pausedNow && requesting.get() && !commitEvent.retrying.get()) {
-        consumer.wakeup()
-      }
-      return pausedNow
-    }
-    
-    // Only schedule if it's not-scheduled, or running.
-    fun schedule(scope: CoroutineScope): Job? = if (!scheduled.getAndSet(true)) scope.launch { invoke(this) }
-    else null
-    
-    val isPaused: Boolean
-      get() = pausedByUs.get()
-  }
+    } else null
   
   inner class CommitEvent : suspend CoroutineScope.() -> Unit {
     val commitBatch: CommittableBatch = CommittableBatch()
@@ -398,7 +378,7 @@ internal class EventLoop<K, V>(
                 inProgress.decrementAndGet()
                 throw e
               }
-              pollEvent.schedule(scope)
+              poll()
             }
           }
         }
@@ -449,7 +429,7 @@ internal class EventLoop<K, V>(
         log.warn("Commit failed with exception $exception, retries remaining ${(maxCommitAttempts - consecutiveCommitFailures.get())}")
         isPending.set(true)
         retrying.set(true)
-        pollEvent.schedule(scope)
+        poll()
         scope.launch {
           delay(commitRetryInterval.toKotlinDuration())
           invoke(this)
@@ -459,7 +439,7 @@ internal class EventLoop<K, V>(
     
     private fun pollTaskAfterRetry() {
       // if (log.isTraceEnabled()) log.trace("after retry ${retrying.get()}")
-      if (retrying.getAndSet(false)) pollEvent.schedule(scope)
+      if (retrying.getAndSet(false)) poll()
     }
     
     fun scheduleIfRequired(): Job? =
@@ -474,38 +454,33 @@ internal class EventLoop<K, V>(
   }
   
   suspend fun close(timeout: Duration): Unit = withContext(scope.coroutineContext) {
-    try {
-      val closeEndTimeMillis = System.currentTimeMillis() + timeout.toMillis()
-      // val manualAssignment: Collection<TopicPartition> = receiverOptions.assignment()
-      // if (manualAssignment != null && !manualAssignment.isEmpty()) onPartitionsRevoked(manualAssignment)
-      /*
-       * We loop here in case the consumer has had a recent wakeup call (from user code)
-       * which will cause a poll() (in waitFor) to be interrupted while we're
-       * possibly waiting for async commit results.
-       */
-      val attempts = 3
-      for (i in 0 until attempts) {
-        try {
-          var forceCommit = true
-          // if (ackMode == reactor.kafka.receiver.internals.AckMode.ATMOST_ONCE){
-          //   forceCommit = atmostOnceOffsets.undoCommitAhead(commitEvent.commitBatch)
-          // }
-          // For exactly-once, offsets are committed by a producer, consumer may be closed immediately
-          // if (ackMode != reactor.kafka.receiver.internals.AckMode.EXACTLY_ONCE) {
-          commitEvent.runIfRequired(this, forceCommit)
-          commitEvent.waitFor(closeEndTimeMillis)
-          // }
-          var timeoutMillis: Long = closeEndTimeMillis - System.currentTimeMillis()
-          if (timeoutMillis < 0) timeoutMillis = 0
-          consumer.close(Duration.ofMillis(timeoutMillis))
-          break
-        } catch (e: WakeupException) {
-          if (i == attempts - 1) throw e
-        }
+    val closeEndTimeMillis = System.currentTimeMillis() + timeout.toMillis()
+    // val manualAssignment: Collection<TopicPartition> = receiverOptions.assignment()
+    // if (manualAssignment != null && !manualAssignment.isEmpty()) onPartitionsRevoked(manualAssignment)
+    /*
+     * We loop here in case the consumer has had a recent wakeup call (from user code)
+     * which will cause a poll() (in waitFor) to be interrupted while we're
+     * possibly waiting for async commit results.
+     */
+    val maxAttempts = 3
+    for (i in 0 until maxAttempts) {
+      try {
+        var forceCommit = true
+        // if (ackMode == reactor.kafka.receiver.internals.AckMode.ATMOST_ONCE){
+        //   forceCommit = atmostOnceOffsets.undoCommitAhead(commitEvent.commitBatch)
+        // }
+        // For exactly-once, offsets are committed by a producer, consumer may be closed immediately
+        // if (ackMode != reactor.kafka.receiver.internals.AckMode.EXACTLY_ONCE) {
+        commitEvent.runIfRequired(this, forceCommit)
+        commitEvent.waitFor(closeEndTimeMillis)
+        // }
+        var timeoutMillis: Long = closeEndTimeMillis - System.currentTimeMillis()
+        if (timeoutMillis < 0) timeoutMillis = 0
+        consumer.close(Duration.ofMillis(timeoutMillis))
+        break
+      } catch (e: WakeupException) {
+        if (i == maxAttempts - 1) throw e
       }
-    } catch (e: java.lang.Exception) {
-      log.error("Unexpected exception during close", e)
-      channel.close(e)
     }
   }
 }
