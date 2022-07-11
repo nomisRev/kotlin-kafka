@@ -9,20 +9,21 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.ProducerScope
-import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.onClosed
 import kotlinx.coroutines.channels.onFailure
-import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.selects.onTimeout
+import kotlinx.coroutines.selects.whileSelect
 import kotlinx.coroutines.withContext
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -78,7 +79,7 @@ internal class PollLoop<K, V>(
   private val commitInterval: Duration = Duration.ofMillis(5000),
   private val closeTimeout: Duration = Duration.ofMillis(Long.MAX_VALUE),
 ) {
-  
+  private val reachedMaxCommitBatchSize = Channel<Unit>(Channel.RENDEZVOUS)
   private val loop = EventLoop(
     ackMode,
     consumer,
@@ -92,32 +93,45 @@ internal class PollLoop<K, V>(
     awaitingTransaction
   )
   
-  private val commitJob = if (!commitInterval.isZero) {
+  /*
+   * Takes care of scheduling our commits to Kafka.
+   * It will schedule a commit after `reachedMaxCommitBatchSize` channel signals it has reach the batch size,
+   * or when it times out after the given `commitInterval`.
+   * This way it optimises sending commits to Kafka in an optimised way.
+   * Either every `Duration` or `x` elements, whichever comes first.
+   */ // TODO have more strategies. Can still commit in `n` sized batches for `commitInterval.isZero`.
+  private val commitManagerJob = if (!commitInterval.isZero) {
     when (ackMode) {
       //AUTO_ACK,
       AckMode.MANUAL_ACK -> scope.launch(start = CoroutineStart.LAZY, context = Dispatchers.Default) {
-        while (true) {
-          currentCoroutineContext().ensureActive()
-          delay(commitInterval.toKotlinDuration())
-          loop.scheduleCommitIfRequired()
+        whileSelect {
+          reachedMaxCommitBatchSize.onReceiveCatching {
+            loop.scheduleCommitIfRequired()
+            !it.isClosed // Stop on close
+          }
+          
+          onTimeout(commitInterval.toKotlinDuration()) {
+            loop.scheduleCommitIfRequired()
+            true
+          }
         }
       }
-      
       else -> Job()
     }
   } else Job()
   
-  fun receive(): Flow<ConsumerRecords<K, V>> = channelFlow {
-    loop.init(this)  // TODO Hate this..
-    loop.subscriber(topicNames)
-    loop.schedulePoll()
-    commitJob.start()
-    awaitClose()
-  }.onCompletion { stop() }
+  fun receive(): Flow<ConsumerRecords<K, V>> =
+    loop.channel.consumeAsFlow()
+      .onStart {
+        loop.subscriber(topicNames)
+        loop.schedulePoll()
+        commitManagerJob.start()
+      }.onCompletion { stop() }
   
-  private suspend fun stop(): Unit {
+  private suspend fun stop() {
     if (!isActive.compareAndSet(true, false)) Unit
-    commitJob.cancel() // TODO test cancelAndJoin
+    reachedMaxCommitBatchSize.close()
+    commitManagerJob.cancel() // TODO test cancelAndJoin
     consumer.wakeup()
     loop.close(closeTimeout)
   }
@@ -127,7 +141,8 @@ internal class PollLoop<K, V>(
       TopicPartition(record.topic(), record.partition()),
       record.offset(),
       loop,
-      commitBatchSize
+      commitBatchSize,
+      reachedMaxCommitBatchSize
     )
 }
 
@@ -136,15 +151,18 @@ internal class CommittableOffset<K, V>(
   override val offset: Long,
   private val loop: EventLoop<K, V>,
   private val commitBatchSize: Int,
+  private val reachedMaxCommitBatchSize: Channel<Unit>,
 ) : Offset {
   private val acknowledged = AtomicBoolean(false)
   
   override suspend fun commit(): Unit =
     if (maybeUpdateOffset() > 0) scheduleCommit() else Unit
   
-  override fun acknowledge() {
+  override suspend fun acknowledge() {
     val uncommittedCount = maybeUpdateOffset().toLong()
-    if (commitBatchSize > 0 && uncommittedCount >= commitBatchSize) loop.scheduleCommitIfRequired()
+    if (commitBatchSize > 0 && uncommittedCount >= commitBatchSize) {
+      reachedMaxCommitBatchSize.send(Unit)
+    }
   }
   
   private fun maybeUpdateOffset(): Int =
@@ -174,11 +192,7 @@ internal class EventLoop<K, V>(
 ) {
   private val requesting = AtomicBoolean(true)
   private val pausedByUs = AtomicBoolean(false)
-  lateinit var channel: ProducerScope<ConsumerRecords<K, V>>
-  
-  fun init(channel: ProducerScope<ConsumerRecords<K, V>>) {
-    this@EventLoop.channel = channel
-  }
+  val channel: Channel<ConsumerRecords<K, V>> = Channel()
   
   private fun onPartitionsRevoked(partitions: Collection<TopicPartition>) {
     log.debug("onPartitionsRevoked $partitions")
@@ -343,7 +357,7 @@ internal class EventLoop<K, V>(
     if (!isPending.compareAndSet(true, false)) return
     val commitArgs: CommittableBatch.CommitArgs = commitBatch.getAndClearOffsets()
     try {
-      if (commitArgs.offsets.isEmpty()) handleSuccess(commitArgs, commitArgs.offsets)
+      if (commitArgs.offsets.isEmpty()) commitSuccess(commitArgs, commitArgs.offsets)
       else {
         when (ackMode) {
           AckMode.MANUAL_ACK -> {
@@ -352,8 +366,8 @@ internal class EventLoop<K, V>(
               if (log.isDebugEnabled()) log.debug("Async committing: ${commitArgs.offsets}")
               consumer.commitAsync(commitArgs.offsets) { offsets, exception ->
                 inProgress.decrementAndGet()
-                if (exception == null) handleSuccess(commitArgs, offsets)
-                else handleFailure(commitArgs, exception)
+                if (exception == null) commitSuccess(commitArgs, offsets)
+                else commitFailure(commitArgs, exception)
               }
             } catch (e: Throwable) {
               inProgress.decrementAndGet()
@@ -365,11 +379,11 @@ internal class EventLoop<K, V>(
       }
     } catch (e: Exception) {
       log.error("Unexpected exception", e)
-      handleFailure(commitArgs, e)
+      commitFailure(commitArgs, e)
     }
   }
   
-  private fun handleSuccess(commitArgs: CommittableBatch.CommitArgs?, offsets: Map<TopicPartition, OffsetAndMetadata>) {
+  private fun commitSuccess(commitArgs: CommittableBatch.CommitArgs?, offsets: Map<TopicPartition, OffsetAndMetadata>) {
     if (offsets.isNotEmpty()) {
       consecutiveCommitFailures.set(0)
     }
@@ -382,7 +396,7 @@ internal class EventLoop<K, V>(
   private fun pollTaskAfterRetry(): Job? =
     if (retrying.getAndSet(false)) schedulePoll() else null
   
-  private fun handleFailure(commitArgs: CommittableBatch.CommitArgs, exception: Exception) {
+  private fun commitFailure(commitArgs: CommittableBatch.CommitArgs, exception: Exception) {
     log.warn("Commit failed", exception)
     if (!isRetriableException(exception) && consecutiveCommitFailures.incrementAndGet() < maxCommitAttempts) {
       log.debug("Cannot retry")

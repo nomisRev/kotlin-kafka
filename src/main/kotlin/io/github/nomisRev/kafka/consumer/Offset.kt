@@ -22,7 +22,7 @@ public interface Offset {
    * all records in this partition up to and including this offset have been processed.
    * All acknowledged offsets are committed if possible when the receiver [Flow] completes.
    */
-  public fun acknowledge(): Unit
+  public suspend fun acknowledge(): Unit
   
   /**
    * Acknowledges the record associated with this instance and commits all acknowledged offsets.
