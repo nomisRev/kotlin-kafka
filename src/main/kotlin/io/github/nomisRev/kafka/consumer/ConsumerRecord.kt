@@ -1,4 +1,4 @@
-package io.github.nomisRev.kafka.reactor
+package io.github.nomisRev.kafka.consumer
 
 import org.apache.kafka.clients.consumer.ConsumerRecord
 
@@ -14,11 +14,11 @@ public class ReceiverRecord<K, V>(
    * Returns an acknowledgeable offset instance that should be acknowledged after this
    * record has been consumed. Acknowledged records are automatically committed
    * based on the commit batch size and commit interval configured for the [KafkaReceiver].
-   * Acknowledged records may be also committed using [ReceiverOffset.commit].
+   * Acknowledged records may be also committed using [Offset.commit].
    *
    * @return offset to acknowledge after record is processed
    */
-  public val receiverOffset: ReceiverOffset,
+  public val offset: Offset,
 ) : ConsumerRecord<K, V>(
   record.topic(),
   record.partition(),

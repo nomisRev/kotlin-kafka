@@ -1,16 +1,14 @@
-package io.github.nomisRev.kafka.reactor.internals
+package io.github.nomisRev.kafka.consumer.internals
 
-import io.github.nomisRev.kafka.reactor.ConsumerPartition
+import io.github.nomisRev.kafka.consumer.ConsumerPartition
 import org.apache.kafka.clients.consumer.Consumer
 import org.apache.kafka.common.TopicPartition
 import java.util.Collections
 
 internal class SeekablePartition(
   private val consumer: Consumer<*, *>,
-  private val topicPartition: TopicPartition,
+  override val topicPartition: TopicPartition,
 ) : ConsumerPartition {
-  override fun topicPartition(): TopicPartition =
-    topicPartition
   
   override fun seekToBeginning(): Unit =
     consumer.seekToBeginning(listOf(topicPartition))
@@ -22,8 +20,7 @@ internal class SeekablePartition(
     consumer.seek(topicPartition, offset)
   
   override fun seekToTimestamp(timestamp: Long) {
-    val offsets = consumer
-      .offsetsForTimes(Collections.singletonMap(topicPartition, timestamp))
+    val offsets = consumer.offsetsForTimes(Collections.singletonMap(topicPartition, timestamp))
     val next = offsets.values.iterator().next()
     if (next == null) seekToEnd()
     else consumer.seek(topicPartition, next.offset())

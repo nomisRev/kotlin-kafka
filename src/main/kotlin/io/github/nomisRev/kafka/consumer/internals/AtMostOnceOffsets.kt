@@ -1,4 +1,4 @@
-package io.github.nomisRev.kafka.reactor.internals
+package io.github.nomisRev.kafka.consumer.internals
 
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition

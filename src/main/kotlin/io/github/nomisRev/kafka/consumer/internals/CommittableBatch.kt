@@ -1,4 +1,4 @@
-package io.github.nomisRev.kafka.reactor.internals
+package io.github.nomisRev.kafka.consumer.internals
 
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -46,7 +46,7 @@ internal class CommittableBatch {
   }
   
   @Synchronized
-  fun addCallbackEmitter(emitter: Continuation<Unit>) =
+  fun addContinuation(emitter: Continuation<Unit>) =
     callbackEmitters.add(emitter)
   
   suspend fun isEmpty(): Boolean = mutex.withLock {
@@ -76,15 +76,17 @@ internal class CommittableBatch {
     })
   }
   
-  suspend fun deferredCount(): Int = mutex.withLock {
+  @Synchronized
+  fun deferredCount(): Int {
     var count = 0
     for (offsets in deferred.values) {
       count += offsets.size
     }
-    count
+    return count
   }
   
-  suspend fun getAndClearOffsets(): CommitArgs = mutex.withLock {
+  @Synchronized
+  fun getAndClearOffsets(): CommitArgs {
     val offsetMap: MutableMap<TopicPartition, OffsetAndMetadata> = HashMap()
     if (outOfOrderCommits) {
       deferred.forEach { (tp: TopicPartition, offsets: List<Long>) ->
@@ -118,7 +120,7 @@ internal class CommittableBatch {
       currentCallbackEmitters = callbackEmitters
       callbackEmitters = ArrayList()
     } else currentCallbackEmitters = null
-    CommitArgs(offsetMap, currentCallbackEmitters)
+    return CommitArgs(offsetMap, currentCallbackEmitters)
   }
   
   

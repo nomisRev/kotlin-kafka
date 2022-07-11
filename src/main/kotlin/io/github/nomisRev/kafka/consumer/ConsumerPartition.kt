@@ -1,4 +1,4 @@
-package io.github.nomisRev.kafka.reactor
+package io.github.nomisRev.kafka.consumer
 
 import org.apache.kafka.common.TopicPartition
 
@@ -12,7 +12,7 @@ public interface ConsumerPartition {
    * Returns the underlying Kafka topic partition.
    * @return topic partition
    */
-  public fun topicPartition(): TopicPartition
+  public val topicPartition: TopicPartition
   
   /**
    * Seeks to the first available offset of the topic partition. This overrides the offset

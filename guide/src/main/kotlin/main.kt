@@ -1,11 +1,13 @@
 package io.github.nomisRev.kafka
 
-import io.github.nomisRev.kafka.reactor.internals.KConsumer
+import io.github.nomisRev.kafka.consumer.internals.KConsumer
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
@@ -63,11 +65,12 @@ fun main(): Unit = runBlocking(Dispatchers.Default) {
       KConsumer.subscribe(
         settings,
         setOf(topicName)
-      ).take(msgCount)
+      ).buffer(Channel.RENDEZVOUS)
+        .take(msgCount)
         .collect {
           delay(75)
           println("${Thread.currentThread().name} => ${it.key()} -> ${it.value()}")
-          it.receiverOffset.acknowledge()
+          it.offset.acknowledge()
         }
       
       // KafkaConsumer(settings).asFlow()

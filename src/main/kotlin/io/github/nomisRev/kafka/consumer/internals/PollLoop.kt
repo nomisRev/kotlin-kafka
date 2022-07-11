@@ -1,10 +1,9 @@
-package io.github.nomisRev.kafka.reactor.internals
+package io.github.nomisRev.kafka.consumer.internals
 
 import io.github.nomisRev.kafka.ConsumerSettings
-import io.github.nomisRev.kafka.custom.log
 import io.github.nomisRev.kafka.kafkaConsumer
-import io.github.nomisRev.kafka.reactor.ReceiverOffset
-import io.github.nomisRev.kafka.reactor.ReceiverRecord
+import io.github.nomisRev.kafka.consumer.Offset
+import io.github.nomisRev.kafka.consumer.ReceiverRecord
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -34,6 +33,7 @@ import org.apache.kafka.clients.consumer.RetriableCommitFailedException
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.WakeupException
 import java.time.Duration
+import java.time.Duration.ofSeconds
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.Continuation
@@ -51,12 +51,7 @@ public object KConsumer {
   ): Flow<ReceiverRecord<K, V>> =
     kafkaScheduler(settings.groupId).flatMapConcat { (scope, dispatcher) ->
       kafkaConsumer(settings).flatMapConcat { consumer ->
-        val loop = PollLoop(
-          topicNames,
-          settings,
-          consumer,
-          scope
-        )
+        val loop = PollLoop(topicNames, settings, consumer, scope)
         loop.receive().flatMapConcat { records ->
           records.map { record ->
             ReceiverRecord(record, loop.toCommittableOffset(record))
@@ -73,7 +68,6 @@ internal class PollLoop<K, V>(
   private val scope: CoroutineScope,
   private val awaitingTransaction: AtomicBoolean = AtomicBoolean(false),
   private val isActive: AtomicBoolean = AtomicBoolean(true),
-  private val committableBatch: CommittableBatch = CommittableBatch(),
   private val commitBatchSize: Int = 5,
   private val ackMode: AckMode = AckMode.MANUAL_ACK,
   private val pollTimeout: Duration = Duration.ofMillis(100),
@@ -94,18 +88,18 @@ internal class PollLoop<K, V>(
     maxCommitAttempts,
     commitRetryInterval,
     scope,
-    committableBatch,
     isActive,
     awaitingTransaction
   )
+  
   private val commitJob = if (!commitInterval.isZero) {
     when (ackMode) {
       //AUTO_ACK,
-      AckMode.MANUAL_ACK -> scope.launch(Dispatchers.Default) {
+      AckMode.MANUAL_ACK -> scope.launch(start = CoroutineStart.LAZY, context = Dispatchers.Default) {
         while (true) {
           currentCoroutineContext().ensureActive()
           delay(commitInterval.toKotlinDuration())
-          loop.commitEvent.scheduleIfRequired()
+          loop.scheduleCommitIfRequired()
         }
       }
       
@@ -114,9 +108,10 @@ internal class PollLoop<K, V>(
   } else Job()
   
   fun receive(): Flow<ConsumerRecords<K, V>> = channelFlow {
-    loop.init(this)
+    loop.init(this)  // TODO Hate this..
     loop.subscriber(topicNames)
-    loop.poll()
+    loop.schedulePoll()
+    commitJob.start()
     awaitClose()
   }.onCompletion { stop() }
   
@@ -131,17 +126,17 @@ internal class PollLoop<K, V>(
     CommittableOffset(
       TopicPartition(record.topic(), record.partition()),
       record.offset(),
-      loop.commitEvent,
+      loop,
       commitBatchSize
     )
 }
 
 internal class CommittableOffset<K, V>(
-  private val topicPartition: TopicPartition,
-  private val commitOffset: Long,
-  private val commitEvent: EventLoop<K, V>.CommitEvent,
+  override val topicPartition: TopicPartition,
+  override val offset: Long,
+  private val loop: EventLoop<K, V>,
   private val commitBatchSize: Int,
-) : ReceiverOffset {
+) : Offset {
   private val acknowledged = AtomicBoolean(false)
   
   override suspend fun commit(): Unit =
@@ -149,41 +144,36 @@ internal class CommittableOffset<K, V>(
   
   override fun acknowledge() {
     val uncommittedCount = maybeUpdateOffset().toLong()
-    if (commitBatchSize > 0 && uncommittedCount >= commitBatchSize) commitEvent.scheduleIfRequired()
+    if (commitBatchSize > 0 && uncommittedCount >= commitBatchSize) loop.scheduleCommitIfRequired()
   }
   
   private fun maybeUpdateOffset(): Int =
-    if (acknowledged.compareAndSet(false, true)) commitEvent.commitBatch.updateOffset(topicPartition, commitOffset)
-    else commitEvent.commitBatch.batchSize()
+    if (acknowledged.compareAndSet(false, true)) loop.commitBatch.updateOffset(topicPartition, offset)
+    else loop.commitBatch.batchSize()
   
   private suspend fun scheduleCommit(): Unit =
     suspendCoroutine { cont ->
-      commitEvent.commitBatch.addCallbackEmitter(cont)
-      commitEvent.scheduleIfRequired()
+      loop.commitBatch.addContinuation(cont)
+      loop.scheduleCommitIfRequired()
     }
   
-  override fun topicPartition(): TopicPartition = topicPartition
-  override fun offset(): Long = commitOffset
-  override fun toString(): String = "$topicPartition@$commitOffset"
+  override fun toString(): String = "$topicPartition@$offset"
 }
 
 internal class EventLoop<K, V>(
-  val ackMode: AckMode,
-  val consumer: KafkaConsumer<K, V>,
-  val pollTimeout: Duration,
-  val maxDeferredCommits: Long,
-  val isRetriableException: (Throwable) -> Boolean,
-  val maxCommitAttempts: Int,
-  val commitRetryInterval: Duration,
-  val scope: CoroutineScope,
-  val commitBatch: CommittableBatch,
-  val isActive: AtomicBoolean,
-  val awaitingTransaction: AtomicBoolean,
+  private val ackMode: AckMode,
+  private val consumer: KafkaConsumer<K, V>,
+  private val pollTimeout: Duration,
+  private val maxDeferredCommits: Long,
+  private val isRetriableException: (Throwable) -> Boolean,
+  private val maxCommitAttempts: Int,
+  private val commitRetryInterval: Duration,
+  private val scope: CoroutineScope,
+  private val isActive: AtomicBoolean,
+  private val awaitingTransaction: AtomicBoolean,
 ) {
   private val requesting = AtomicBoolean(true)
   private val pausedByUs = AtomicBoolean(false)
-  
-  val commitEvent = CommitEvent()
   lateinit var channel: ProducerScope<ConsumerRecords<K, V>>
   
   fun init(channel: ProducerScope<ConsumerRecords<K, V>>) {
@@ -193,11 +183,9 @@ internal class EventLoop<K, V>(
   private fun onPartitionsRevoked(partitions: Collection<TopicPartition>) {
     log.debug("onPartitionsRevoked $partitions")
     if (!partitions.isEmpty()) {
-      // It is safe to use the consumer here since we are in a poll(), so we can use safely use UNDISPATCHED.
+      // It is safe to use the consumer here since we are in a poll()
       // if (ackMode != AckMode.ATMOST_ONCE){
-      scope.launch(start = CoroutineStart.UNDISPATCHED) {
-        commitEvent.runIfRequired(this, true)
-      }
+      runCommitIfRequired(true)
       // }
       // TODO Setup user listeners
       // for (onRevoke in receiverOptions.revokeListeners()) {
@@ -223,16 +211,10 @@ internal class EventLoop<K, V>(
             // }
             if (log.isTraceEnabled()) {
               try {
-                val positions = partitions.map { part: TopicPartition? ->
-                  "$part pos: ${consumer.position(part, Duration.ofSeconds(5))}"
+                val positions = partitions.map { part: TopicPartition ->
+                  "$part pos: ${consumer.position(part, ofSeconds(5))}"
                 }
-                log.trace(
-                  "positions: $positions, committed: ${
-                    consumer.committed(
-                      HashSet(partitions), Duration.ofSeconds(5)
-                    )
-                  }"
-                )
+                log.trace("positions: $positions, committed: ${consumer.committed(partitions.toSet(), ofSeconds(5))}")
               } catch (ex: Exception) {
                 log.error("Failed to get positions or committed", ex)
               }
@@ -242,7 +224,7 @@ internal class EventLoop<K, V>(
         
         override fun onPartitionsRevoked(partitions: MutableCollection<TopicPartition>) {
           log.debug("onPartitionsRevoked $partitions")
-          commitEvent.commitBatch.partitionsRevoked(partitions)
+          commitBatch.partitionsRevoked(partitions)
           this@EventLoop.onPartitionsRevoked(partitions)
         }
       })
@@ -255,7 +237,7 @@ internal class EventLoop<K, V>(
   private fun checkAndSetPausedByUs(): Boolean {
     log.debug("checkAndSetPausedByUs")
     val pausedNow = !pausedByUs.getAndSet(true)
-    if (pausedNow && requesting.get() && !commitEvent.retrying.get()) {
+    if (pausedNow && requesting.get() && !retrying.get()) {
       consumer.wakeup()
     }
     return pausedNow
@@ -268,16 +250,16 @@ internal class EventLoop<K, V>(
    */
   private val scheduled = AtomicBoolean()
   private val pausedByUser: MutableSet<TopicPartition> = HashSet()
-  fun poll(): Job? =
+  fun schedulePoll(): Job? =
     if (!scheduled.getAndSet(true)) scope.launch {
       try {
         scheduled.set(false)
         if (isActive.get()) {
           // Ensure that commits are not queued behind polls since number of poll events is chosen by reactor.
-          commitEvent.runIfRequired(scope, false)
+          runCommitIfRequired(false)
           
           val pauseForDeferred = (maxDeferredCommits > 0 && commitBatch.deferredCount() >= maxDeferredCommits)
-          val shouldPoll: Boolean = if (pauseForDeferred || commitEvent.retrying.get()) false else requesting.get()
+          val shouldPoll: Boolean = if (pauseForDeferred || retrying.get()) false else requesting.get()
           
           if (shouldPoll) {
             if (!awaitingTransaction.get()) {
@@ -300,7 +282,7 @@ internal class EventLoop<K, V>(
             consumer.pause(consumer.assignment())
             when {
               pauseForDeferred -> log.debug("Paused - too many deferred commits")
-              commitEvent.retrying.get() -> log.debug("Paused - commits are retrying")
+              retrying.get() -> log.debug("Paused - commits are retrying")
               else -> log.debug("Paused - back pressure")
             }
           }
@@ -311,7 +293,7 @@ internal class EventLoop<K, V>(
             log.debug("Consumer woken")
             ConsumerRecords.empty()
           }
-          if (isActive.get()) poll()
+          if (isActive.get()) schedulePoll()
           if (!records.isEmpty) {
             if (maxDeferredCommits > 0) {
               commitBatch.addUncommitted(records)
@@ -350,106 +332,95 @@ internal class EventLoop<K, V>(
       }
     } else null
   
-  inner class CommitEvent : suspend CoroutineScope.() -> Unit {
-    val commitBatch: CommittableBatch = CommittableBatch()
-    private val isPending = AtomicBoolean()
-    private val inProgress = AtomicInteger()
-    private val consecutiveCommitFailures = AtomicInteger()
-    val retrying = AtomicBoolean()
-    
-    // We ignore this CoroutineScope since we want to schedule all task directly on the single thread parent scope
-    override suspend fun invoke(ignored: CoroutineScope) {
-      if (!isPending.compareAndSet(true, false)) return
-      val commitArgs: CommittableBatch.CommitArgs = commitBatch.getAndClearOffsets()
-      try {
-        if (commitArgs.offsets.isEmpty()) handleSuccess(commitArgs, commitArgs.offsets)
-        else {
-          when (ackMode) {
-            AckMode.MANUAL_ACK -> {
-              inProgress.incrementAndGet()
-              try {
-                if (log.isDebugEnabled()) log.debug("Async committing: ${commitArgs.offsets}")
-                consumer.commitAsync(commitArgs.offsets) { offsets, exception ->
-                  inProgress.decrementAndGet()
-                  if (exception == null) handleSuccess(commitArgs, offsets)
-                  else handleFailure(commitArgs, exception)
-                }
-              } catch (e: Throwable) {
+  val commitBatch: CommittableBatch = CommittableBatch()
+  private val isPending = AtomicBoolean()
+  private val inProgress = AtomicInteger()
+  private val consecutiveCommitFailures = AtomicInteger()
+  private val retrying = AtomicBoolean()
+  
+  // TODO Should reset delay of commitJob
+  private fun commit() {
+    if (!isPending.compareAndSet(true, false)) return
+    val commitArgs: CommittableBatch.CommitArgs = commitBatch.getAndClearOffsets()
+    try {
+      if (commitArgs.offsets.isEmpty()) handleSuccess(commitArgs, commitArgs.offsets)
+      else {
+        when (ackMode) {
+          AckMode.MANUAL_ACK -> {
+            inProgress.incrementAndGet()
+            try {
+              if (log.isDebugEnabled()) log.debug("Async committing: ${commitArgs.offsets}")
+              consumer.commitAsync(commitArgs.offsets) { offsets, exception ->
                 inProgress.decrementAndGet()
-                throw e
+                if (exception == null) handleSuccess(commitArgs, offsets)
+                else handleFailure(commitArgs, exception)
               }
-              poll()
+            } catch (e: Throwable) {
+              inProgress.decrementAndGet()
+              throw e
             }
+            schedulePoll()
           }
         }
-      } catch (e: Exception) {
-        log.error("Unexpected exception", e)
-        handleFailure(commitArgs, e)
       }
+    } catch (e: Exception) {
+      log.error("Unexpected exception", e)
+      handleFailure(commitArgs, e)
     }
-    
-    suspend fun runIfRequired(scope: CoroutineScope, force: Boolean) {
-      if (force) isPending.set(true)
-      if (!retrying.get() && isPending.get()) invoke(scope)
+  }
+  
+  private fun handleSuccess(commitArgs: CommittableBatch.CommitArgs?, offsets: Map<TopicPartition, OffsetAndMetadata>) {
+    if (offsets.isNotEmpty()) {
+      consecutiveCommitFailures.set(0)
     }
-    
-    private fun handleSuccess(
-      commitArgs: CommittableBatch.CommitArgs?,
-      offsets: Map<TopicPartition, OffsetAndMetadata>,
-    ) {
-      if (offsets.isNotEmpty()) consecutiveCommitFailures.set(0)
+    pollTaskAfterRetry()
+    commitArgs?.continuations?.forEach { cont ->
+      cont.resume(Unit)
+    }
+  }
+  
+  private fun pollTaskAfterRetry(): Job? =
+    if (retrying.getAndSet(false)) schedulePoll() else null
+  
+  private fun handleFailure(commitArgs: CommittableBatch.CommitArgs, exception: Exception) {
+    log.warn("Commit failed", exception)
+    if (!isRetriableException(exception) && consecutiveCommitFailures.incrementAndGet() < maxCommitAttempts) {
+      log.debug("Cannot retry")
       pollTaskAfterRetry()
-      if (commitArgs?.continuations != null) {
-        commitArgs.continuations.forEach { cont ->
-          cont.resume(Unit)
+      val callbackEmitters: List<Continuation<Unit>>? = commitArgs.continuations
+      if (callbackEmitters.isNullOrEmpty()) channel.close(exception)
+      else {
+        isPending.set(false)
+        commitBatch.restoreOffsets(commitArgs, false)
+        callbackEmitters.forEach { cont ->
+          cont.resumeWithException(exception)
         }
       }
-    }
-    
-    private fun handleFailure(
-      commitArgs: CommittableBatch.CommitArgs,
-      exception: Exception,
-    ) {
-      log.warn("Commit failed", exception)
-      if (!isRetriableException(exception) && consecutiveCommitFailures.incrementAndGet() < maxCommitAttempts) {
-        log.debug("Cannot retry")
-        pollTaskAfterRetry()
-        val callbackEmitters: List<Continuation<Unit>>? = commitArgs.continuations
-        if (!callbackEmitters.isNullOrEmpty()) {
-          isPending.set(false)
-          commitBatch.restoreOffsets(commitArgs, false)
-          callbackEmitters.forEach { cont ->
-            cont.resumeWithException(exception)
-          }
-        } else {
-          channel.close(exception)
-        }
-      } else {
-        commitBatch.restoreOffsets(commitArgs, true)
-        log.warn("Commit failed with exception $exception, retries remaining ${(maxCommitAttempts - consecutiveCommitFailures.get())}")
-        isPending.set(true)
-        retrying.set(true)
-        poll()
-        scope.launch {
-          delay(commitRetryInterval.toKotlinDuration())
-          invoke(this)
-        }
+    } else {
+      commitBatch.restoreOffsets(commitArgs, true)
+      log.warn("Commit failed with exception $exception, retries remaining ${(maxCommitAttempts - consecutiveCommitFailures.get())}")
+      isPending.set(true)
+      retrying.set(true)
+      schedulePoll()
+      scope.launch {
+        delay(commitRetryInterval.toKotlinDuration())
+        commit()
       }
     }
-    
-    private fun pollTaskAfterRetry() {
-      // if (log.isTraceEnabled()) log.trace("after retry ${retrying.get()}")
-      if (retrying.getAndSet(false)) poll()
-    }
-    
-    fun scheduleIfRequired(): Job? =
-      if (isActive.get() && !retrying.get() && isPending.compareAndSet(false, true)) scope.launch { invoke(this) }
-      else null
-    
-    fun waitFor(endTimeMillis: Long) {
-      while (inProgress.get() > 0 && endTimeMillis - System.currentTimeMillis() > 0) {
-        consumer.poll(Duration.ofMillis(1))
-      }
+  }
+  
+  private fun runCommitIfRequired(force: Boolean) {
+    if (force) isPending.set(true)
+    if (!retrying.get() && isPending.get()) commit()
+  }
+  
+  fun scheduleCommitIfRequired(): Job? =
+    if (isActive.get() && !retrying.get() && isPending.compareAndSet(false, true)) scope.launch { commit() }
+    else null
+  
+  private fun waitFor(endTimeMillis: Long) {
+    while (inProgress.get() > 0 && endTimeMillis - System.currentTimeMillis() > 0) {
+      consumer.poll(Duration.ofMillis(1))
     }
   }
   
@@ -471,8 +442,8 @@ internal class EventLoop<K, V>(
         // }
         // For exactly-once, offsets are committed by a producer, consumer may be closed immediately
         // if (ackMode != reactor.kafka.receiver.internals.AckMode.EXACTLY_ONCE) {
-        commitEvent.runIfRequired(this, forceCommit)
-        commitEvent.waitFor(closeEndTimeMillis)
+        runCommitIfRequired(forceCommit)
+        waitFor(closeEndTimeMillis)
         // }
         var timeoutMillis: Long = closeEndTimeMillis - System.currentTimeMillis()
         if (timeoutMillis < 0) timeoutMillis = 0
