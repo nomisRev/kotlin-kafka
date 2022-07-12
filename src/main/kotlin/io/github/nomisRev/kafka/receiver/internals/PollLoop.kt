@@ -151,7 +151,6 @@ internal class EventLoop<K, V>(
   private val pollTimeout = settings.pollTimeout.toJavaDuration()
   
   private fun onPartitionsRevoked(partitions: Collection<TopicPartition>) {
-    log.debug("onPartitionsRevoked $partitions")
     if (!partitions.isEmpty()) {
       // It is safe to use the consumer here since we are in a poll()
       // if (ackMode != AckMode.ATMOST_ONCE){
@@ -194,7 +193,7 @@ internal class EventLoop<K, V>(
         
         override fun onPartitionsRevoked(partitions: MutableCollection<TopicPartition>) {
           log.debug("onPartitionsRevoked $partitions")
-          commitBatch.partitionsRevoked(partitions)
+          commitBatch.onPartitionsRevoked(partitions)
           this@EventLoop.onPartitionsRevoked(partitions)
         }
       })

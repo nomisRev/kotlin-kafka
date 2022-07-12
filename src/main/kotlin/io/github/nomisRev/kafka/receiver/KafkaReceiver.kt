@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
@@ -23,9 +22,9 @@ public interface KafkaReceiver<K, V> {
   public fun receive(topicName: String): Flow<ReceiverRecord<K, V>> =
     receive(setOf(topicName))
   
-  public fun receiveAutoAck(topicNames: Collection<String>): Flow<Flow<ConsumerRecord<K, V>>>
+  public fun receiveAutoAck(topicNames: Collection<String>): Flow<ConsumerRecord<K, V>>
   
-  public fun receiveAutoAck(topicNames: String): Flow<Flow<ConsumerRecord<K, V>>> =
+  public fun receiveAutoAck(topicNames: String): Flow<ConsumerRecord<K, V>> =
     receiveAutoAck(setOf(topicNames))
   
   public suspend fun <A> withConsumer(action: suspend KafkaConsumer<K, V>.(KafkaConsumer<K, V>) -> A): A
@@ -52,22 +51,23 @@ private class DefaultKafkaReceiver<K, V>(private val settings: ConsumerSettings<
     kafkaScheduler(settings.groupId).flatMapConcat { (scope, dispatcher) ->
       kafkaConsumer().flatMapConcat { consumer ->
         val loop = PollLoop(topicNames, settings, consumer, scope)
-        loop.receive().flatMapConcat { records ->
-          records.map { record ->
-            ReceiverRecord(record, loop.toCommittableOffset(record))
-          }.asFlow()
-        }.flowOn(dispatcher)
+        loop.receive().flowOn(dispatcher)
+          .flatMapConcat { records ->
+            records.map { record ->
+              ReceiverRecord(record, loop.toCommittableOffset(record))
+            }.asFlow()
+          }
       }
     }
   
-  override fun receiveAutoAck(topicNames: Collection<String>): Flow<Flow<ConsumerRecord<K, V>>> =
+  override fun receiveAutoAck(topicNames: Collection<String>): Flow<ConsumerRecord<K, V>> =
     kafkaScheduler(settings.groupId).flatMapConcat { (scope, dispatcher) ->
       kafkaConsumer().flatMapConcat { consumer ->
         val loop = PollLoop(topicNames, settings, consumer, scope)
-        loop.receive().map { records ->
+        loop.receive().flowOn(dispatcher).flatMapConcat { records ->
           records.asFlow()
             .onCompletion { records.forEach { loop.toCommittableOffset(it).acknowledge() } }
-        }.flowOn(dispatcher)
+        }
       }
     }
 }

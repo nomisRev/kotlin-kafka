@@ -68,7 +68,7 @@ internal class CommittableBatch {
   }
   
   @Synchronized
-  fun partitionsRevoked(revoked: Collection<TopicPartition>) {
+  fun onPartitionsRevoked(revoked: Collection<TopicPartition>) {
     revoked.forEach(Consumer { part: TopicPartition ->
       uncommitted.remove(part)
       deferred.remove(part)
