@@ -1,8 +1,7 @@
-package io.github.nomisrev.kafka
+package io.github.nomisrev.kafka.consumer
 
-import io.github.nomisRev.kafka.KafkaConsumer
 import io.github.nomisRev.kafka.consumer.internals.KConsumer
-import io.github.nomisRev.kafka.consumer.internals.subscribe
+import io.github.nomisrev.kafka.KafkaSpec
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import kotlinx.coroutines.flow.flattenMerge
 import kotlinx.coroutines.flow.flowOf
@@ -10,8 +9,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.yield
-import org.apache.kafka.common.TopicPartition
-import java.util.Comparator
 
 class ConsumerSpec : KafkaSpec({
   
@@ -50,21 +47,21 @@ class ConsumerSpec : KafkaSpec({
   
   // Only receiving 3 records, 2 are stuck ???
   // TODO Improve API around subscribe vs assign
-  "should consume records with assign by partitions".config(enabled = false) {
-    val topic = createCustomTopic(partitions = 3)
-    publishToKafka(topic, produced())
-    val partitions = listOf(1, 2, 3).map { partition ->
-      TopicPartition(topic.name(), partition)
-    }.toSortedSet(Comparator.comparingInt { it.partition() })
-    
-    val settings = consumerSetting().copy(groupId = "test2")
-    KafkaConsumer(settings).use { consumer ->
-      consumer.assign(partitions)
-      consumer.subscribe(settings, setOf())
-        .map {
-          yield()
-          Pair(it.key(), it.value())
-        }.take(depth).toList()
-    } shouldContainExactlyInAnyOrder produced()
-  }
+  // "should consume records with assign by partitions" {
+  //   val topic = createCustomTopic(partitions = 3)
+  //   publishToKafka(topic, produced())
+  //   val partitions = listOf(1, 2, 3).map { partition ->
+  //     TopicPartition(topic.name(), partition)
+  //   }.toSortedSet(Comparator.comparingInt { it.partition() })
+  //
+  //   val settings = consumerSetting().copy(groupId = "test2")
+  //   KafkaConsumer(settings).use { consumer ->
+  //     consumer.assign(partitions)
+  //     consumer.subscribe(settings, setOf())
+  //       .map {
+  //         yield()
+  //         Pair(it.key(), it.value())
+  //       }.take(depth).toList()
+  //   } shouldContainExactlyInAnyOrder produced()
+  // }
 })

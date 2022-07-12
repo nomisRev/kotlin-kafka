@@ -6,7 +6,14 @@ import kotlinx.coroutines.flow.Flow
 import io.github.nomisRev.kafka.ConsumerSettings
 
 /**
- * Topic partition offset that must be acknowledged after the record in the corresponding [ReceiverRecord] is processed.
+ * Topic partition offset that must be acknowledged after the record is processed.
+ *
+ * When you [acknowledge] this [Offset]  it will be added to the batch of offsets to be committed based on [CommitStrategy],
+ * whilst [commit] will actually commit this commit to kafka, and suspend until it's completed.
+ *
+ * So if you want to _force_ a commit without back-pressuring a stream, you can use `launch { offset.commit() }`.
+ * This is considered a niche use-case,
+ * and using the batch commit functionality with [CommitStrategy] and [acknowledge] is recommended.
  */
 public interface Offset {
   /** The topic partition corresponding to this [ReceiverRecord]. */
@@ -16,11 +23,11 @@ public interface Offset {
   public val offset: Long
   
   /**
-   * Acknowledges the [ReceiverRecord] associated with this offset. The offset will be committed
-   * automatically based on the commit configuration parameters [ConsumerSettings.commitInterval]
-   * and [ConsumerSettings.commitBatchSize]. When an offset is acknowledged, it is assumed that
-   * all records in this partition up to and including this offset have been processed.
-   * All acknowledged offsets are committed if possible when the receiver [Flow] completes.
+   * Acknowledges the [ReceiverRecord] associated with this offset.
+   * The offset will be committed automatically based on the commit configuration [CommitStrategy].
+   * When an offset is acknowledged, it is assumed that all records in this partition up to,
+   * and including this offset have been processed. All acknowledged offsets are committed if possible
+   * when the receiver [Flow] completes or according to [CommitStrategy].
    */
   public suspend fun acknowledge(): Unit
   

@@ -3,10 +3,8 @@ package io.github.nomisRev.kafka.consumer
 import org.apache.kafka.clients.consumer.ConsumerRecord
 
 /**
- * Represents an incoming record.
- *
- * @param <K> Incoming record key type
- * @param <V> Incoming record value type
+ * A [org.apache.kafka.clients.consumer.ConsumerRecord] for keys of [K], and values of [V].
+ * With a property [Offset] which allows acknowledging, or committing record offsets to kafka.
  */
 public class ReceiverRecord<K, V>(
   record: ConsumerRecord<K, V>,

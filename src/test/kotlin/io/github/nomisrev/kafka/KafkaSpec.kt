@@ -7,8 +7,10 @@ import io.github.nomisRev.kafka.ConsumerSettings
 import io.github.nomisRev.kafka.NothingDeserializer.close
 import io.github.nomisRev.kafka.ProducerSettings
 import io.github.nomisRev.kafka.createTopic
+import io.github.nomisRev.kafka.deleteTopic
 import io.github.nomisRev.kafka.produce
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.core.spec.style.scopes.StringSpecScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
@@ -19,6 +21,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import org.apache.kafka.clients.admin.Admin
 import org.apache.kafka.clients.admin.AdminClientConfig
 import org.apache.kafka.clients.admin.NewTopic
@@ -114,7 +117,7 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
   private fun nextTopicName(): String =
     "topic-${UUID.randomUUID()}"
   
-  suspend fun createCustomTopic(
+  suspend fun StringSpecScope.createCustomTopic(
     topic: String = nextTopicName(),
     topicConfig: Map<String, String> = emptyMap(),
     partitions: Int = 1,
@@ -124,6 +127,11 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
       .configs(topicConfig)
       .also { topic ->
         admin { createTopic(topic) }
+        afterTest { (case, _) ->
+          if (case == testCase) admin {
+            deleteTopic(topic.name())
+          }
+        }
       }
   
   fun publishToKafka(

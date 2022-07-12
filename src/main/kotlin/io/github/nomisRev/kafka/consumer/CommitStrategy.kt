@@ -11,7 +11,7 @@ import kotlin.time.Duration
  *  - Every `n` acknowledged records **or** every `interval` duration, whichever comes first.
  */
 public sealed interface CommitStrategy {
-  /** Commit *all* [Offset.acknowledge] messages to kafka every [interval]. */
+  /** Commit **all** [Offset.acknowledge] messages to kafka every [interval]. */
   @JvmInline
   public value class ByTime(public val interval: Duration) : CommitStrategy {
     init {
