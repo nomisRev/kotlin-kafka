@@ -1,8 +1,9 @@
 package io.github.nomisrev.kafka.consumer
 
-import io.github.nomisRev.kafka.consumer.internals.KConsumer
+import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisrev.kafka.KafkaSpec
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.flattenMerge
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -10,7 +11,8 @@ import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.yield
 
-class ConsumerSpec : KafkaSpec({
+@OptIn(FlowPreview::class)
+class KafakReceiverSpec : KafkaSpec({
   
   val depth = 5
   fun produced(): List<Pair<String, String>> =
@@ -19,25 +21,25 @@ class ConsumerSpec : KafkaSpec({
   "should consume all records with subscribe" {
     val topic = createCustomTopic(partitions = 3)
     publishToKafka(topic, produced())
-    KConsumer.subscribe(
-      consumerSetting(),
-      setOf(topic.name())
-    ).map {
-      yield()
-      Pair(it.key(), it.value())
-    }.take(depth).toList() shouldContainExactlyInAnyOrder produced()
+    KafkaReceiver(
+      consumerSetting().copy(groupId = "test")
+    ).subscribe(topic.name())
+      .map {
+        yield()
+        Pair(it.key(), it.value())
+      }.take(depth).toList() shouldContainExactlyInAnyOrder produced()
   }
   
   "should consume all records at least once with subscribing for several consumers" {
     val topic = createCustomTopic(partitions = 3)
     publishToKafka(topic, produced())
-    val consumer = KConsumer.subscribe(
-      consumerSetting().copy(groupId = "test"),
-      setOf(topic.name())
-    ).map {
-      yield()
-      Pair(it.key(), it.value())
-    }
+    val consumer = KafkaReceiver(
+      consumerSetting().copy(groupId = "test")
+    ).subscribe(topic.name())
+      .map {
+        yield()
+        Pair(it.key(), it.value())
+      }
     
     flowOf(consumer, consumer)
       .flattenMerge()

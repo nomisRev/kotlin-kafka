@@ -112,7 +112,7 @@ public fun <K, V> kafkaConsumer(settings: ConsumerSettings<K, V>): Flow<KafkaCon
 /**
  * Commits offsets in batches of every [count] offsets or a certain [duration] has passed, whichever happens first.
  */
-@FlowPreview
+@OptIn(FlowPreview::class)
 @ExperimentalCoroutinesApi
 @JvmName("commitBatchesWithin")
 public fun <K, V> Flow<ConsumerRecords<K, V>>.commitBatchWithin(
@@ -127,7 +127,7 @@ public fun <K, V> Flow<ConsumerRecords<K, V>>.commitBatchWithin(
   }
 }
 
-@FlowPreview
+@OptIn(FlowPreview::class)
 @ExperimentalCoroutinesApi
 public fun <K, V> Flow<ConsumerRecord<K, V>>.commitBatchWithin(
   settings: ConsumerSettings<K, V>,
@@ -187,7 +187,7 @@ public fun <K, V> List<ConsumerRecords<K, V>>.offsets(
   }
 }
 
-@FlowPreview
+@OptIn(FlowPreview::class)
 public fun <K, V> Flow<KafkaConsumer<K, V>>.subscribeTo(
   name: String,
   dispatcher: CoroutineDispatcher = IO,

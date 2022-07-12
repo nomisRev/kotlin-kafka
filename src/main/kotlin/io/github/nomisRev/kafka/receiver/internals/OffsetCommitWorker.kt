@@ -1,6 +1,6 @@
-package io.github.nomisRev.kafka.consumer.internals
+package io.github.nomisRev.kafka.receiver.internals
 
-import io.github.nomisRev.kafka.consumer.CommitStrategy
+import io.github.nomisRev.kafka.receiver.CommitStrategy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job

@@ -1,6 +1,6 @@
-package io.github.nomisRev.kafka.consumer.internals
+package io.github.nomisRev.kafka.receiver.internals
 
-import io.github.nomisRev.kafka.consumer.ConsumerPartition
+import io.github.nomisRev.kafka.receiver.ConsumerPartition
 import org.apache.kafka.clients.consumer.Consumer
 import org.apache.kafka.common.TopicPartition
 import java.util.Collections

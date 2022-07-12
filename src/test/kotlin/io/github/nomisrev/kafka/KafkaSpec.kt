@@ -3,29 +3,20 @@ package io.github.nomisrev.kafka
 import io.github.nomisRev.kafka.Admin
 import io.github.nomisRev.kafka.AdminSettings
 import io.github.nomisRev.kafka.AutoOffsetReset
-import io.github.nomisRev.kafka.ConsumerSettings
-import io.github.nomisRev.kafka.NothingDeserializer.close
 import io.github.nomisRev.kafka.ProducerSettings
 import io.github.nomisRev.kafka.createTopic
 import io.github.nomisRev.kafka.deleteTopic
 import io.github.nomisRev.kafka.produce
+import io.github.nomisRev.kafka.receiver.ConsumerSettings
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.core.spec.style.scopes.StringSpecScope
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.take
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.TestScope
 import org.apache.kafka.clients.admin.Admin
 import org.apache.kafka.clients.admin.AdminClientConfig
 import org.apache.kafka.clients.admin.NewTopic
-import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.StringDeserializer
@@ -36,15 +27,14 @@ import java.util.Properties
 import java.util.UUID
 import kotlin.time.Duration.Companion.seconds
 
+@OptIn(FlowPreview::class)
 abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
   init {
     body()
   }
   
-  val adminClientCloseTimeout = 2.seconds
-  val transactionTimeoutInterval = 1.seconds
-  val consumerPollingTimeout = 1.seconds
-  val producerPublishTimeout = 10.seconds
+  private val transactionTimeoutInterval = 1.seconds
+  private val consumerPollingTimeout = 1.seconds
   
   private val imageVersion = "7.0.1"
   
@@ -53,7 +43,7 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
       .asCompatibleSubstituteFor("confluentinc/cp-kafka")
     else DockerImageName.parse("confluentinc/cp-kafka:$imageVersion")
   
-  val container: KafkaContainer = autoClose(
+  private val container: KafkaContainer = autoClose(
     KafkaContainer(kafkaImage)
       .withExposedPorts(9092, 9093)
       .withNetworkAliases("broker")
@@ -69,7 +59,7 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
       .also { container -> container.start() }
   )
   
-  fun adminProperties(): Properties = Properties().apply {
+  private fun adminProperties(): Properties = Properties().apply {
     put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, container.bootstrapServers)
     put(AdminClientConfig.CLIENT_ID_CONFIG, "test-kafka-admin-client")
     put(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, "10000")
@@ -79,16 +69,8 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
   fun adminSettings(): AdminSettings =
     AdminSettings(container.bootstrapServers, adminProperties())
   
-  inline fun <A> admin(
-    body: Admin.() -> A,
-  ): A = Admin(adminSettings()).use(body)
-  
-  fun consumerProperties(): Properties = Properties().apply {
-    put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, container.bootstrapServers)
-    put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
-    put(ConsumerConfig.GROUP_ID_CONFIG, "test-group-id")
-    put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
-  }
+  inline fun <A> admin(body: Admin.() -> A): A =
+    Admin(adminSettings()).use(body)
   
   fun consumerSetting(): ConsumerSettings<String, String> =
     ConsumerSettings(
@@ -97,21 +79,19 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
       valueDeserializer = StringDeserializer(),
       groupId = "test-group-id",
       autoOffsetReset = AutoOffsetReset.Earliest,
-      enableAutoCommit = false
+      pollTimeout = consumerPollingTimeout
     )
-  
-  fun producerProperties(): Properties = Properties().apply {
-    put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, container.bootstrapServers)
-    put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 10000.toString())
-    put(ProducerConfig.RETRY_BACKOFF_MS_CONFIG, 1000.toString())
-  }
   
   fun producerSettings(): ProducerSettings<String, String> =
     ProducerSettings(
       bootstrapServers = container.bootstrapServers,
       keyDeserializer = StringSerializer(),
       valueDeserializer = StringSerializer(),
-      other = producerProperties()
+      other = Properties().apply {
+        put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, container.bootstrapServers)
+        put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 10000.toString())
+        put(ProducerConfig.RETRY_BACKOFF_MS_CONFIG, 1000.toString())
+      }
     )
   
   private fun nextTopicName(): String =
@@ -125,19 +105,14 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
   ): NewTopic =
     NewTopic(topic, partitions, replicationFactor)
       .configs(topicConfig)
-      .also { topic ->
-        admin { createTopic(topic) }
+      .also { newTopic ->
+        admin { createTopic(newTopic) }
         afterTest { (case, _) ->
           if (case == testCase) admin {
-            deleteTopic(topic.name())
+            deleteTopic(newTopic.name())
           }
         }
       }
-  
-  fun publishToKafka(
-    topic: NewTopic,
-    message: String,
-  ): Unit = TODO()
   
   suspend fun publishToKafka(
     topic: NewTopic,
@@ -148,26 +123,4 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
         ProducerRecord(topic.name(), key, value)
       }.produce(producerSettings())
       .collect()
-  
-  @ExperimentalCoroutinesApi
-  fun <T> Flow<T>.takeUntil(notifier: suspend () -> Unit): Flow<T> = channelFlow {
-    val outerScope = this
-    
-    launch {
-      try {
-        notifier()
-        close()
-      } catch (e: CancellationException) {
-        outerScope.cancel(e) // cancel outer scope on cancellation exception, too
-      }
-    }
-    launch {
-      try {
-        collect { send(it) }
-        close()
-      } catch (e: CancellationException) {
-        outerScope.cancel(e) // cancel outer scope on cancellation exception, too
-      }
-    }
-  }
 }

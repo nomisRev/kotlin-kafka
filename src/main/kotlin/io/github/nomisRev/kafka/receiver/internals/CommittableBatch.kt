@@ -1,4 +1,4 @@
-package io.github.nomisRev.kafka.consumer.internals
+package io.github.nomisRev.kafka.receiver.internals
 
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -30,14 +30,13 @@ internal class CommittableBatch {
       if (uncommittedThisTP != null && uncommittedThisTP.contains(offset)) {
         val offsets = deferred.computeIfAbsent(
           topicPartition
-        ) { tp: TopicPartition? -> LinkedList() }
+        ) { _: TopicPartition? -> LinkedList() }
         if (!offsets.contains(offset)) {
           offsets.add(offset)
           batchSize++
         }
       } else {
-        // TODO logger info
-        //log.debug("No uncomitted offset for $topicPartition@$offset, partition revoked?")
+        log.debug("No uncomitted offset for $topicPartition@$offset, partition revoked?")
       }
     } else if (offset != consumedOffsets.put(topicPartition, offset)) {
       batchSize++
@@ -69,7 +68,7 @@ internal class CommittableBatch {
   }
   
   @Synchronized
-  fun partitionsRevoked(revoked: Collection<TopicPartition>){
+  fun partitionsRevoked(revoked: Collection<TopicPartition>) {
     revoked.forEach(Consumer { part: TopicPartition ->
       uncommitted.remove(part)
       deferred.remove(part)
@@ -122,7 +121,6 @@ internal class CommittableBatch {
     } else currentCallbackEmitters = null
     return CommitArgs(offsetMap, currentCallbackEmitters)
   }
-  
   
   @Synchronized
   fun restoreOffsets(commitArgs: CommitArgs, restoreCallbackEmitters: Boolean) {

@@ -1,4 +1,4 @@
-package io.github.nomisRev.kafka.consumer
+package io.github.nomisRev.kafka.receiver
 
 import kotlin.time.Duration
 
@@ -11,11 +11,14 @@ import kotlin.time.Duration
  *  - Every `n` acknowledged records **or** every `interval` duration, whichever comes first.
  */
 public sealed interface CommitStrategy {
+  
   /** Commit **all** [Offset.acknowledge] messages to kafka every [interval]. */
   @JvmInline
   public value class ByTime(public val interval: Duration) : CommitStrategy {
     init {
-      interval.checkPosNonZero()
+      require(interval.isPosNonZero()) {
+        "Time based auto-commit requires positive non-zero interval but found $interval"
+      }
     }
   }
   
@@ -23,7 +26,9 @@ public sealed interface CommitStrategy {
   @JvmInline
   public value class BySize(public val size: Int) : CommitStrategy {
     init {
-      size.checkPosNonZero()
+      require(size >= 0) {
+        "Size based auto-commit requires positive non-zero commit batch size but found $size"
+      }
     }
   }
   
@@ -33,20 +38,22 @@ public sealed interface CommitStrategy {
    */
   public data class BySizeOrTime(public val size: Int, public val interval: Duration) : CommitStrategy {
     init {
-      size.checkPosNonZero()
-      interval.checkPosNonZero()
+      require(size >= 0) {
+        "Size based auto-commit requires positive non-zero commit batch size but found $size"
+      }
+      require(interval.isPosNonZero()) {
+        "Time based auto-commit requires positive non-zero interval but found $interval"
+      }
     }
   }
 }
 
-private fun Int.checkPosNonZero(): Int = also {
-  require(this >= 0) {
-    "Size based auto-commit requires positive non-zero commit batch size but found $this"
+internal fun CommitStrategy.size(): Int =
+  when (this) {
+    is CommitStrategy.BySize -> size
+    is CommitStrategy.BySizeOrTime -> size
+    is CommitStrategy.ByTime -> 0
   }
-}
 
-private fun Duration.checkPosNonZero(): Duration = also {
-  require(this != Duration.ZERO && isPositive()) {
-    "Time based auto-commit requires positive non-zero interval but found $this"
-  }
-}
+internal fun Duration.isPosNonZero(): Boolean =
+  this != Duration.ZERO && isPositive()

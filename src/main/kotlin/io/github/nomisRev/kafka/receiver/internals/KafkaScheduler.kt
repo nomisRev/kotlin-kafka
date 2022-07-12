@@ -1,4 +1,4 @@
-package io.github.nomisRev.kafka.consumer.internals
+package io.github.nomisRev.kafka.receiver.internals
 
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope

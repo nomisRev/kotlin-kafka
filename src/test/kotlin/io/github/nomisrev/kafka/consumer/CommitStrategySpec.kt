@@ -1,6 +1,6 @@
 package io.github.nomisrev.kafka.consumer
 
-import io.github.nomisRev.kafka.consumer.CommitStrategy
+import io.github.nomisRev.kafka.receiver.CommitStrategy
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe

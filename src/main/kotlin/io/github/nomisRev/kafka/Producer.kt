@@ -49,7 +49,7 @@ import org.apache.kafka.common.serialization.Serializer
  * ```
  * <!--- KNIT example-producer-01.kt -->
  */
-@FlowPreview
+@OptIn(FlowPreview::class)
 public fun <A, B> Flow<ProducerRecord<A, B>>.produce(
   settings: ProducerSettings<A, B>,
 ): Flow<RecordMetadata> =

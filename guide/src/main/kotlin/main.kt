@@ -1,13 +1,12 @@
 package io.github.nomisRev.kafka
 
-import io.github.nomisRev.kafka.consumer.internals.KConsumer
+import io.github.nomisRev.kafka.receiver.KafkaReceiver
+import io.github.nomisRev.kafka.receiver.ConsumerSettings
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
@@ -59,26 +58,16 @@ fun main(): Unit = runBlocking(Dispatchers.Default) {
         IntegerDeserializer().map(::Key),
         StringDeserializer().map(::Message),
         groupId = UUID.randomUUID().toString(),
-        autoOffsetReset = AutoOffsetReset.Earliest,
-        enableAutoCommit = false
+        autoOffsetReset = AutoOffsetReset.Earliest
       )
-      KConsumer.subscribe(
-        settings,
-        setOf(topicName)
-      ).buffer(Channel.RENDEZVOUS)
+      KafkaReceiver(settings)
+        .subscribe(topicName)
         .take(msgCount)
         .collect {
           delay(75)
           println("${Thread.currentThread().name} => ${it.key()} -> ${it.value()}")
           it.offset.acknowledge()
         }
-      
-      // KafkaConsumer(settings).asFlow()
-      //   .subscribeTo(topicName)
-      //   .tap { (key, value) -> println("$key -> $value") }
-      //   .commitBatchWithin(settings, 3, 10.milliseconds)
-      //   .take(4)
-      //   .collect()
     }
   }
 }

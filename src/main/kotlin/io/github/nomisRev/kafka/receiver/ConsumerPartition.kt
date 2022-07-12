@@ -1,4 +1,4 @@
-package io.github.nomisRev.kafka.consumer
+package io.github.nomisRev.kafka.receiver
 
 import org.apache.kafka.common.TopicPartition
 
