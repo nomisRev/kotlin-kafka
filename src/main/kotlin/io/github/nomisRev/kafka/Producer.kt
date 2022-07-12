@@ -50,7 +50,7 @@ import org.apache.kafka.common.serialization.Serializer
  * <!--- KNIT example-producer-01.kt -->
  */
 @FlowPreview
-public suspend fun <A, B> Flow<ProducerRecord<A, B>>.produce(
+public fun <A, B> Flow<ProducerRecord<A, B>>.produce(
   settings: ProducerSettings<A, B>,
 ): Flow<RecordMetadata> =
   kafkaProducer(settings).flatMapConcat { producer ->

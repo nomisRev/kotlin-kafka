@@ -43,6 +43,21 @@ import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 import kotlin.time.toKotlinDuration
 
+public fun <K, V> KafkaConsumer<K, V>.subscribe(
+  settings: ConsumerSettings<K, V>,
+  topicNames: Collection<String>
+): Flow<ReceiverRecord<K, V>> =
+  kafkaScheduler(
+    this@subscribe.groupMetadata().groupId()
+  ).flatMapConcat { (scope, dispatcher) ->
+    val loop = PollLoop(topicNames, settings, this@subscribe, scope)
+    loop.receive().flatMapConcat { records ->
+      records.map { record ->
+        ReceiverRecord(record, loop.toCommittableOffset(record))
+      }.asFlow()
+    }.flowOn(dispatcher)
+  }
+
 public object KConsumer {
   
   @FlowPreview
@@ -123,7 +138,7 @@ internal class PollLoop<K, V>(
   fun receive(): Flow<ConsumerRecords<K, V>> =
     loop.channel.consumeAsFlow()
       .onStart {
-        loop.subscriber(topicNames)
+        if (topicNames.isNotEmpty()) loop.subscriber(topicNames)
         loop.schedulePoll()
         commitManagerJob.start()
       }.onCompletion { stop() }
