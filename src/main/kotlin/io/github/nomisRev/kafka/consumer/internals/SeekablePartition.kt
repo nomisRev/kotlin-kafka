@@ -5,6 +5,7 @@ import org.apache.kafka.clients.consumer.Consumer
 import org.apache.kafka.common.TopicPartition
 import java.util.Collections
 
+// This implementation offers an API with the TopicPartition partially applied.
 internal class SeekablePartition(
   private val consumer: Consumer<*, *>,
   override val topicPartition: TopicPartition,
