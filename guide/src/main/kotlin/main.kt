@@ -61,7 +61,7 @@ fun main(): Unit = runBlocking(Dispatchers.Default) {
         autoOffsetReset = AutoOffsetReset.Earliest
       )
       KafkaReceiver(settings)
-        .subscribe(topicName)
+        .receive(topicName)
         .take(msgCount)
         .collect {
           delay(75)

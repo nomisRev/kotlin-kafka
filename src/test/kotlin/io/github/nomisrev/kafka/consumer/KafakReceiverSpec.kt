@@ -23,7 +23,7 @@ class KafakReceiverSpec : KafkaSpec({
     publishToKafka(topic, produced())
     KafkaReceiver(
       consumerSetting().copy(groupId = "test")
-    ).subscribe(topic.name())
+    ).receive(topic.name())
       .map {
         yield()
         Pair(it.key(), it.value())
@@ -35,7 +35,7 @@ class KafakReceiverSpec : KafkaSpec({
     publishToKafka(topic, produced())
     val consumer = KafkaReceiver(
       consumerSetting().copy(groupId = "test")
-    ).subscribe(topic.name())
+    ).receive(topic.name())
       .map {
         yield()
         Pair(it.key(), it.value())
