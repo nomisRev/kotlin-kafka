@@ -1,6 +1,7 @@
 package io.github.nomisRev.kafka.consumer.internals
 
 import io.github.nomisRev.kafka.ConsumerSettings
+import io.github.nomisRev.kafka.consumer.CommitStrategy
 import io.github.nomisRev.kafka.kafkaConsumer
 import io.github.nomisRev.kafka.consumer.Offset
 import io.github.nomisRev.kafka.consumer.ReceiverRecord
@@ -45,7 +46,7 @@ import kotlin.time.toKotlinDuration
 
 public fun <K, V> KafkaConsumer<K, V>.subscribe(
   settings: ConsumerSettings<K, V>,
-  topicNames: Collection<String>
+  topicNames: Collection<String>,
 ): Flow<ReceiverRecord<K, V>> =
   kafkaScheduler(
     this@subscribe.groupMetadata().groupId()
@@ -114,26 +115,18 @@ internal class PollLoop<K, V>(
    * or when it times out after the given `commitInterval`.
    * This way it optimises sending commits to Kafka in an optimised way.
    * Either every `Duration` or `x` elements, whichever comes first.
-   */ // TODO have more strategies. Can still commit in `n` sized batches for `commitInterval.isZero`.
-  private val commitManagerJob = if (!commitInterval.isZero) {
-    when (ackMode) {
-      //AUTO_ACK,
-      AckMode.MANUAL_ACK -> scope.launch(start = CoroutineStart.LAZY, context = Dispatchers.Default) {
-        whileSelect {
-          reachedMaxCommitBatchSize.onReceiveCatching {
-            loop.scheduleCommitIfRequired()
-            !it.isClosed // Stop on close
-          }
-          
-          onTimeout(commitInterval.toKotlinDuration()) {
-            loop.scheduleCommitIfRequired()
-            true
-          }
-        }
-      }
-      else -> Job()
-    }
-  } else Job()
+   */
+  private val commitManagerJob = scope.launch(
+    start = CoroutineStart.LAZY,
+    context = Dispatchers.Default
+  ) {
+    offsetCommitWorker(
+      ackMode,
+      CommitStrategy.BySizeOrTime(commitBatchSize, commitInterval.toKotlinDuration()),
+      reachedMaxCommitBatchSize,
+      loop::scheduleCommitIfRequired
+    )
+  }
   
   fun receive(): Flow<ConsumerRecords<K, V>> =
     loop.channel.consumeAsFlow()
@@ -375,7 +368,7 @@ internal class EventLoop<K, V>(
       if (commitArgs.offsets.isEmpty()) commitSuccess(commitArgs, commitArgs.offsets)
       else {
         when (ackMode) {
-          AckMode.MANUAL_ACK -> {
+          AckMode.MANUAL_ACK, AckMode.AUTO_ACK -> {
             inProgress.incrementAndGet()
             try {
               if (log.isDebugEnabled()) log.debug("Async committing: ${commitArgs.offsets}")
