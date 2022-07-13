@@ -2,7 +2,6 @@ Module kotlin-kafka
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.nomisrev/kotlin-kafka?color=4caf50&label=latest%20release)](https://maven-badges.herokuapp.com/maven-central/io.github.nomisrev/kotlin-kafka)
 
-<!--- TEST_NAME ReadmeTest -->
 <!--- TOC -->
 
 * [Rationale](#rationale)
@@ -124,12 +123,6 @@ fun main(): Unit = runBlocking(Dispatchers.Default) {
 > You can get the full code [here](guide/example/example-readme-01.kt).
 
 ```text
-SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-SLF4J: Failed to load class "org.slf4j.impl.StaticMDCBinder".
-SLF4J: Defaulting to no-operation MDCAdapter implementation.
-SLF4J: See http://www.slf4j.org/codes.html#no_static_mdc_binder for further details.
 test-topic-0@0
 test-topic-0@1
 test-topic-0@2
@@ -151,5 +144,3 @@ Key(index=8) -> Message(content=msg: 8)
 Key(index=9) -> Message(content=msg: 9)
 Key(index=10) -> Message(content=msg: 10)
 ```
-
-<!--- TEST -->
