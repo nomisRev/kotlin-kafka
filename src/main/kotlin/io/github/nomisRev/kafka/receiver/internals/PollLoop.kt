@@ -1,7 +1,7 @@
 package io.github.nomisRev.kafka.receiver.internals
 
 import io.github.nomisRev.kafka.receiver.CommitStrategy
-import io.github.nomisRev.kafka.receiver.ConsumerSettings
+import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import io.github.nomisRev.kafka.receiver.Offset
 import io.github.nomisRev.kafka.receiver.size
 import kotlinx.coroutines.CoroutineScope
@@ -39,7 +39,7 @@ import kotlin.time.toJavaDuration
 
 internal class PollLoop<K, V>(
   private val topicNames: Collection<String>,
-  private val settings: ConsumerSettings<K, V>,
+  private val settings: ReceiverSettings<K, V>,
   private val consumer: KafkaConsumer<K, V>,
   scope: CoroutineScope,
   awaitingTransaction: AtomicBoolean = AtomicBoolean(false),
@@ -123,7 +123,7 @@ internal class CommittableOffset<K, V>(
     }
   }
   
-  private fun maybeUpdateOffset(): Int =
+  private suspend fun maybeUpdateOffset(): Int =
     if (acknowledged.compareAndSet(false, true)) loop.commitBatch.updateOffset(topicPartition, offset)
     else loop.commitBatch.batchSize()
   
@@ -138,7 +138,7 @@ internal class CommittableOffset<K, V>(
 
 internal class EventLoop<K, V>(
   private val ackMode: AckMode,
-  private val settings: ConsumerSettings<K, V>,
+  private val settings: ReceiverSettings<K, V>,
   private val consumer: KafkaConsumer<K, V>,
   private val isRetriableException: (Throwable) -> Boolean,
   private val scope: CoroutineScope,

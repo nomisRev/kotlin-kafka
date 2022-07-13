@@ -15,7 +15,15 @@ private const val DEFAULT_MAX_COMMIT_ATTEMPTS = 100
 private val DEFAULT_COMMIT_RETRY_INTERVAL = 500.milliseconds
 private val DEFAULT_COMMIT_INTERVAL = 5.seconds
 
-public data class ConsumerSettings<K, V>(
+/**
+ * A data class that exposes configuration for [KafkaReceiver],
+ * and the underlying [org.apache.kafka.clients.consumer.KafkaConsumer].
+ *
+ * It forces to specify the required parameters to offer a type-safe API,
+ * so it requires [bootstrapServers], [valueDeserializer], and [groupId].
+ * All other parameters are configured to the sanest defaults.
+ */
+public data class ReceiverSettings<K, V>(
   val bootstrapServers: String,
   val keyDeserializer: Deserializer<K>,
   val valueDeserializer: Deserializer<V>,
@@ -46,8 +54,8 @@ public data class ConsumerSettings<K, V>(
   }
 }
 
-/** Alternative constructor for [ConsumerSettings] without a key */
-public fun <V> ConsumerSettings(
+/** Alternative constructor for [ReceiverSettings] without a key */
+public fun <V> ReceiverSettings(
   bootstrapServers: String,
   valueDeserializer: Deserializer<V>,
   groupId: String,
@@ -59,8 +67,8 @@ public fun <V> ConsumerSettings(
   maxDeferredCommits: Int = 0,
   closeTimeout: Duration = Long.MAX_VALUE.nanoseconds,
   properties: Properties = Properties(),
-): ConsumerSettings<Nothing, V> =
-  ConsumerSettings(
+): ReceiverSettings<Nothing, V> =
+  ReceiverSettings(
     bootstrapServers,
     NothingDeserializer,
     valueDeserializer,

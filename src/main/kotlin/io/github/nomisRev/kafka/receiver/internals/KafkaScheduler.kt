@@ -13,9 +13,14 @@ import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.concurrent.ThreadFactory
 import java.util.concurrent.atomic.AtomicLong
 
-private const val PREFIX = "kotlin-kafka-"
-private val COUNTER_REFERENCE = AtomicLong()
-
+/**
+ * [org.apache.kafka.clients.consumer.KafkaConsumer] is single-threaded,
+ * and thus needs to have a dedicated [ExecutorCoroutineDispatcher] that guarantees a single thread
+ * where we can schedule our interactions through [org.apache.kafka.clients.consumer.KafkaConsumer].
+ *
+ * This [Flow] returns a scheduler and CoroutineScope that is scoped to the stream,
+ * it gets lazily initialized when the [Flow] is collected and gets closed when the flow terminates.
+ */
 internal fun kafkaScheduler(groupId: String): Flow<Pair<CoroutineScope, ExecutorCoroutineDispatcher>> = flow {
   kafkaConsumerDispatcher(groupId).use { dispatcher: ExecutorCoroutineDispatcher ->
     val job = Job()
@@ -37,16 +42,16 @@ private val defaultCoroutineExceptionHandler = CoroutineExceptionHandler { corou
   )
 }
 
-/*
- * Create a single threaded [KafkaConsumer] dispatcher.
- * We'll use this dispatcher to schedule all KafkaConsumer interactions to guarantee single thread usage.
- */
 private fun kafkaConsumerDispatcher(groupId: String): ExecutorCoroutineDispatcher =
-  (Executors.newScheduledThreadPool(1, EventThreadFactory(groupId)) as ScheduledThreadPoolExecutor).apply {
+  ScheduledThreadPoolExecutor(1, EventThreadFactory(groupId)).apply {
     removeOnCancelPolicy = true
     maximumPoolSize = 1
   }.asCoroutineDispatcher()
 
+private const val PREFIX = "kotlin-kafka-"
+private val COUNTER_REFERENCE = AtomicLong()
+
+// Custom [ThreadFactory] to give a more meaningful name: "kotlin-kafka-groupId-counter"
 private class EventThreadFactory(private val groupId: String) : ThreadFactory {
   override fun newThread(runnable: Runnable): Thread =
     Thread(runnable, "$PREFIX$groupId-${COUNTER_REFERENCE.incrementAndGet()}")

@@ -1,7 +1,7 @@
 package io.github.nomisRev.kafka
 
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
-import io.github.nomisRev.kafka.receiver.ConsumerSettings
+import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -53,7 +53,7 @@ fun main(): Unit = runBlocking(Dispatchers.Default) {
     }
     
     launch(Dispatchers.IO) { // Consume 20 messages as a stream, and then close the consumer
-      val settings: ConsumerSettings<Key, Message> = ConsumerSettings(
+      val settings: ReceiverSettings<Key, Message> = ReceiverSettings(
         kafka.bootstrapServers,
         IntegerDeserializer().map(::Key),
         StringDeserializer().map(::Message),
@@ -71,6 +71,3 @@ fun main(): Unit = runBlocking(Dispatchers.Default) {
     }
   }
 }
-
-fun <A> Flow<A>.tap(also: suspend (A) -> Unit): Flow<A> =
-  map { it.also { also(it) } }

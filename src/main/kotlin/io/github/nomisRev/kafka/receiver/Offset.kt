@@ -3,7 +3,6 @@ package io.github.nomisRev.kafka.receiver
 import org.apache.kafka.clients.consumer.RetriableCommitFailedException
 import org.apache.kafka.common.TopicPartition
 import kotlinx.coroutines.flow.Flow
-import io.github.nomisRev.kafka.ConsumerSettings
 
 /**
  * Topic partition offset that must be acknowledged after the record is processed.
@@ -37,7 +36,7 @@ public interface Offset {
    * it may be wrapped in `launch` to avoid suspending until commit has completed.
    *
    * If commit fails with [RetriableCommitFailedException]
-   * the commit operation is retried [ConsumerSettings.maxCommitAttempts] times before this method returns.
+   * the commit operation is retried [ReceiverSettings.maxCommitAttempts] times before this method returns.
    */
   public suspend fun commit(): Unit
 }

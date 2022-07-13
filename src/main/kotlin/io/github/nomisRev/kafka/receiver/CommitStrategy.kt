@@ -26,7 +26,7 @@ public sealed interface CommitStrategy {
   @JvmInline
   public value class BySize(public val size: Int) : CommitStrategy {
     init {
-      require(size >= 0) {
+      require(size > 0) {
         "Size based auto-commit requires positive non-zero commit batch size but found $size"
       }
     }
@@ -38,7 +38,7 @@ public sealed interface CommitStrategy {
    */
   public data class BySizeOrTime(public val size: Int, public val interval: Duration) : CommitStrategy {
     init {
-      require(size >= 0) {
+      require(size > 0) {
         "Size based auto-commit requires positive non-zero commit batch size but found $size"
       }
       require(interval.isPosNonZero()) {

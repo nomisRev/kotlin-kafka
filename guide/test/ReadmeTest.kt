@@ -8,6 +8,12 @@ class ReadmeTest {
     @Test
     fun testExampleReadme01() {
         captureOutput("ExampleReadme01") { example.exampleReadme01.main() }.verifyOutputLines(
+            "SLF4J: Failed to load class \"org.slf4j.impl.StaticLoggerBinder\".",
+            "SLF4J: Defaulting to no-operation (NOP) logger implementation",
+            "SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.",
+            "SLF4J: Failed to load class \"org.slf4j.impl.StaticMDCBinder\".",
+            "SLF4J: Defaulting to no-operation MDCAdapter implementation.",
+            "SLF4J: See http://www.slf4j.org/codes.html#no_static_mdc_binder for further details.",
             "test-topic-0@0",
             "test-topic-0@1",
             "test-topic-0@2",

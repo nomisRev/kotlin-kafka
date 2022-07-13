@@ -1,7 +1,5 @@
 package io.github.nomisRev.kafka.receiver.internals
 
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import org.apache.kafka.clients.consumer.ConsumerRecords
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -9,20 +7,18 @@ import java.util.LinkedList
 import java.util.function.Consumer
 import kotlin.coroutines.Continuation
 
-// TODO Replaced @Synchronized with Mutex...
-// Can we do something else? Perhaps keep track of this in an Atomic inside of the run loop?
-// Replace atomic state inside of this class with AtomicRef instead of locking/synchronized
+// TODO Replaced @Synchronized with Mutex & Atomic depending on usages
 internal class CommittableBatch {
+  var outOfOrderCommits = false
   val consumedOffsets: MutableMap<TopicPartition, Long> = HashMap()
   val uncommitted: MutableMap<TopicPartition, MutableList<Long>> = HashMap()
   val deferred: MutableMap<TopicPartition, MutableList<Long>> = HashMap()
+  
   private val latestOffsets: MutableMap<TopicPartition, Long> = HashMap()
-  
-  var outOfOrderCommits = false
   private var batchSize = 0
-  private var callbackEmitters: MutableList<Continuation<Unit>> = ArrayList()
-  private val mutex: Mutex = Mutex()
+  private var continuations: MutableList<Continuation<Unit>> = ArrayList()
   
+  // Called from only from suspend code
   @Synchronized
   fun updateOffset(topicPartition: TopicPartition, offset: Long): Int {
     if (outOfOrderCommits) {
@@ -36,7 +32,7 @@ internal class CommittableBatch {
           batchSize++
         }
       } else {
-        log.debug("No uncomitted offset for $topicPartition@$offset, partition revoked?")
+        log.debug("No uncommitted offset for $topicPartition@$offset, partition revoked?")
       }
     } else if (offset != consumedOffsets.put(topicPartition, offset)) {
       batchSize++
@@ -44,19 +40,19 @@ internal class CommittableBatch {
     return batchSize
   }
   
+  // Called from non-suspend code, atomic??
   @Synchronized
-  fun addContinuation(emitter: Continuation<Unit>) =
-    callbackEmitters.add(emitter)
+  fun addContinuation(continuation: Continuation<Unit>) =
+    continuations.add(continuation)
   
-  suspend fun isEmpty(): Boolean = mutex.withLock {
-    batchSize == 0
-  }
-  
+  // called from suspend code
   @Synchronized
   fun batchSize(): Int =
     batchSize
   
-  suspend fun addUncommitted(records: ConsumerRecords<*, *>) = mutex.withLock {
+  // Called from suspend poll
+  @Synchronized
+  fun addUncommitted(records: ConsumerRecords<*, *>) {
     records.partitions().forEach { tp: TopicPartition ->
       val offsets = uncommitted.computeIfAbsent(tp) { _: TopicPartition -> LinkedList() }
       records.records(tp).forEach { record ->
@@ -67,6 +63,7 @@ internal class CommittableBatch {
     }
   }
   
+  // Called from ConsumerRebalanceListener, thus from our single threaded kafka dispatcher
   @Synchronized
   fun onPartitionsRevoked(revoked: Collection<TopicPartition>) {
     revoked.forEach(Consumer { part: TopicPartition ->
@@ -75,6 +72,7 @@ internal class CommittableBatch {
     })
   }
   
+  // Called from suspend poll, and getAndClearOffsets
   @Synchronized
   fun deferredCount(): Int {
     var count = 0
@@ -84,6 +82,8 @@ internal class CommittableBatch {
     return count
   }
   
+  // Called from commit, which is only called from suspend poll/close code (running on single threaded kafka dispatcher)
+  // **or** ConsumerRebalanceListener, thus from our single threaded kafka dispatcher
   @Synchronized
   fun getAndClearOffsets(): CommitArgs {
     val offsetMap: MutableMap<TopicPartition, OffsetAndMetadata> = HashMap()
@@ -115,13 +115,14 @@ internal class CommittableBatch {
       batchSize = 0
     }
     val currentCallbackEmitters: MutableList<Continuation<Unit>>?
-    if (callbackEmitters.isNotEmpty()) {
-      currentCallbackEmitters = callbackEmitters
-      callbackEmitters = ArrayList()
+    if (continuations.isNotEmpty()) {
+      currentCallbackEmitters = continuations
+      continuations = ArrayList()
     } else currentCallbackEmitters = null
     return CommitArgs(offsetMap, currentCallbackEmitters)
   }
   
+  // Called from commitFailure, could be `suspend` if `commit` becomes `suspend`.
   @Synchronized
   fun restoreOffsets(commitArgs: CommitArgs, restoreCallbackEmitters: Boolean) {
     // Restore offsets that haven't been updated.
@@ -138,23 +139,18 @@ internal class CommittableBatch {
         if (latestOffset == null || latestOffset <= offset - 1) consumedOffsets.putIfAbsent(topicPart, offset - 1)
       }
     }
-    // If Mono is being failed after maxAttempts or due to fatal error, callback emitters
-    // are not restored. Mono#retry will generate new callback emitters. If Mono status
-    // is not being updated because commits are attempted again by KafkaReceiver, restore
-    // the emitters for the next attempt.
-    if (restoreCallbackEmitters && commitArgs.continuations != null) callbackEmitters = commitArgs.continuations
+    
+    // If suspend failed after maxAttempts or due to fatal error, Continuation emitters are not restored.
+    // A new suspend fun will result in a new Continuation
+    // If suspend status is not being updated because commits are attempted again by KafkaReceiver,
+    // restore the emitters for the next attempt.
+    if (restoreCallbackEmitters && commitArgs.continuations != null) {
+      continuations = commitArgs.continuations
+    }
   }
-  
-  // @Synchronized
-  override fun toString(): String =
-    consumedOffsets.toString()
   
   class CommitArgs internal constructor(
     val offsets: Map<TopicPartition, OffsetAndMetadata>,
     val continuations: MutableList<Continuation<Unit>>?,
   )
-  
-  companion object {
-    // private val log: org.slf4j.Logger = org.slf4j.LoggerFactory.getLogger(CommittableBatch::class.java)
-  }
 }

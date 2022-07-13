@@ -34,13 +34,10 @@ dependencies {
   api(libs.kotlinx.coroutines.core)
   api(libs.kotlinx.coroutines.jdk8)
   api(libs.kafka.clients)
-
+  
   testImplementation(libs.bundles.kotest)
   testImplementation(libs.testcontainers.kafka)
-  testImplementation("io.projectreactor.kafka:reactor-kafka:1.3.11")
-  testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.6.3")
-  testImplementation("org.slf4j:slf4j-simple:1.7.36")
-  
+  testImplementation(libs.slf4j.simple)
 }
 
 configure<KnitPluginExtension> {

@@ -7,7 +7,7 @@ import io.github.nomisRev.kafka.ProducerSettings
 import io.github.nomisRev.kafka.createTopic
 import io.github.nomisRev.kafka.deleteTopic
 import io.github.nomisRev.kafka.produce
-import io.github.nomisRev.kafka.receiver.ConsumerSettings
+import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.core.spec.style.scopes.StringSpecScope
 import kotlinx.coroutines.FlowPreview
@@ -72,8 +72,8 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
   inline fun <A> admin(body: Admin.() -> A): A =
     Admin(adminSettings()).use(body)
   
-  fun consumerSetting(): ConsumerSettings<String, String> =
-    ConsumerSettings(
+  fun consumerSetting(): ReceiverSettings<String, String> =
+    ReceiverSettings(
       bootstrapServers = container.bootstrapServers,
       keyDeserializer = StringDeserializer(),
       valueDeserializer = StringDeserializer(),
