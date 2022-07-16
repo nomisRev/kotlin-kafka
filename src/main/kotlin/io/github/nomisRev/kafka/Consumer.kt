@@ -3,6 +3,7 @@
 package io.github.nomisRev.kafka
 
 import io.github.nomisRev.kafka.internal.chunked
+import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import java.time.Duration
@@ -73,6 +74,13 @@ import kotlin.coroutines.suspendCoroutine
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.toJavaDuration
 
+@Deprecated(
+  "Use KafkaReceiver instead. This function will be removed in 0.4.0",
+  ReplaceWith(
+    "KafkaReceiver(settings.toReceiverSettings())",
+    "io.github.nomisRev.kafka.receiver.KafkaReceiver"
+  )
+)
 public fun <K, V> KafkaConsumer(settings: ConsumerSettings<K, V>): KafkaConsumer<K, V> =
   KafkaConsumer(settings.properties(), settings.keyDeserializer, settings.valueDeserializer)
 
@@ -102,6 +110,13 @@ public fun <K, V> KafkaConsumer(settings: ConsumerSettings<K, V>): KafkaConsumer
  * ```
  * <!--- KNIT example-consumer-01.kt -->
  */
+@Deprecated(
+  "Use KafkaReceiver#receive instead. This function will be removed in 0.4.0",
+  ReplaceWith(
+    "KafkaReceiver(settings.toReceiverSettings()).receive()",
+    "io.github.nomisRev.kafka.receiver.KafkaReceiver"
+  )
+)
 public fun <K, V> kafkaConsumer(settings: ConsumerSettings<K, V>): Flow<KafkaConsumer<K, V>> =
   flow {
     KafkaConsumer(settings).use {
@@ -115,6 +130,7 @@ public fun <K, V> kafkaConsumer(settings: ConsumerSettings<K, V>): Flow<KafkaCon
 @OptIn(FlowPreview::class)
 @ExperimentalCoroutinesApi
 @JvmName("commitBatchesWithin")
+@Deprecated("Use KafkaReceiver instead. It comes with strong guarantees about commits")
 public fun <K, V> Flow<ConsumerRecords<K, V>>.commitBatchWithin(
   settings: ConsumerSettings<K, V>,
   count: Int,
@@ -129,6 +145,7 @@ public fun <K, V> Flow<ConsumerRecords<K, V>>.commitBatchWithin(
 
 @OptIn(FlowPreview::class)
 @ExperimentalCoroutinesApi
+@Deprecated("Use KafkaReceiver instead. It comes with strong guarantees about commits")
 public fun <K, V> Flow<ConsumerRecord<K, V>>.commitBatchWithin(
   settings: ConsumerSettings<K, V>,
   count: Int,
@@ -143,6 +160,10 @@ public fun <K, V> Flow<ConsumerRecord<K, V>>.commitBatchWithin(
   }
 }
 
+@Deprecated(
+  "Use KafkaReceiver instead. It comes with strong guarantees about commits." +
+    "You can only commit while polling, which is done automatically for you with KafkaReceiver"
+)
 public suspend fun <K, V> KafkaConsumer<K, V>.commitAwait(
   offsets: Map<TopicPartition, OffsetAndMetadata>,
 ): Map<TopicPartition, OffsetAndMetadata> =
@@ -158,15 +179,16 @@ public operator fun <K, V> ConsumerRecord<K, V>.component2(): V = value()
 
 public fun <K, V> Iterable<ConsumerRecord<K, V>>.offsets(
   metadata: ((record: ConsumerRecord<K, V>) -> String)? = null,
-): Map<TopicPartition, OffsetAndMetadata> = mutableMapOf<TopicPartition, OffsetAndMetadata>().apply {
-  this@offsets.forEach { record ->
-    val key = TopicPartition(record.topic(), record.partition())
-    val value = metadata?.let {
-      OffsetAndMetadata(record.offset() + 1, record.leaderEpoch(), metadata(record))
-    } ?: OffsetAndMetadata(record.offset() + 1)
-    put(key, value)
+): Map<TopicPartition, OffsetAndMetadata> =
+  mutableMapOf<TopicPartition, OffsetAndMetadata>().apply {
+    this@offsets.forEach { record ->
+      val key = TopicPartition(record.topic(), record.partition())
+      val value = metadata?.let {
+        OffsetAndMetadata(record.offset() + 1, record.leaderEpoch(), metadata(record))
+      } ?: OffsetAndMetadata(record.offset() + 1)
+      put(key, value)
+    }
   }
-}
 
 public fun <K, V> ConsumerRecord<K, V>.offsets(
   metadata: ((record: ConsumerRecord<K, V>) -> String)? = null,
@@ -187,6 +209,13 @@ public fun <K, V> List<ConsumerRecords<K, V>>.offsets(
   }
 }
 
+@Deprecated(
+  "Use KafkaReceiver#receive instead. This function will be removed in 0.4.0",
+  ReplaceWith(
+    "KafkaReceiver(settings.toReceiverSettings()).receive()",
+    "io.github.nomisRev.kafka.receiver.KafkaReceiver"
+  )
+)
 @OptIn(FlowPreview::class)
 public fun <K, V> Flow<KafkaConsumer<K, V>>.subscribeTo(
   name: String,
@@ -197,6 +226,13 @@ public fun <K, V> Flow<KafkaConsumer<K, V>>.subscribeTo(
   consumer.subscribeTo(name, dispatcher, listener, timeout)
 }
 
+@Deprecated(
+  "Use KafkaReceiver#receive instead. This function will be removed in 0.4.0",
+  ReplaceWith(
+    "KafkaReceiver(settings.toReceiverSettings()).receive()",
+    "io.github.nomisRev.kafka.receiver.KafkaReceiver"
+  )
+)
 /** Subscribes to the [KafkaConsumer] and polls for events in an interruptible way. */
 public fun <K, V> KafkaConsumer<K, V>.subscribeTo(
   name: String,
@@ -220,13 +256,22 @@ public fun <K, V> KafkaConsumer<K, V>.subscribeTo(
   }
 }
 
+@Deprecated(
+  "Use io.github.nomisRev.kafka.receiver.AutoOffsetReset instead",
+  ReplaceWith(
+    "this",
+    "io.github.nomisRev.kafka.receiver.AutoOffsetReset"
+  )
+)
 public enum class AutoOffsetReset(public val value: String) {
   Earliest("earliest"), Latest("latest"), None("none")
 }
 
-// TODO Compare with reactor-kafka
-// TODO should be easier to use `null`/`Nothing` Key
 /** Default values taken from [org.apache.kafka.clients.consumer.ConsumerConfig] */
+@Deprecated(
+  "Use ReceiverSettings with KafkaReceiver instead.",
+  ReplaceWith("toReceiverSettings()")
+)
 public data class ConsumerSettings<K, V>(
   // BOOTSTRAP_SERVERS_CONFIG
   val bootstrapServers: String,
@@ -299,6 +344,15 @@ public data class ConsumerSettings<K, V>(
   // Optional parameter that allows for setting properties not defined here
   private val properties: Properties? = null,
 ) {
+  public fun toReceiverSettings(): ReceiverSettings<K, V> =
+    ReceiverSettings(
+      bootstrapServers,
+      keyDeserializer,
+      valueDeserializer,
+      groupId,
+      properties = properties()
+    )
+  
   public fun properties(): Properties = Properties().apply {
     properties?.let { putAll(it) }
     put(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)

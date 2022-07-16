@@ -1,16 +1,22 @@
 package io.github.nomisrev.kafka.consumer
 
+import io.github.nomisRev.kafka.receiver.CommitStrategy
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisrev.kafka.KafkaSpec
+import io.github.nomisrev.kafka.mapIndexed
 import io.kotest.assertions.assertSoftly
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectIndexed
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flattenMerge
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
@@ -21,6 +27,7 @@ import org.apache.kafka.clients.producer.ProducerRecord
 class KafakReceiverSpec : KafkaSpec({
   
   val depth = 100
+  val lastIndex = depth - 1
   fun produced(
     startIndex: Int = 0,
     lastIndex: Int = depth,
@@ -80,6 +87,96 @@ class KafakReceiverSpec : KafkaSpec({
         .flattenMerge()
         .take(depth)
         .toList() shouldContainExactlyInAnyOrder produced()
+    }
+  }
+  
+  "All acknowledged messages are committed on flow completion" {
+    withTopic(partitions = 3) { topic ->
+      publishToKafka(topic, produced())
+      val receiver = KafkaReceiver(
+        receiverSetting().copy(
+          commitStrategy = CommitStrategy.BySize(2 * depth)
+        )
+      )
+      receiver.receive(topic.name())
+        .take(depth)
+        .collectIndexed { index, value ->
+          if (index == lastIndex) {
+            value.offset.acknowledge()
+            receiver.committedCount(topic.name()) shouldBe 0
+          } else value.offset.acknowledge()
+        }
+      
+      receiver.committedCount(topic.name()) shouldBe 100
+    }
+  }
+  
+  "All acknowledged messages are committed on flow failure" {
+    withTopic(partitions = 3) { topic ->
+      publishToKafka(topic, produced())
+      val receiver = KafkaReceiver(
+        receiverSetting().copy(
+          commitStrategy = CommitStrategy.BySize(2 * depth)
+        )
+      )
+      val failure = RuntimeException("Flow terminates")
+      runCatching {
+        receiver.receive(topic.name())
+          .collectIndexed { index, value ->
+            if (index == lastIndex) {
+              value.offset.acknowledge()
+              receiver.committedCount(topic.name()) shouldBe 0
+              throw failure
+            } else value.offset.acknowledge()
+          }
+      }.exceptionOrNull() shouldBe failure
+      
+      receiver.committedCount(topic.name()) shouldBe 100
+    }
+  }
+  
+  "All acknowledged messages are committed on flow cancellation" {
+    val scope = this
+    withTopic(partitions = 3) { topic ->
+      publishToKafka(topic, produced())
+      val receiver = KafkaReceiver(
+        receiverSetting().copy(
+          commitStrategy = CommitStrategy.BySize(2 * depth)
+        )
+      )
+      val latch = CompletableDeferred<Unit>()
+      val job = receiver.receive(topic.name())
+        .mapIndexed { index, value ->
+          if (index == lastIndex) {
+            value.offset.acknowledge()
+            receiver.committedCount(topic.name()) shouldBe 0
+            require(latch.complete(Unit)) { "Latch completed twice" }
+          } else value.offset.acknowledge()
+        }.launchIn(scope)
+      
+      latch.await()
+      job.cancelAndJoin()
+      
+      receiver.committedCount(topic.name()) shouldBe 100
+    }
+  }
+  
+  "Manual commit also commits all acknowledged offsets" {
+    withTopic(partitions = 3) { topic ->
+      publishToKafka(topic, produced())
+      val receiver = KafkaReceiver(
+        receiverSetting().copy(
+          commitStrategy = CommitStrategy.BySize(2 * depth)
+        )
+      )
+      receiver.receive(topic.name())
+        .take(depth)
+        .collectIndexed { index, value ->
+          if (index == lastIndex) {
+            value.offset.commit()
+            receiver.committedCount(topic.name()) shouldBe 100
+          } else value.offset.acknowledge()
+        }
     }
   }
   

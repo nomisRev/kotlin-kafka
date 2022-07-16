@@ -1,7 +1,5 @@
 package io.github.nomisRev.kafka.receiver
 
-import io.github.nomisRev.kafka.AutoOffsetReset
-import io.github.nomisRev.kafka.NothingDeserializer
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.serialization.Deserializer
 import java.util.Properties
@@ -14,6 +12,9 @@ private val DEFAULT_POLL_TIMEOUT = 100.milliseconds
 private const val DEFAULT_MAX_COMMIT_ATTEMPTS = 100
 private val DEFAULT_COMMIT_RETRY_INTERVAL = 500.milliseconds
 private val DEFAULT_COMMIT_INTERVAL = 5.seconds
+
+public typealias AutoOffsetReset =
+  io.github.nomisRev.kafka.AutoOffsetReset
 
 /**
  * A data class that exposes configuration for [KafkaReceiver],
@@ -45,7 +46,9 @@ public data class ReceiverSettings<K, V>(
   
   internal fun toProperties() = Properties().apply {
     put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
-    put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDeserializer::class.qualifiedName)
+    if (keyDeserializer !== NothingDeserializer) {
+      put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDeserializer::class.qualifiedName)
+    }
     put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDeserializer::class.qualifiedName)
     put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
     put(ConsumerConfig.GROUP_ID_CONFIG, groupId)
@@ -82,3 +85,9 @@ public fun <V> ReceiverSettings(
     closeTimeout,
     properties
   )
+
+private object NothingDeserializer : Deserializer<Nothing> {
+  override fun close(): Unit = Unit
+  override fun configure(configs: MutableMap<String, *>?, isKey: Boolean): Unit = Unit
+  override fun deserialize(topic: String?, data: ByteArray?): Nothing = TODO("Impossible")
+}
