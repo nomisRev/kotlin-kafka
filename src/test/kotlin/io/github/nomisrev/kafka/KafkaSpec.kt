@@ -29,7 +29,6 @@ import java.util.Properties
 import java.util.UUID
 import kotlin.time.Duration.Companion.seconds
 
-@OptIn(FlowPreview::class)
 abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
   init {
     body()
@@ -38,12 +37,10 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
   private val transactionTimeoutInterval = 1.seconds
   private val consumerPollingTimeout = 1.seconds
   
-  private val imageVersion = "7.0.1"
-  
+  private val postfix = if (System.getProperty("os.arch") == "aarch64") ".arm64" else ""
+  private val imageVersion = "latest$postfix"
   private val kafkaImage: DockerImageName =
-    if (System.getProperty("os.arch") == "aarch64") DockerImageName.parse("niciqy/cp-kafka-arm64:$imageVersion")
-      .asCompatibleSubstituteFor("confluentinc/cp-kafka")
-    else DockerImageName.parse("confluentinc/cp-kafka:$imageVersion")
+    DockerImageName.parse("confluentinc/cp-kafka:$imageVersion")
   
   private val container: KafkaContainer = autoClose(
     KafkaContainer(kafkaImage)
@@ -58,6 +55,7 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
       )
       .withEnv("KAFKA_AUTHORIZER_CLASS_NAME", "kafka.security.authorizer.AclAuthorizer")
       .withEnv("KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND", "true")
+      .withReuse(true)
       .also { container -> container.start() }
   )
   
@@ -134,16 +132,16 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
   
   suspend fun <K, V> KafkaReceiver<K, V>.committedCount(topic: String): Long =
     admin {
-      val description = describeTopic(topic) ?: throw IllegalStateException("Topic $topic not found")
+      val description = requireNotNull(describeTopic(topic)) { "Topic $topic not found" }
       val topicPartitions = description.partitions().map {
         TopicPartition(topic, it.partition())
       }.toSet()
       
       withConsumer {
         committed(topicPartitions)
-          .filter { (_, offset) -> offset != null && offset.offset() > 0 }
-          .map { (_, metadata) -> metadata.offset() }
-          .sum()
+          .mapNotNull { (_, offset) ->
+            offset?.takeIf { it.offset() > 0 }?.offset()
+          }.sum()
       }
     }
 }
