@@ -8,7 +8,8 @@ import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import java.util.concurrent.Executors
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.concurrent.ThreadFactory
 import java.util.concurrent.atomic.AtomicLong
@@ -33,10 +34,13 @@ internal fun kafkaScheduler(groupId: String): Flow<Pair<CoroutineScope, Executor
   }
 }
 
+private val logger: Logger =
+  LoggerFactory.getLogger("KafkaScheduler")
+
 // All exceptions inside the library code should be handled.
 // So any uncaught errors on the KafkaConsumer dispatcher is a bug.
 private val defaultCoroutineExceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->
-  log.error(
+  logger.error(
     "KafkaDispatcher with $coroutineContext failed with an uncaught exception. Report to kotlin-kafka repo please.",
     throwable
   )

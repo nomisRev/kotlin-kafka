@@ -3,9 +3,14 @@ package io.github.nomisRev.kafka.receiver.internals
 import org.apache.kafka.clients.consumer.ConsumerRecords
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.util.LinkedList
 import java.util.function.Consumer
 import kotlin.coroutines.Continuation
+
+private val logger: Logger =
+  LoggerFactory.getLogger(CommittableBatch::class.java)
 
 // TODO Replaced @Synchronized with Mutex & Atomic depending on usages
 internal class CommittableBatch {
@@ -32,7 +37,7 @@ internal class CommittableBatch {
           batchSize++
         }
       } else {
-        log.debug("No uncommitted offset for $topicPartition@$offset, partition revoked?")
+        logger.debug("No uncommitted offset for $topicPartition@$offset, partition revoked?")
       }
     } else if (offset != consumedOffsets.put(topicPartition, offset)) {
       batchSize++

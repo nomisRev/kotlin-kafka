@@ -27,6 +27,8 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.clients.consumer.RetriableCommitFailedException
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.WakeupException
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Duration.ofSeconds
 import java.util.concurrent.atomic.AtomicBoolean
@@ -127,7 +129,7 @@ internal class CommittableOffset<K, V>(
     }
   }
   
-  private suspend fun maybeUpdateOffset(): Int =
+  private /*suspend*/ fun maybeUpdateOffset(): Int =
     if (acknowledged.compareAndSet(false, true)) loop.commitBatch.updateOffset(topicPartition, offset)
     else loop.commitBatch.batchSize()
   
@@ -139,6 +141,9 @@ internal class CommittableOffset<K, V>(
   
   override fun toString(): String = "$topicPartition@$offset"
 }
+
+private val logger: Logger =
+  LoggerFactory.getLogger(EventLoop::class.java)
 
 internal class EventLoop<K, V>(
   private val ackMode: AckMode,
@@ -172,44 +177,51 @@ internal class EventLoop<K, V>(
     try {
       consumer.subscribe(topicNames, object : ConsumerRebalanceListener {
         override fun onPartitionsAssigned(partitions: MutableCollection<TopicPartition>) {
-          log.debug("onPartitionsAssigned $partitions")
+          logger.debug("onPartitionsAssigned $partitions")
           // onAssign methods may perform seek. It is safe to use the consumer here since we are in a poll()
           if (partitions.isNotEmpty()) {
             if (pausedByUs.get()) {
-              log.debug("Rebalance during back pressure, re-pausing new assignments")
+              logger.debug("Rebalance during back pressure, re-pausing new assignments")
               consumer.pause(partitions)
             }
             // TODO Setup user listeners
             // for (onAssign in receiverOptions.assignListeners()) {
             //   onAssign.accept(toSeekable(partitions))
             // }
-            if (log.isTraceEnabled()) {
+            if (logger.isTraceEnabled) {
               try {
                 val positions = partitions.map { part: TopicPartition ->
                   "$part pos: ${consumer.position(part, ofSeconds(5))}"
                 }
-                log.trace("positions: $positions, committed: ${consumer.committed(partitions.toSet(), ofSeconds(5))}")
+                logger.trace(
+                  "positions: $positions, committed: ${
+                    consumer.committed(
+                      partitions.toSet(),
+                      ofSeconds(5)
+                    )
+                  }"
+                )
               } catch (ex: Exception) {
-                log.error("Failed to get positions or committed", ex)
+                logger.error("Failed to get positions or committed", ex)
               }
             }
           }
         }
         
         override fun onPartitionsRevoked(partitions: MutableCollection<TopicPartition>) {
-          log.debug("onPartitionsRevoked $partitions")
+          logger.debug("onPartitionsRevoked $partitions")
           commitBatch.onPartitionsRevoked(partitions)
           this@EventLoop.onPartitionsRevoked(partitions)
         }
       })
     } catch (e: Throwable) {
-      log.error("Unexpected exception", e)
+      logger.error("Unexpected exception", e)
       channel.close(e)
     }
   }
   
   private fun checkAndSetPausedByUs(): Boolean {
-    log.debug("checkAndSetPausedByUs")
+    logger.debug("checkAndSetPausedByUs")
     val pausedNow = !pausedByUs.getAndSet(true)
     if (pausedNow && requesting.get() && !retrying.get()) {
       consumer.wakeup()
@@ -243,29 +255,29 @@ internal class EventLoop<K, V>(
                 toResume.removeAll(pausedByUser)
                 pausedByUser.clear()
                 consumer.resume(toResume)
-                log.debug("Resumed")
+                logger.debug("Resumed")
               }
             } else {
               if (checkAndSetPausedByUs()) {
                 pausedByUser.addAll(consumer.paused())
                 consumer.pause(consumer.assignment())
-                log.debug("Paused - awaiting transaction")
+                logger.debug("Paused - awaiting transaction")
               }
             }
           } else if (checkAndSetPausedByUs()) {
             pausedByUser.addAll(consumer.paused())
             consumer.pause(consumer.assignment())
             when {
-              pauseForDeferred -> log.debug("Paused - too many deferred commits")
-              retrying.get() -> log.debug("Paused - commits are retrying")
-              else -> log.debug("Paused - back pressure")
+              pauseForDeferred -> logger.debug("Paused - too many deferred commits")
+              retrying.get() -> logger.debug("Paused - commits are retrying")
+              else -> logger.debug("Paused - back pressure")
             }
           }
           
           val records: ConsumerRecords<K, V> = try {
             consumer.poll(pollTimeout)
           } catch (e: WakeupException) {
-            log.debug("Consumer woken")
+            logger.debug("Consumer woken")
             ConsumerRecords.empty()
           }
           if (isActive.get()) schedulePoll()
@@ -273,14 +285,14 @@ internal class EventLoop<K, V>(
             if (settings.maxDeferredCommits > 0) {
               commitBatch.addUncommitted(records)
             }
-            log.debug("Emitting ${records.count()} records")
+            logger.debug("Emitting ${records.count()} records")
             channel.trySend(records)
-              .onClosed { log.error("Channel closed when trying to send records.", it) }
+              .onClosed { logger.error("Channel closed when trying to send records.", it) }
               .onFailure { error ->
                 if (error != null) {
-                  log.error("Channel send failed when trying to send records.", error)
+                  logger.error("Channel send failed when trying to send records.", error)
                   channel.close(error)
-                } else log.debug("Back-pressuring kafka consumer. Might pause KafkaConsumer on next tick.")
+                } else logger.debug("Back-pressuring kafka consumer. Might pause KafkaConsumer on next tick.")
                 
                 requesting.set(false)
                 // TODO Can we rely on a dispatcher from above?
@@ -302,7 +314,7 @@ internal class EventLoop<K, V>(
           }
         }
       } catch (e: Exception) {
-        log.error("Unexpected exception", e)
+        logger.error("Unexpected exception", e)
         channel.close(e)
       }
     } else null
@@ -324,7 +336,7 @@ internal class EventLoop<K, V>(
           AckMode.MANUAL_ACK, AckMode.AUTO_ACK -> {
             inProgress.incrementAndGet()
             try {
-              if (log.isDebugEnabled()) log.debug("Async committing: ${commitArgs.offsets}")
+              logger.debug("Async committing: ${commitArgs.offsets}")
               consumer.commitAsync(commitArgs.offsets) { offsets, exception ->
                 inProgress.decrementAndGet()
                 if (exception == null) commitSuccess(commitArgs, offsets)
@@ -338,7 +350,7 @@ internal class EventLoop<K, V>(
           }
           
           AckMode.ATMOST_ONCE -> {
-            if (log.isDebugEnabled()) log.debug("Sync committing: ${commitArgs.offsets}")
+            logger.debug("Sync committing: ${commitArgs.offsets}")
             consumer.commitSync(commitArgs.offsets)
             commitSuccess(commitArgs, commitArgs.offsets)
             atmostOnceOffsets.onCommit(commitArgs.offsets)
@@ -348,7 +360,7 @@ internal class EventLoop<K, V>(
         }
       }
     } catch (e: Exception) {
-      log.error("Unexpected exception", e)
+      logger.error("Unexpected exception", e)
       commitFailure(commitArgs, e)
     }
   }
@@ -367,9 +379,9 @@ internal class EventLoop<K, V>(
     if (retrying.getAndSet(false)) schedulePoll() else null
   
   private fun commitFailure(commitArgs: CommittableBatch.CommitArgs, exception: Exception) {
-    log.warn("Commit failed", exception)
+    logger.warn("Commit failed", exception)
     if (!isRetriableException(exception) && consecutiveCommitFailures.incrementAndGet() < settings.maxCommitAttempts) {
-      log.debug("Cannot retry")
+      logger.debug("Cannot retry")
       pollTaskAfterRetry()
       val callbackEmitters: List<Continuation<Unit>>? = commitArgs.continuations
       if (callbackEmitters.isNullOrEmpty()) channel.close(exception)
@@ -382,7 +394,7 @@ internal class EventLoop<K, V>(
       }
     } else {
       commitBatch.restoreOffsets(commitArgs, true)
-      log.warn("Commit failed with exception $exception, retries remaining ${(settings.maxCommitAttempts - consecutiveCommitFailures.get())}")
+      logger.warn("Commit failed with exception $exception, retries remaining ${(settings.maxCommitAttempts - consecutiveCommitFailures.get())}")
       isPending.set(true)
       retrying.set(true)
       schedulePoll()
