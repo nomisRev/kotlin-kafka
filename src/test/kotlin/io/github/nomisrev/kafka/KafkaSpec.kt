@@ -6,10 +6,11 @@ import io.github.nomisRev.kafka.AutoOffsetReset
 import io.github.nomisRev.kafka.ProducerSettings
 import io.github.nomisRev.kafka.createTopic
 import io.github.nomisRev.kafka.deleteTopic
+import io.github.nomisRev.kafka.describeTopic
 import io.github.nomisRev.kafka.produce
+import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import io.kotest.core.spec.style.StringSpec
-import io.kotest.core.spec.style.scopes.StringSpecScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.collect
@@ -19,6 +20,7 @@ import org.apache.kafka.clients.admin.AdminClientConfig
 import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.testcontainers.containers.KafkaContainer
@@ -72,7 +74,7 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
   inline fun <A> admin(body: Admin.() -> A): A =
     Admin(adminSettings()).use(body)
   
-  fun consumerSetting(): ReceiverSettings<String, String> =
+  fun receiverSetting(): ReceiverSettings<String, String> =
     ReceiverSettings(
       bootstrapServers = container.bootstrapServers,
       keyDeserializer = StringDeserializer(),
@@ -97,23 +99,24 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
   private fun nextTopicName(): String =
     "topic-${UUID.randomUUID()}"
   
-  suspend fun StringSpecScope.createCustomTopic(
-    topic: String = nextTopicName(),
+  suspend fun <A> withTopic(
     topicConfig: Map<String, String> = emptyMap(),
     partitions: Int = 1,
     replicationFactor: Short = 1,
-  ): NewTopic =
-    NewTopic(topic, partitions, replicationFactor)
-      .configs(topicConfig)
-      .also { newTopic ->
-        admin { createTopic(newTopic) }
-        afterTest { (case, _) ->
-          if (case == testCase) admin {
-            deleteTopic(newTopic.name())
-          }
-        }
+    action: suspend Admin.(NewTopic) -> A,
+  ): A {
+    val topic = NewTopic(nextTopicName(), partitions, replicationFactor).configs(topicConfig)
+    return admin {
+      createTopic(topic)
+      try {
+        action(topic)
+      } finally {
+        deleteTopic(topic.name())
       }
+    }
+  }
   
+  @JvmName("publishPairsToKafka")
   suspend fun publishToKafka(
     topic: NewTopic,
     messages: Iterable<Pair<String, String>>,
@@ -123,4 +126,24 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
         ProducerRecord(topic.name(), key, value)
       }.produce(producerSettings())
       .collect()
+  
+  suspend fun publishToKafka(messages: Iterable<ProducerRecord<String, String>>): Unit =
+    messages.asFlow()
+      .produce(producerSettings())
+      .collect()
+  
+  suspend fun <K, V> KafkaReceiver<K, V>.committedCount(topic: String): Long =
+    admin {
+      val description = describeTopic(topic) ?: throw IllegalStateException("Topic $topic not found")
+      val topicPartitions = description.partitions().map {
+        TopicPartition(topic, it.partition())
+      }.toSet()
+      
+      withConsumer {
+        committed(topicPartitions)
+          .filter { (_, offset) -> offset != null && offset.offset() > 0 }
+          .map { (_, metadata) -> metadata.offset() }
+          .sum()
+      }
+    }
 }

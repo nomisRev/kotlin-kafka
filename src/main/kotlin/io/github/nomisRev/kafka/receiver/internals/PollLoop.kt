@@ -1,13 +1,14 @@
 package io.github.nomisRev.kafka.receiver.internals
 
 import io.github.nomisRev.kafka.receiver.CommitStrategy
-import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import io.github.nomisRev.kafka.receiver.Offset
+import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import io.github.nomisRev.kafka.receiver.size
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.onClosed
 import kotlinx.coroutines.channels.onFailure
@@ -38,6 +39,7 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
 
 internal class PollLoop<K, V>(
+  // TODO also allow for Pattern, and assign
   private val topicNames: Collection<String>,
   private val settings: ReceiverSettings<K, V>,
   private val consumer: KafkaConsumer<K, V>,
@@ -49,6 +51,7 @@ internal class PollLoop<K, V>(
   isRetriableException: (Throwable) -> Boolean = { e -> e is RetriableCommitFailedException },
 ) {
   private val reachedMaxCommitBatchSize = Channel<Unit>(Channel.RENDEZVOUS)
+  private val atMostOnceOffset: AtmostOnceOffsets = AtmostOnceOffsets()
   private val loop = EventLoop(
     ackMode,
     settings,
@@ -56,7 +59,8 @@ internal class PollLoop<K, V>(
     isRetriableException,
     scope,
     isActive,
-    awaitingTransaction
+    awaitingTransaction,
+    atMostOnceOffset
   )
   
   /*
@@ -89,7 +93,7 @@ internal class PollLoop<K, V>(
   private suspend fun stop() {
     if (!isActive.compareAndSet(true, false)) Unit
     reachedMaxCommitBatchSize.close()
-    commitManagerJob.cancel() // TODO test cancelAndJoin
+    commitManagerJob.cancelAndJoin()
     consumer.wakeup()
     loop.close(settings.closeTimeout)
   }
@@ -118,7 +122,7 @@ internal class CommittableOffset<K, V>(
   
   override suspend fun acknowledge() {
     val uncommittedCount = maybeUpdateOffset().toLong()
-    if (commitBatchSize > 0 && uncommittedCount >= commitBatchSize) {
+    if (commitBatchSize in 1..uncommittedCount) {
       reachedMaxCommitBatchSize.send(Unit)
     }
   }
@@ -144,6 +148,7 @@ internal class EventLoop<K, V>(
   private val scope: CoroutineScope,
   private val isActive: AtomicBoolean,
   private val awaitingTransaction: AtomicBoolean,
+  private val atmostOnceOffsets: AtmostOnceOffsets,
 ) {
   private val requesting = AtomicBoolean(true)
   private val pausedByUs = AtomicBoolean(false)
@@ -153,9 +158,9 @@ internal class EventLoop<K, V>(
   private fun onPartitionsRevoked(partitions: Collection<TopicPartition>) {
     if (!partitions.isEmpty()) {
       // It is safe to use the consumer here since we are in a poll()
-      // if (ackMode != AckMode.ATMOST_ONCE){
-      runCommitIfRequired(true)
-      // }
+      if (ackMode != AckMode.ATMOST_ONCE) {
+        runCommitIfRequired(true)
+      }
       // TODO Setup user listeners
       // for (onRevoke in receiverOptions.revokeListeners()) {
       //   onRevoke.accept(toSeekable(partitions))
@@ -331,6 +336,15 @@ internal class EventLoop<K, V>(
             }
             schedulePoll()
           }
+          
+          AckMode.ATMOST_ONCE -> {
+            if (log.isDebugEnabled()) log.debug("Sync committing: ${commitArgs.offsets}")
+            consumer.commitSync(commitArgs.offsets)
+            commitSuccess(commitArgs, commitArgs.offsets)
+            atmostOnceOffsets.onCommit(commitArgs.offsets)
+          }
+          // Handled separately using transactional KafkaSender
+          AckMode.EXACTLY_ONCE -> Unit
         }
       }
     } catch (e: Exception) {
@@ -408,15 +422,15 @@ internal class EventLoop<K, V>(
     val maxAttempts = 3
     for (i in 0 until maxAttempts) {
       try {
-        var forceCommit = true
-        // if (ackMode == reactor.kafka.receiver.internals.AckMode.ATMOST_ONCE){
-        //   forceCommit = atmostOnceOffsets.undoCommitAhead(commitEvent.commitBatch)
-        // }
+        val forceCommit = when (ackMode) {
+          AckMode.ATMOST_ONCE -> atmostOnceOffsets.undoCommitAhead(commitBatch)
+          else -> true
+        }
         // For exactly-once, offsets are committed by a producer, consumer may be closed immediately
-        // if (ackMode != reactor.kafka.receiver.internals.AckMode.EXACTLY_ONCE) {
-        runCommitIfRequired(forceCommit)
-        waitFor(closeEndTimeMillis)
-        // }
+        if (ackMode != AckMode.EXACTLY_ONCE) {
+          runCommitIfRequired(forceCommit)
+          waitFor(closeEndTimeMillis)
+        }
         var timeoutMillis: Long = closeEndTimeMillis - System.currentTimeMillis()
         if (timeoutMillis < 0) timeoutMillis = 0
         consumer.close(Duration.ofMillis(timeoutMillis))
