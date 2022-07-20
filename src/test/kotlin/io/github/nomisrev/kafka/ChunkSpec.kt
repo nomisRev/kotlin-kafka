@@ -1,24 +1,39 @@
 package io.github.nomisrev.kafka
 
 import io.github.nomisRev.kafka.internal.chunked
+import io.kotest.assertions.assertSoftly
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.int
 import io.kotest.property.arbitrary.list
+import io.kotest.property.arbitrary.long
+import io.kotest.property.arbitrary.map
 import io.kotest.property.checkAll
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlin.math.absoluteValue
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.microseconds
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.ExperimentalTime
+import kotlin.time.measureTimedValue
 
+@OptIn(ExperimentalTime::class)
+@ExperimentalCoroutinesApi
 class ChunkSpec : StringSpec({
   
-  "should never lose any elements" {
+  "should never lose any elements, and get full chunks if not timing out" {
     runTest {
       checkAll(
         Arb.list(Arb.int()),
@@ -34,47 +49,61 @@ class ChunkSpec : StringSpec({
     }
   }
   
-  // @Test
-  // fun testEmptyFlowTimeOrSizeBasedChunking() = runTest {
-  //   val emptyFlow = emptyFlow<Int>()
-  //   val result = measureTimedValue {
-  //     emptyFlow.chunked(ChunkingMethod.ByTimeOrSize(intervalMs = 10 * 1000, maxSize = 5)).toList()
-  //   }
-  //   assertTrue(result.value.isEmpty())
-  //   assertTrue(result.duration < 500.milliseconds)
-  // }
-  //
-  // @Test
-  // fun testMultipleElementsFillingBufferWithTimeOrSizeBasedChunking() = runTest {
-  //   val flow = flow<Int> {
-  //     for (i in 1..10) {
-  //       emit(i)
-  //     }
-  //   }
-  //   val result = measureTimedValue {
-  //     flow.chunked(ChunkingMethod.ByTimeOrSize(intervalMs = 10 * 1000, maxSize = 5)).toList()
-  //   }
-  //   assertEquals(2, result.value.size)
-  //   assertEquals(5, result.value.first().size)
-  //   assertEquals(5, result.value[1].size)
-  //   assertTrue(result.duration < 500.milliseconds)
-  // }
-  //
-  // @Test
-  // fun testMultipleElementsNotFillingBufferWithTimeOrSizeBasedChunking() = withVirtualTime {
-  //   val flow = flow {
-  //     for (i in 1..5) {
-  //       delay(500)
-  //       emit(i)
-  //     }
-  //   }
-  //   val result = flow.chunked(ChunkingMethod.ByTimeOrSize(intervalMs = 1100, maxSize = 500)).toList()
-  //
-  //   assertEquals(3, result.size)
-  //   assertEquals(2, result.first().size)
-  //   assertEquals(2, result[1].size)
-  //   assertEquals(1, result[2].size)
-  //
-  //   finish(1)
-  // }
+  val infinite = flow {
+    while (true) {
+      currentCoroutineContext().ensureActive()
+      emit(Unit)
+    }
+  }
+  
+  "Can take from infinite stream" {
+    runTest {
+      checkAll(
+        Arb.int(min = 1, max = 50), // chunk needs to have minSize 1
+        Arb.int(min = 1, max = 50), // chunk needs to have minSize 1
+        Arb.long(min = 100).map { it.milliseconds } // During warm-up can take up to 100ms for first flow
+      ) { size, count, timeout ->
+        infinite.map {
+          delay(100.microseconds)
+        }.chunked(size, timeout)
+          .take(count)
+          .toList() shouldBe List(count) { List(size) { } }
+      }
+    }
+  }
+  
+  "empty flow" {
+    runTest {
+      val empty = emptyFlow<Int>()
+      checkAll(
+        Arb.int(min = 1), // chunk needs to have minSize 1
+        Arb.long(min = 15).map { it.milliseconds } // During warm-up can take up to 10ms for first flow
+      ) { size, timeout ->
+        val (value, duration) = measureTimedValue {
+          empty.chunked(size, timeout).toList()
+        }
+        value.shouldBeEmpty()
+        duration.inWholeMilliseconds < 15
+      }
+    }
+  }
+  
+  "multiple elements not filling chunks" {
+    runTest {
+      val flow = flow {
+        for (i in 1..5) {
+          delay(500)
+          emit(i)
+        }
+      }
+      
+      val result = flow.chunked(500, 1100.milliseconds).toList()
+      assertSoftly(result) {
+        size shouldBe 3
+        first().size shouldBe 2
+        get(1).size shouldBe 2
+        get(2).size shouldBe 1
+      }
+    }
+  }
 })

@@ -34,8 +34,11 @@ dependencies {
   api(libs.kotlinx.coroutines.core)
   api(libs.kotlinx.coroutines.jdk8)
   api(libs.kafka.clients)
-
+  implementation(libs.slf4j.api)
+  
   testImplementation(libs.bundles.kotest)
+  testImplementation(libs.testcontainers.kafka)
+  testImplementation(libs.slf4j.simple)
 }
 
 configure<KnitPluginExtension> {
@@ -72,7 +75,7 @@ tasks {
     kotlinOptions.jvmTarget = "1.8"
   }
   
-  val cleanDocs = register<Delete>("cleanDocs") {
+  register<Delete>("cleanDocs") {
     val folder = file("docs").also { it.mkdir() }
     val docsContent = folder.listFiles().filter { it != folder }
     delete(docsContent)
