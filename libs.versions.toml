@@ -7,6 +7,8 @@ kotlinx-coroutines = "1.6.4"
 dokka = "1.7.10"
 knit = "0.4.0"
 kover = "0.5.1"
+testcontainers-kafka = "1.17.3"
+slf4j = "1.7.36"
 
 [libraries]
 kotest-assertions = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
@@ -20,7 +22,9 @@ kotlin-scripting-compiler-embeddable = { module = "org.jetbrains.kotlin:kotlin-s
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-jdk8 = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8", version.ref = "kotlinx-coroutines" }
-testcontainers-kafka = "org.testcontainers:kafka:1.17.3"
+testcontainers-kafka = { module = "org.testcontainers:kafka", version.ref = "testcontainers-kafka" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
 
 [bundles]
 kotest = [
