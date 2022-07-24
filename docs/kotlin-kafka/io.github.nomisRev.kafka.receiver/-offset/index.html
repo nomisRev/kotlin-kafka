@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>Offset</title>
+    <link href="../../../images/logo-icon.svg" rel="icon" type="image/svg">
+    <script>var pathToRoot = "../../../";</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+const savedDarkMode = storage ? JSON.parse(storage) : false
+if(savedDarkMode === true){
+    document.getElementsByTagName("html")[0].classList.add("theme-dark")
+}</script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/jetbrains-mono.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/clipboard.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async="async"></script>
+</head>
+<body>
+<div class="navigation-wrapper" id="navigation-wrapper">
+    <div id="leftToggler"><span class="icon-toggler"></span></div>
+    <div class="library-name">
+            <a href="../../../index.html">
+                    <span>kotlin-kafka</span>
+            </a>
+    </div>
+    <div>
+0.2.2-SNAPSHOT    </div>
+    <div class="pull-right d-flex">
+        <button id="theme-toggle-button"><span id="theme-toggle"></span></button>
+        <div id="searchBar"></div>
+    </div>
+</div>
+<div id="container">
+    <div id="leftColumn">
+        <div id="sideMenu"></div>
+    </div>
+    <div id="main">
+<div class="main-content" id="content" pageIds="kotlin-kafka::io.github.nomisRev.kafka.receiver/Offset///PointingToDeclaration//769193423">
+  <div class="breadcrumbs"><a href="../../../index.html">kotlin-kafka</a><span class="delimiter">/</span><a href="../index.html">io.github.nomisRev.kafka.receiver</a><span class="delimiter">/</span><a href="index.html">Offset</a></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Offset</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="index.html">Offset</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><p class="paragraph">Topic partition offset that must be acknowledged after the record is processed.</p><p class="paragraph">When you <a href="acknowledge.html">acknowledge</a> this <a href="index.html">Offset</a>  it will be added to the batch of offsets to be committed based on <a href="../-commit-strategy/index.html">CommitStrategy</a>, whilst <a href="commit.html">commit</a> will actually commit this commit to kafka, and suspend until it's completed.</p><p class="paragraph">So if you want to <i>force</i> a commit without back-pressuring a stream, you can use <code class="lang-kotlin">launch { offset.commit() }</code>. This is considered a niche use-case, and using the batch commit functionality with <a href="../-commit-strategy/index.html">CommitStrategy</a> and <a href="acknowledge.html">acknowledge</a> is recommended.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="Functions">Functions</button><button class="section-tab" data-togglable="Properties">Properties</button><button class="section-tab" data-togglable="Sources">Sources</button></div>
+    <div class="tabs-section-body">
+      <h2 class="">Functions</h2>
+      <div class="table" data-togglable="Functions"><a data-name="356186659%2FFunctions%2F769193423" anchor-label="acknowledge" id="356186659%2FFunctions%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+          <div class="main-subrow keyValue ">
+            <div class=""><span class="inline-flex">
+                <div><a href="acknowledge.html"><span><span>acknowledge</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="356186659%2FFunctions%2F769193423"></span>
+                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                </span></span></div>
+            <div>
+              <div class="title">
+                <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">suspend </span><span class="token keyword">fun </span><a href="acknowledge.html"><span class="token function">acknowledge</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><div class="brief "><p class="paragraph">Acknowledges the <a href="../-receiver-record/index.html">ReceiverRecord</a> associated with this offset. The offset will be committed automatically based on the commit configuration <a href="../-commit-strategy/index.html">CommitStrategy</a>. When an offset is acknowledged, it is assumed that all records in this partition up to, and including this offset have been processed. All acknowledged offsets are committed if possible when the receiver <span data-unresolved-link="kotlinx.coroutines.flow/Flow///PointingToDeclaration/">Flow</span> completes or according to <a href="../-commit-strategy/index.html">CommitStrategy</a>.</p></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+<a data-name="1806089124%2FFunctions%2F769193423" anchor-label="commit" id="1806089124%2FFunctions%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+          <div class="main-subrow keyValue ">
+            <div class=""><span class="inline-flex">
+                <div><a href="commit.html"><span><span>commit</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1806089124%2FFunctions%2F769193423"></span>
+                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                </span></span></div>
+            <div>
+              <div class="title">
+                <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">suspend </span><span class="token keyword">fun </span><a href="commit.html"><span class="token function">commit</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><div class="brief "><p class="paragraph">Acknowledges the record associated with this instance and commits all acknowledged offsets. This method suspends until the record has been committed, it may be wrapped in <code class="lang-kotlin">launch</code> to avoid suspending until commit has completed.</p></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <h2 class="">Properties</h2>
+      <div class="table" data-togglable="Properties"><a data-name="-17776696%2FProperties%2F769193423" anchor-label="offset" id="-17776696%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+          <div class="main-subrow keyValue ">
+            <div class=""><span class="inline-flex">
+                <div><a href="offset.html"><span><span>offset</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-17776696%2FProperties%2F769193423"></span>
+                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                </span></span></div>
+            <div>
+              <div class="title">
+                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-17776696%2FProperties%2F769193423" anchor-label="offset" id="-17776696%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword"></span><span class="token keyword">val </span><a href="offset.html">offset</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><div class="brief "><a data-name="-17776696%2FProperties%2F769193423" anchor-label="offset" id="-17776696%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><p class="paragraph">The partition offset corresponding to the record to which this <a href="../-receiver-record/index.html">ReceiverRecord</a> is associated.</p></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+<a data-name="366883040%2FProperties%2F769193423" anchor-label="topicPartition" id="366883040%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+          <div class="main-subrow keyValue ">
+            <div class=""><span class="inline-flex">
+                <div><a href="topic-partition.html"><span>topic</span><wbr></wbr><span><span>Partition</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="366883040%2FProperties%2F769193423"></span>
+                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                </span></span></div>
+            <div>
+              <div class="title">
+                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="366883040%2FProperties%2F769193423" anchor-label="topicPartition" id="366883040%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword"></span><span class="token keyword">val </span><a href="topic-partition.html">topicPartition</a><span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common/TopicPartition///PointingToDeclaration/">TopicPartition</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><div class="brief "><a data-name="366883040%2FProperties%2F769193423" anchor-label="topicPartition" id="366883040%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><p class="paragraph">The topic partition corresponding to this <a href="../-receiver-record/index.html">ReceiverRecord</a>.</p></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <h2 class="">Sources</h2>
+      <div class="table" data-togglable="Sources"><a data-name="-720685180%2FSource%2F769193423" anchor-label="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/io/github/nomisRev/kafka/receiver/Offset.kt#L7" id="-720685180%2FSource%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+          <div class="main-subrow keyValue ">
+            <div class=""><span class="inline-flex">
+                <div><a href="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/io/github/nomisRev/kafka/receiver/Offset.kt#L7">jvm source</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-720685180%2FSource%2F769193423"></span>
+                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                </span></span></div>
+            <div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      <div class="footer">
+        <span class="go-to-top-icon"><a href="#content" id="go-to-top-link"></a></span><span>© 2022 Copyright</span><span
+                class="pull-right"><span>Generated by </span><a
+                href="https://github.com/Kotlin/dokka"><span>dokka</span><span class="padded-icon"></span></a></span>
+      </div>
+    </div>
+</div>
+</body>
+</html>
