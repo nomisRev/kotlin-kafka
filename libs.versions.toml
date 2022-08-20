@@ -8,7 +8,7 @@ dokka = "1.7.10"
 knit = "0.4.0"
 kover = "0.5.1"
 testcontainers-kafka = "1.17.3"
-slf4j = "1.7.36"
+slf4j = "2.0.0"
 
 [libraries]
 kotest-assertions = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
