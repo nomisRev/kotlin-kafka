@@ -44,7 +44,7 @@ Simply add the following dependency as `implementation` in the `build.gradle` de
 
 ```groovy
 dependencies {
-  implementation("io.github.nomisrev:kotlin-kafka:0.2.0")
+  implementation("io.github.nomisrev:kotlin-kafka:0.3.0")
 }
 ```
 
