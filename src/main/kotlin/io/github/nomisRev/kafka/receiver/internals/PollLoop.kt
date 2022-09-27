@@ -2,6 +2,7 @@ package io.github.nomisRev.kafka.receiver.internals
 
 import io.github.nomisRev.kafka.receiver.CommitStrategy
 import io.github.nomisRev.kafka.receiver.Offset
+import io.github.nomisRev.kafka.receiver.RebalanceStrategy
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import io.github.nomisRev.kafka.receiver.size
 import kotlinx.coroutines.CoroutineScope
@@ -220,6 +221,14 @@ internal class EventLoop<K, V>(
     }
   }
   
+  /**
+   * Returns `true` if you need to _pause_ the consumer, otherwise the consumer was already paused.
+   *
+   * If the consumer meets the following conditions, we should wakeup the consumer:
+   *  - paused
+   *  - The downstream can continue processing, requesting.get() == true
+   *  - and we're not in retrying commits
+   */
   private fun checkAndSetPausedByUs(): Boolean {
     logger.debug("checkAndSetPausedByUs")
     val pausedNow = !pausedByUs.getAndSet(true)
@@ -246,41 +255,55 @@ internal class EventLoop<K, V>(
           
           val pauseForDeferred =
             (settings.maxDeferredCommits > 0 && commitBatch.deferredCount() >= settings.maxDeferredCommits)
-          val shouldPoll: Boolean = if (pauseForDeferred || retrying.get()) false else requesting.get()
           
-          if (shouldPoll) {
-            if (!awaitingTransaction.get()) {
-              if (pausedByUs.getAndSet(false)) {
-                val toResume: MutableSet<TopicPartition> = HashSet(consumer.assignment())
-                toResume.removeAll(pausedByUser)
-                pausedByUser.clear()
-                consumer.resume(toResume)
-                logger.debug("Resumed")
-              }
-            } else {
-              if (checkAndSetPausedByUs()) {
-                pausedByUser.addAll(consumer.paused())
-                consumer.pause(consumer.assignment())
-                logger.debug("Paused - awaiting transaction")
-              }
+          val shouldPoll: Boolean =
+            if (pauseForDeferred || retrying.get()) false
+            else requesting.get()
+          
+          when {
+            shouldPoll && !awaitingTransaction.get() && pausedByUs.getAndSet(false) -> {
+              val toResume: MutableSet<TopicPartition> = HashSet(consumer.assignment())
+              toResume.removeAll(pausedByUser)
+              pausedByUser.clear()
+              consumer.resume(toResume)
+              logger.debug("Resumed")
             }
-          } else if (checkAndSetPausedByUs()) {
-            pausedByUser.addAll(consumer.paused())
-            consumer.pause(consumer.assignment())
-            when {
-              pauseForDeferred -> logger.debug("Paused - too many deferred commits")
-              retrying.get() -> logger.debug("Paused - commits are retrying")
-              else -> logger.debug("Paused - back pressure")
+            
+            shouldPoll && awaitingTransaction.get() && checkAndSetPausedByUs() -> {
+              pausedByUser.addAll(consumer.paused())
+              consumer.pause(consumer.assignment())
+              logger.debug("Paused - awaiting transaction")
             }
+  
+            // !shouldPoll so we need to apply backpressure to Kafka according to strategy
+            !shouldPoll && checkAndSetPausedByUs() ->
+              when (val strategy = settings.rebalanceStrategy) {
+                RebalanceStrategy.Backpressure -> {
+                  pausedByUser.addAll(consumer.paused())
+                  consumer.pause(consumer.assignment())
+                  when {
+                    pauseForDeferred -> logger.debug("Paused - too many deferred commits")
+                    retrying.get() -> logger.debug("Paused - commits are retrying")
+                    else -> logger.debug("Paused - back pressure")
+                  }
+                }
+                
+                is RebalanceStrategy.FailFast -> strategy.failFast(consumer.assignment())
+              }
           }
           
+          // Execute poll
           val records: ConsumerRecords<K, V> = try {
             consumer.poll(pollTimeout)
           } catch (e: WakeupException) {
             logger.debug("Consumer woken")
             ConsumerRecords.empty()
           }
+          
+          // Schedule a new poll task on the single threaded dispatcher
           if (isActive.get()) schedulePoll()
+          
+          // Send the records downstream, and check state of buffer. Signal back-pressure in `requesting`
           if (!records.isEmpty) {
             if (settings.maxDeferredCommits > 0) {
               commitBatch.addUncommitted(records)
