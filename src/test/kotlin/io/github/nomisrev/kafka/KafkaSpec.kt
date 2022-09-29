@@ -27,6 +27,7 @@ import org.testcontainers.containers.KafkaContainer
 import org.testcontainers.utility.DockerImageName
 import java.util.Properties
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration.Companion.seconds
 
 abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
@@ -59,9 +60,13 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
       .also { container -> container.start() }
   )
   
+  // Keep count of admin clients, so that every client has a unique ClientId.
+  // Kafka registers MBeans for application monitoring and uses the `client.id` to do so
+  private val adminClientCount = AtomicInteger(0)
+  
   private fun adminProperties(): Properties = Properties().apply {
     put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, container.bootstrapServers)
-    put(AdminClientConfig.CLIENT_ID_CONFIG, "test-kafka-admin-client")
+    put(AdminClientConfig.CLIENT_ID_CONFIG, "test-kafka-admin-client-${adminClientCount.getAndIncrement()}")
     put(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, "10000")
     put(AdminClientConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG, "10000")
   }
@@ -94,8 +99,9 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
       }
     )
   
+  private val topicCounter = AtomicInteger(0)
   private fun nextTopicName(): String =
-    "topic-${UUID.randomUUID()}"
+    "topic-${topicCounter.getAndIncrement()}"
   
   suspend fun <A> withTopic(
     topicConfig: Map<String, String> = emptyMap(),
@@ -103,13 +109,14 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
     replicationFactor: Short = 1,
     action: suspend Admin.(NewTopic) -> A,
   ): A {
-    val topic = NewTopic(nextTopicName(), partitions, replicationFactor).configs(topicConfig)
+    val name = nextTopicName()
+    val topic = NewTopic(name, partitions, replicationFactor).configs(topicConfig)
     return admin {
       createTopic(topic)
       try {
         action(topic)
       } finally {
-        deleteTopic(topic.name())
+        deleteTopic(name)
       }
     }
   }

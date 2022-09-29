@@ -11,6 +11,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectIndexed
 import kotlinx.coroutines.flow.flatMapConcat
@@ -98,6 +99,11 @@ class KafakReceiverSpec : KafkaSpec({
           commitStrategy = CommitStrategy.BySize(2 * depth)
         )
       )
+      
+      require(receiver.committedCount(topic.name()) == 0L) {
+        "Newly created topic has more than 0 committed messages !?"
+      }
+      
       receiver.receive(topic.name())
         .take(depth)
         .collectIndexed { index, value ->
