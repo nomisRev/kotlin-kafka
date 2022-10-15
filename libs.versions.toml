@@ -1,10 +1,10 @@
 [versions]
 arrowGradleConfig = "0.10.2"
-kotest = "5.5.0"
+kotest = "5.5.1"
 kafka = "3.3.1"
 kotlin = "1.7.20"
 kotlinx-coroutines = "1.6.4"
-dokka = "1.7.10"
+dokka = "1.7.20"
 knit = "0.4.0"
 kover = "0.6.1"
 testcontainers-kafka = "1.17.5"
