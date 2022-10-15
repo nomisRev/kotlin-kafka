@@ -6,10 +6,18 @@
     <link href="../../../images/logo-icon.svg" rel="icon" type="image/svg">
     <script>var pathToRoot = "../../../";</script>
     <script>const storage = localStorage.getItem("dokka-dark-mode")
-const savedDarkMode = storage ? JSON.parse(storage) : false
-if(savedDarkMode === true){
-    document.getElementsByTagName("html")[0].classList.add("theme-dark")
-}</script>
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
 <script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async="async"></script>
 <link href="../../../styles/style.css" rel="Stylesheet">
 <link href="../../../styles/jetbrains-mono.css" rel="Stylesheet">
@@ -21,6 +29,7 @@ if(savedDarkMode === true){
 <script type="text/javascript" src="../../../scripts/platform-content-handler.js" async="async"></script>
 <script type="text/javascript" src="../../../scripts/main.js" defer="defer"></script>
 <script type="text/javascript" src="../../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/symbol-parameters-wrapper_deferred.js" defer="defer"></script>
 </head>
 <body>
 <div class="navigation-wrapper" id="navigation-wrapper">
@@ -43,24 +52,11 @@ if(savedDarkMode === true){
     </div>
     <div id="main">
 <div class="main-content" id="content" pageIds="kotlin-kafka::io.github.nomisRev.kafka.receiver/Offset/acknowledge/#/PointingToDeclaration//769193423">
-  <div class="breadcrumbs"><a href="../../../index.html">kotlin-kafka</a><span class="delimiter">/</span><a href="../index.html">io.github.nomisRev.kafka.receiver</a><span class="delimiter">/</span><a href="index.html">Offset</a><span class="delimiter">/</span><a href="acknowledge.html">acknowledge</a></div>
+  <div class="breadcrumbs"><a href="../../../index.html">kotlin-kafka</a><span class="delimiter">/</span><a href="../index.html">io.github.nomisRev.kafka.receiver</a><span class="delimiter">/</span><a href="index.html">Offset</a><span class="delimiter">/</span><span class="current">acknowledge</span></div>
   <div class="cover ">
     <h1 class="cover"><span><span>acknowledge</span></span></h1>
   </div>
-  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-depenent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">suspend </span><span class="token keyword">fun </span><a href="acknowledge.html"><span class="token function">acknowledge</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><p class="paragraph">Acknowledges the <a href="../-receiver-record/index.html">ReceiverRecord</a> associated with this offset. The offset will be committed automatically based on the commit configuration <a href="../-commit-strategy/index.html">CommitStrategy</a>. When an offset is acknowledged, it is assumed that all records in this partition up to, and including this offset have been processed. All acknowledged offsets are committed if possible when the receiver <span data-unresolved-link="kotlinx.coroutines.flow/Flow///PointingToDeclaration/">Flow</span> completes or according to <a href="../-commit-strategy/index.html">CommitStrategy</a>.</p></div></div>
-  <h2 class="">Sources</h2>
-  <div class="table" data-togglable="Sources"><a data-name="356186659%2FSource%2F769193423" anchor-label="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/io/github/nomisRev/kafka/receiver/Offset.kt#L24" id="356186659%2FSource%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-    <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-      <div class="main-subrow keyValue ">
-        <div class=""><span class="inline-flex">
-            <div><a href="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/io/github/nomisRev/kafka/receiver/Offset.kt#L24">jvm source</a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="356186659%2FSource%2F769193423"></span>
-              <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-            </span></span></div>
-        <div></div>
-      </div>
-    </div>
-  </div>
+  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">suspend </span><span class="token keyword">fun </span><a href="acknowledge.html"><span class="token function">acknowledge</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="clearfix"><span class="floating-right">(<a href="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/io/github/nomisRev/kafka/receiver/Offset.kt#L24">source</a>)</span></span></div><p class="paragraph">Acknowledges the <a href="../-receiver-record/index.html">ReceiverRecord</a> associated with this offset. The offset will be committed automatically based on the commit configuration <a href="../-commit-strategy/index.html">CommitStrategy</a>. When an offset is acknowledged, it is assumed that all records in this partition up to, and including this offset have been processed. All acknowledged offsets are committed if possible when the receiver <span data-unresolved-link="kotlinx.coroutines.flow/Flow///PointingToDeclaration/">Flow</span> completes or according to <a href="../-commit-strategy/index.html">CommitStrategy</a>.</p></div></div>
 </div>
       <div class="footer">
         <span class="go-to-top-icon"><a href="#content" id="go-to-top-link"></a></span><span>© 2022 Copyright</span><span
