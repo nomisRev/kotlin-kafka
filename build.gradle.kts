@@ -21,7 +21,6 @@ apply(plugin = "kotlinx-knit")
 
 allprojects {
   repositories {
-    maven("https://oss.sonatype.org/content/repositories/snapshots/")
     mavenCentral()
   }
   group = property("projects.group").toString()

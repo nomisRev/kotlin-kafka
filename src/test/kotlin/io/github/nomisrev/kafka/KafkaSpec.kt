@@ -11,7 +11,6 @@ import io.github.nomisRev.kafka.produce
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import io.kotest.core.spec.style.StringSpec
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
@@ -26,7 +25,6 @@ import org.apache.kafka.common.serialization.StringSerializer
 import org.testcontainers.containers.KafkaContainer
 import org.testcontainers.utility.DockerImageName
 import java.util.Properties
-import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration.Companion.seconds
 
@@ -37,11 +35,9 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
   
   private val transactionTimeoutInterval = 1.seconds
   private val consumerPollingTimeout = 1.seconds
-  
-  private val postfix = if (System.getProperty("os.arch") == "aarch64") ".arm64" else ""
-  private val imageVersion = "latest$postfix"
+
   private val kafkaImage: DockerImageName =
-    DockerImageName.parse("confluentinc/cp-kafka:$imageVersion")
+    DockerImageName.parse("confluentinc/cp-kafka:latest")
   
   private val container: KafkaContainer = autoClose(
     KafkaContainer(kafkaImage)
