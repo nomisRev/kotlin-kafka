@@ -1,6 +1,5 @@
 package io.github.nomisRev.kafka.receiver.internals
 
-import io.github.nomisRev.kafka.receiver.CommitStrategy
 import io.github.nomisRev.kafka.receiver.Offset
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import io.github.nomisRev.kafka.receiver.size
@@ -37,7 +36,6 @@ import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
-import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
 
 internal class PollLoop<K, V>(
@@ -48,7 +46,6 @@ internal class PollLoop<K, V>(
   scope: CoroutineScope,
   awaitingTransaction: AtomicBoolean = AtomicBoolean(false),
   private val isActive: AtomicBoolean = AtomicBoolean(true),
-  private val commitStrategy: CommitStrategy = CommitStrategy.BySizeOrTime(5, 5.seconds),
   private val ackMode: AckMode = AckMode.MANUAL_ACK,
   isRetriableException: (Throwable) -> Boolean = { e -> e is RetriableCommitFailedException },
 ) {
@@ -78,7 +75,7 @@ internal class PollLoop<K, V>(
   ) {
     offsetCommitWorker(
       ackMode,
-      commitStrategy,
+      settings.commitStrategy,
       reachedMaxCommitBatchSize,
       loop::scheduleCommitIfRequired
     )
@@ -105,7 +102,7 @@ internal class PollLoop<K, V>(
       TopicPartition(record.topic(), record.partition()),
       record.offset(),
       loop,
-      commitStrategy.size(),
+      settings.commitStrategy.size(),
       reachedMaxCommitBatchSize
     )
 }
