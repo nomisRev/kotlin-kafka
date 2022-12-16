@@ -9,5 +9,5 @@ object KotestProject : AbstractProjectConfig() {
     PropertyTesting.defaultIterationCount = 10
   }
 
-  override val invocationTimeout: Long = 20_000L
+  override val invocationTimeout: Long = 40_000L
 }
