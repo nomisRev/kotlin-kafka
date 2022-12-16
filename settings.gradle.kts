@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 }
 
 include(":guide")
+include("core")

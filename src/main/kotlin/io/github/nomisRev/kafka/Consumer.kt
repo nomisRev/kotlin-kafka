@@ -2,7 +2,6 @@
 
 package io.github.nomisRev.kafka
 
-import io.github.nomisRev.kafka.internal.chunked
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -10,7 +9,6 @@ import java.time.Duration
 import java.util.Properties
 import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.Dispatchers.IO
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.ensureActive
@@ -19,7 +17,6 @@ import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.runInterruptible
 import org.apache.kafka.clients.ClientDnsLookup
 import org.apache.kafka.clients.consumer.ConsumerConfig
@@ -124,41 +121,6 @@ public fun <K, V> kafkaConsumer(settings: ConsumerSettings<K, V>): Flow<KafkaCon
     }
   }
 
-/**
- * Commits offsets in batches of every [count] offsets or a certain [duration] has passed, whichever happens first.
- */
-@OptIn(FlowPreview::class)
-@ExperimentalCoroutinesApi
-@JvmName("commitBatchesWithin")
-@Deprecated("Use KafkaReceiver instead. It comes with strong guarantees about commits")
-public fun <K, V> Flow<ConsumerRecords<K, V>>.commitBatchWithin(
-  settings: ConsumerSettings<K, V>,
-  count: Int,
-  duration: kotlin.time.Duration,
-  metadata: ((record: ConsumerRecord<K, V>) -> String)? = null,
-): Flow<Map<TopicPartition, OffsetAndMetadata>> = kafkaConsumer(settings).flatMapConcat { consumer ->
-  chunked(count, duration).mapNotNull { records ->
-    if (records.isNotEmpty()) consumer.commitAwait(records.offsets(metadata))
-    else null
-  }
-}
-
-@OptIn(FlowPreview::class)
-@ExperimentalCoroutinesApi
-@Deprecated("Use KafkaReceiver instead. It comes with strong guarantees about commits")
-public fun <K, V> Flow<ConsumerRecord<K, V>>.commitBatchWithin(
-  settings: ConsumerSettings<K, V>,
-  count: Int,
-  duration: kotlin.time.Duration,
-  metadata: ((record: ConsumerRecord<K, V>) -> String)? = null,
-): Flow<Unit> = kafkaConsumer(settings).flatMapConcat { consumer ->
-  chunked(count, duration).mapNotNull { records ->
-    val commitAsyncMap = records.offsets(metadata)
-    (if (records.isNotEmpty()) consumer.commitAsync(commitAsyncMap) { _, e ->
-      if (e != null) throw e
-    } else Unit)
-  }
-}
 
 @Deprecated(
   "Use KafkaReceiver instead. It comes with strong guarantees about commits." +

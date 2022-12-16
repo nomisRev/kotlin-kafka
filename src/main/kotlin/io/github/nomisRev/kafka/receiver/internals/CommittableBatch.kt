@@ -133,8 +133,7 @@ internal class CommittableBatch {
     // Restore offsets that haven't been updated.
     if (outOfOrderCommits) {
       commitArgs.offsets.forEach { (tp: TopicPartition, offset: OffsetAndMetadata) ->
-        deferred[tp]!!
-          .add(0, offset.offset() - 1)
+        deferred[tp]!!.add(0, offset.offset() - 1)
         uncommitted[tp]!!.add(0, offset.offset() - 1)
       }
     } else {
