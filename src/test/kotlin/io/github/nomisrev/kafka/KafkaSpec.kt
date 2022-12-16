@@ -37,10 +37,8 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
   private val transactionTimeoutInterval = 1.seconds
   private val consumerPollingTimeout = 1.seconds
   
-  private val postfix = if (System.getProperty("os.arch") == "aarch64") ".arm64" else ""
-  private val imageVersion = "latest$postfix"
   private val kafkaImage: DockerImageName =
-    DockerImageName.parse("confluentinc/cp-kafka:$imageVersion")
+    DockerImageName.parse("confluentinc/cp-kafka:latest")
   
   private val container: KafkaContainer = autoClose(
     KafkaContainer(kafkaImage)

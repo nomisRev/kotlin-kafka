@@ -3,6 +3,15 @@ package io.github.nomisRev.kafka.receiver.internals
 import io.github.nomisRev.kafka.receiver.Offset
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import io.github.nomisRev.kafka.receiver.size
+import java.time.Duration
+import java.time.Duration.ofSeconds
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
+import kotlin.time.toJavaDuration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -28,15 +37,6 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.WakeupException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.time.Duration
-import java.time.Duration.ofSeconds
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
-import kotlin.coroutines.Continuation
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
-import kotlin.time.toJavaDuration
 
 internal class PollLoop<K, V>(
   // TODO also allow for Pattern, and assign
@@ -117,8 +117,11 @@ internal class CommittableOffset<K, V>(
   private val acknowledged = AtomicBoolean(false)
   
   override suspend fun commit(): Unit =
-    if (maybeUpdateOffset() > 0) scheduleCommit() else Unit
-  
+    if (maybeUpdateOffset() > 0) suspendCoroutine { cont ->
+        loop.commitBatch.addContinuation(cont)
+        loop.scheduleCommitIfRequired()
+    } else Unit
+
   override suspend fun acknowledge() {
     val uncommittedCount = maybeUpdateOffset().toLong()
     if (commitBatchSize in 1..uncommittedCount) {
@@ -129,13 +132,7 @@ internal class CommittableOffset<K, V>(
   private /*suspend*/ fun maybeUpdateOffset(): Int =
     if (acknowledged.compareAndSet(false, true)) loop.commitBatch.updateOffset(topicPartition, offset)
     else loop.commitBatch.batchSize()
-  
-  private suspend fun scheduleCommit(): Unit =
-    suspendCoroutine { cont ->
-      loop.commitBatch.addContinuation(cont)
-      loop.scheduleCommitIfRequired()
-    }
-  
+
   override fun toString(): String = "$topicPartition@$offset"
 }
 
@@ -175,40 +172,51 @@ internal class EventLoop<K, V>(
       consumer.subscribe(topicNames, object : ConsumerRebalanceListener {
         override fun onPartitionsAssigned(partitions: MutableCollection<TopicPartition>) {
           logger.debug("onPartitionsAssigned $partitions")
-          // onAssign methods may perform seek. It is safe to use the consumer here since we are in a poll()
-          if (partitions.isNotEmpty()) {
-            if (pausedByUs.get()) {
-              logger.debug("Rebalance during back pressure, re-pausing new assignments")
-              consumer.pause(partitions)
-            }
-            // TODO Setup user listeners
-            // for (onAssign in receiverOptions.assignListeners()) {
-            //   onAssign.accept(toSeekable(partitions))
-            // }
-            if (logger.isTraceEnabled) {
-              try {
-                val positions = partitions.map { part: TopicPartition ->
-                  "$part pos: ${consumer.position(part, ofSeconds(5))}"
-                }
-                logger.trace(
-                  "positions: $positions, committed: ${
-                    consumer.committed(
-                      partitions.toSet(),
-                      ofSeconds(5)
-                    )
-                  }"
-                )
-              } catch (ex: Exception) {
-                logger.error("Failed to get positions or committed", ex)
+          var repausedAll = false
+          if (partitions.isNotEmpty() && pausedByUs.get()) {
+            logger.debug("Rebalance during back pressure, re-pausing new assignments")
+            consumer.pause(partitions)
+            repausedAll = true
+          }
+          if (pausedByUser.isNotEmpty()) {
+            val toRepause = buildList {
+              //It is necessary to re-pause any user-paused partitions that are re-assigned after the rebalance.
+              //Also remove any revoked partitions that the user paused from the userPaused collection.
+              pausedByUser.forEach { tp ->
+                if (partitions.contains(tp)) add(tp)
+                else pausedByUser.remove(tp)
               }
+            }
+            if (!repausedAll && toRepause.isNotEmpty()) {
+              consumer.pause(toRepause)
+            }
+          }
+          // TODO Setup user listeners
+          // for (onAssign in receiverOptions.assignListeners()) {
+          //   onAssign.accept(toSeekable(partitions))
+          // }
+          if (logger.isTraceEnabled) {
+            try {
+              val positions = partitions.map { part: TopicPartition ->
+                "$part pos: ${consumer.position(part, ofSeconds(5))}"
+              }
+              logger.trace(
+                "positions: $positions, committed: ${
+                  consumer.committed(
+                    partitions.toSet(), ofSeconds(5)
+                  )
+                }"
+              )
+            } catch (ex: Exception) {
+              logger.error("Failed to get positions or committed", ex)
             }
           }
         }
         
         override fun onPartitionsRevoked(partitions: MutableCollection<TopicPartition>) {
           logger.debug("onPartitionsRevoked $partitions")
-          commitBatch.onPartitionsRevoked(partitions)
           this@EventLoop.onPartitionsRevoked(partitions)
+          commitBatch.onPartitionsRevoked(partitions)
         }
       })
     } catch (e: Throwable) {
@@ -252,9 +260,11 @@ internal class EventLoop<K, V>(
                 toResume.removeAll(pausedByUser)
                 pausedByUser.clear()
                 consumer.resume(toResume)
-                logger.debug("Resumed")
+              if (logger.isDebugEnabled) {
+                logger.debug("Resumed partitions: $toResume")
               }
-            } else {
+            }
+          } else {
               if (checkAndSetPausedByUs()) {
                 pausedByUser.addAll(consumer.paused())
                 consumer.pause(consumer.assignment())
@@ -315,13 +325,13 @@ internal class EventLoop<K, V>(
         channel.close(e)
       }
     } else null
-  
+
   val commitBatch: CommittableBatch = CommittableBatch()
   private val isPending = AtomicBoolean()
   private val inProgress = AtomicInteger()
   private val consecutiveCommitFailures = AtomicInteger()
   private val retrying = AtomicBoolean()
-  
+
   // TODO Should reset delay of commitJob
   private fun commit() {
     if (!isPending.compareAndSet(true, false)) return
@@ -371,10 +381,10 @@ internal class EventLoop<K, V>(
       cont.resume(Unit)
     }
   }
-  
+
   private fun pollTaskAfterRetry(): Job? =
     if (retrying.getAndSet(false)) schedulePoll() else null
-  
+
   private fun commitFailure(commitArgs: CommittableBatch.CommitArgs, exception: Exception) {
     logger.warn("Commit failed", exception)
     if (!isRetriableException(exception) && consecutiveCommitFailures.incrementAndGet() < settings.maxCommitAttempts) {
