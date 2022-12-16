@@ -8,4 +8,6 @@ object KotestProject : AbstractProjectConfig() {
     System.setProperty("kotest.assertions.collection.print.size", "100")
     PropertyTesting.defaultIterationCount = 10
   }
+
+  override val invocationTimeout: Long = 40_000L
 }
