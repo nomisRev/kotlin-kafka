@@ -36,6 +36,7 @@ public data class ReceiverSettings<K, V>(
   val maxCommitAttempts: Int = DEFAULT_MAX_COMMIT_ATTEMPTS,
   val maxDeferredCommits: Int = 0,
   val closeTimeout: Duration = Duration.INFINITE,
+  val rebalanceStrategy: RebalanceStrategy = RebalanceStrategy.Backpressure,
   val properties: Properties = Properties(),
 ) {
   init {
@@ -69,6 +70,7 @@ public fun <V> ReceiverSettings(
   maxCommitAttempts: Int = DEFAULT_MAX_COMMIT_ATTEMPTS,
   maxDeferredCommits: Int = 0,
   closeTimeout: Duration = Long.MAX_VALUE.nanoseconds,
+  rebalanceStrategy: RebalanceStrategy = RebalanceStrategy.Backpressure,
   properties: Properties = Properties(),
 ): ReceiverSettings<Nothing, V> =
   ReceiverSettings(
@@ -83,6 +85,7 @@ public fun <V> ReceiverSettings(
     maxCommitAttempts,
     maxDeferredCommits,
     closeTimeout,
+    rebalanceStrategy,
     properties
   )
 
