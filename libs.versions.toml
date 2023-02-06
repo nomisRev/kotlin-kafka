@@ -1,6 +1,6 @@
 [versions]
 arrowGradleConfig = "0.11.0"
-kotest = "5.5.4"
+kotest = "5.5.5"
 kafka = "3.3.2"
 kotlin = "1.8.10"
 kotlinx-coroutines = "1.6.4"
