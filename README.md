@@ -51,6 +51,7 @@ dependencies {
 ## Example
 
 <!--- INCLUDE
+import arrow.continuations.SuspendApp
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import kotlinx.coroutines.Dispatchers
@@ -78,7 +79,7 @@ value class Key(val index: Int)
 @JvmInline
 value class Message(val content: String)
 
-fun main(): Unit = runBlocking(Dispatchers.Default) {
+fun main(): Unit = SuspendApp {
   val topicName = "test-topic"
   val msgCount = 10
   val kafka = Kafka.container
@@ -87,35 +88,33 @@ fun main(): Unit = runBlocking(Dispatchers.Default) {
     client.createTopic(NewTopic(topicName, 1, 1))
   }
 
-  coroutineScope { // Run produces and consumer in a single scope
-    launch(Dispatchers.IO) { // Send 20 messages, and then close the producer
-      val settings: ProducerSettings<Key, Message> = ProducerSettings(
-        kafka.bootstrapServers,
-        IntegerSerializer().imap { key: Key -> key.index },
-        StringSerializer().imap { msg: Message -> msg.content },
-        Acks.All
-      )
-      (1..msgCount)
-        .asFlow()
-        .map { index -> ProducerRecord(topicName, Key(index), Message("msg: $index")) }
-        .produce(settings)
-        .collect(::println)
-    }
+  launch(Dispatchers.IO) { // Send 20 messages, and then close the producer
+    val settings: ProducerSettings<Key, Message> = ProducerSettings(
+      kafka.bootstrapServers,
+      IntegerSerializer().imap { key: Key -> key.index },
+      StringSerializer().imap { msg: Message -> msg.content },
+      Acks.All
+    )
+    (1..msgCount)
+      .asFlow()
+      .map { index -> ProducerRecord(topicName, Key(index), Message("msg: $index")) }
+      .produce(settings)
+      .collect(::println)
+  }
 
-    launch(Dispatchers.IO) { // Consume 20 messages as a stream, and then close the consumer
-      val settings: ReceiverSettings<Key, Message> = ReceiverSettings(
-        kafka.bootstrapServers,
-        IntegerDeserializer().map(::Key),
-        StringDeserializer().map(::Message),
-        groupId = UUID.randomUUID().toString(),
-        autoOffsetReset = AutoOffsetReset.Earliest
-      )
-      KafkaReceiver(settings)
-        .receive(topicName)
-        .take(msgCount)
-        .map { "${it.key()} -> ${it.value()}" }
-        .collect(::println)
-    }
+  launch(Dispatchers.IO) { // Consume 20 messages as a stream, and then close the consumer
+    val settings: ReceiverSettings<Key, Message> = ReceiverSettings(
+      kafka.bootstrapServers,
+      IntegerDeserializer().map(::Key),
+      StringDeserializer().map(::Message),
+      groupId = UUID.randomUUID().toString(),
+      autoOffsetReset = AutoOffsetReset.Earliest
+    )
+    KafkaReceiver(settings)
+      .receive(topicName)
+      .take(msgCount)
+      .map { "${it.key()} -> ${it.value()}" }
+      .collect(::println)
   }
 }
 ```
