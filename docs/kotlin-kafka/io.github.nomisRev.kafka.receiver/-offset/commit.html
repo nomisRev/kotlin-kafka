@@ -42,6 +42,9 @@
     <div>
 0.3.1-SNAPSHOT    </div>
     <div class="pull-right d-flex">
+        <div class="filter-section" id="filter-section">
+                <button class="platform-tag platform-selector jvm-like" data-active="" data-filter=":dokkaHtml/main">jvm</button>
+        </div>
         <button id="theme-toggle-button"><span id="theme-toggle"></span></button>
         <div id="searchBar"></div>
     </div>
@@ -51,12 +54,12 @@
         <div id="sideMenu"></div>
     </div>
     <div id="main">
-<div class="main-content" id="content" pageIds="kotlin-kafka::io.github.nomisRev.kafka.receiver/Offset/commit/#/PointingToDeclaration//769193423">
+<div class="main-content" data-page-type="member" id="content" pageIds="kotlin-kafka::io.github.nomisRev.kafka.receiver/Offset/commit/#/PointingToDeclaration//769193423">
   <div class="breadcrumbs"><a href="../../../index.html">kotlin-kafka</a><span class="delimiter">/</span><a href="../index.html">io.github.nomisRev.kafka.receiver</a><span class="delimiter">/</span><a href="index.html">Offset</a><span class="delimiter">/</span><span class="current">commit</span></div>
   <div class="cover ">
     <h1 class="cover"><span><span>commit</span></span></h1>
   </div>
-  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">suspend </span><span class="token keyword">fun </span><a href="commit.html"><span class="token function">commit</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="clearfix"><span class="floating-right">(<a href="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/io/github/nomisRev/kafka/receiver/Offset.kt#L33">source</a>)</span></span></div><p class="paragraph">Acknowledges the record associated with this instance and commits all acknowledged offsets. This method suspends until the record has been committed, it may be wrapped in <code class="lang-kotlin">launch</code> to avoid suspending until commit has completed.</p><p class="paragraph">If commit fails with <span data-unresolved-link="org.apache.kafka.clients.consumer/RetriableCommitFailedException///PointingToDeclaration/">RetriableCommitFailedException</span> the commit operation is retried <a href="../-receiver-settings/max-commit-attempts.html">ReceiverSettings.maxCommitAttempts</a> times before this method returns.</p></div></div>
+  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">suspend </span><span class="token keyword">fun </span><a href="commit.html"><span class="token function">commit</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="clearfix"><span class="floating-right">(<a href="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/io/github/nomisRev/kafka/receiver/Offset.kt#L41">source</a>)</span></span></div><p class="paragraph">Acknowledges the record associated with this instance and commits all acknowledged offsets. This method suspends until the record has been committed, it may be wrapped in <code class="lang-kotlin">launch</code> to avoid suspending until commit has completed.</p><p class="paragraph">If commit fails with <span data-unresolved-link="org.apache.kafka.clients.consumer/RetriableCommitFailedException///PointingToDeclaration/">RetriableCommitFailedException</span> the commit operation is retried <a href="../-receiver-settings/max-commit-attempts.html">ReceiverSettings.maxCommitAttempts</a> times before this method returns.</p></div></div>
 </div>
       <div class="footer">
         <span class="go-to-top-icon"><a href="#content" id="go-to-top-link"></a></span><span>© 2023 Copyright</span><span

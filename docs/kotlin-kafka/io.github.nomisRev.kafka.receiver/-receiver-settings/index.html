@@ -42,6 +42,9 @@
     <div>
 0.3.1-SNAPSHOT    </div>
     <div class="pull-right d-flex">
+        <div class="filter-section" id="filter-section">
+                <button class="platform-tag platform-selector jvm-like" data-active="" data-filter=":dokkaHtml/main">jvm</button>
+        </div>
         <button id="theme-toggle-button"><span id="theme-toggle"></span></button>
         <div id="searchBar"></div>
     </div>
@@ -51,209 +54,213 @@
         <div id="sideMenu"></div>
     </div>
     <div id="main">
-<div class="main-content" id="content" pageIds="kotlin-kafka::io.github.nomisRev.kafka.receiver/ReceiverSettings///PointingToDeclaration//769193423">
+<div class="main-content" data-page-type="classlike" id="content" pageIds="kotlin-kafka::io.github.nomisRev.kafka.receiver/ReceiverSettings///PointingToDeclaration//769193423">
   <div class="breadcrumbs"><a href="../../../index.html">kotlin-kafka</a><span class="delimiter">/</span><a href="../index.html">io.github.nomisRev.kafka.receiver</a><span class="delimiter">/</span><span class="current">ReceiverSettings</span></div>
   <div class="cover ">
     <h1 class="cover"><span>Receiver</span><wbr></wbr><span><span>Settings</span></span></h1>
-    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="index.html">ReceiverSettings</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">K</a><span class="token punctuation">, </span><span class="token keyword"></span><a href="index.html">V</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>bootstrapServers<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>keyDeserializer<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Deserializer///PointingToDeclaration/">Deserializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">K</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>valueDeserializer<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Deserializer///PointingToDeclaration/">Deserializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">V</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>groupId<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>autoOffsetReset<span class="token operator">: </span><a href="../index.html#2035466174%2FClasslikes%2F769193423">AutoOffsetReset</a><span class="token operator"> = </span>AutoOffsetReset.Earliest<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>commitStrategy<span class="token operator">: </span><a href="../-commit-strategy/index.html">CommitStrategy</a><span class="token operator"> = </span>CommitStrategy.ByTime(DEFAULT_COMMIT_INTERVAL)<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>pollTimeout<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator"> = </span>DEFAULT_POLL_TIMEOUT<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>commitRetryInterval<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator"> = </span>DEFAULT_COMMIT_RETRY_INTERVAL<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>maxCommitAttempts<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span>DEFAULT_MAX_COMMIT_ATTEMPTS<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>maxDeferredCommits<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">0</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>closeTimeout<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator"> = </span>Duration.INFINITE<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>properties<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/util/Properties.html">Properties</a><span class="token operator"> = </span>Properties()</span></span><span class="token punctuation">)</span><span class="clearfix"><span class="floating-right">(<a href="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/io/github/nomisRev/kafka/receiver/ReceiverSettings.kt#L19">source</a>)</span></span></div><p class="paragraph">A data class that exposes configuration for <a href="../-kafka-receiver/index.html">KafkaReceiver</a>, and the underlying <span data-unresolved-link="org.apache.kafka.clients.consumer/KafkaConsumer///PointingToDeclaration/">org.apache.kafka.clients.consumer.KafkaConsumer</span>.</p><p class="paragraph">It forces to specify the required parameters to offer a type-safe API, so it requires <a href="bootstrap-servers.html">bootstrapServers</a>, <a href="value-deserializer.html">valueDeserializer</a>, and <a href="group-id.html">groupId</a>. All other parameters are configured to the sanest defaults.</p></div></div>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="index.html">ReceiverSettings</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">K</a><span class="token punctuation">, </span><span class="token keyword"></span><a href="index.html">V</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>bootstrapServers<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>keyDeserializer<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Deserializer///PointingToDeclaration/">Deserializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">K</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>valueDeserializer<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Deserializer///PointingToDeclaration/">Deserializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">V</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>groupId<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>autoOffsetReset<span class="token operator">: </span><a href="../index.html#2035466174%2FClasslikes%2F769193423">AutoOffsetReset</a><span class="token operator"> = </span>AutoOffsetReset.Earliest<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>commitStrategy<span class="token operator">: </span><a href="../-commit-strategy/index.html">CommitStrategy</a><span class="token operator"> = </span>CommitStrategy.ByTime(DEFAULT_COMMIT_INTERVAL)<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>pollTimeout<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator"> = </span>DEFAULT_POLL_TIMEOUT<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>commitRetryInterval<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator"> = </span>DEFAULT_COMMIT_RETRY_INTERVAL<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>maxCommitAttempts<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span>DEFAULT_MAX_COMMIT_ATTEMPTS<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>maxDeferredCommits<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">0</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>closeTimeout<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator"> = </span>Duration.INFINITE<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>properties<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/util/Properties.html">Properties</a><span class="token operator"> = </span>Properties()</span></span><span class="token punctuation">)</span><span class="clearfix"><span class="floating-right">(<a href="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/io/github/nomisRev/kafka/receiver/ReceiverSettings.kt#L27">source</a>)</span></span></div><p class="paragraph">A data class that exposes configuration for <a href="../-kafka-receiver/index.html">KafkaReceiver</a>, and the underlying <span data-unresolved-link="org.apache.kafka.clients.consumer/KafkaConsumer///PointingToDeclaration/">org.apache.kafka.clients.consumer.KafkaConsumer</span>.</p><p class="paragraph">It forces to specify the required parameters to offer a type-safe API, so it requires <a href="bootstrap-servers.html">bootstrapServers</a>, <a href="value-deserializer.html">valueDeserializer</a>, and <a href="group-id.html">groupId</a>. All other parameters are configured to the sanest defaults.</p></div></div>
   </div>
   <div class="tabbedcontent">
-    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="Constructors">Constructors</button><button class="section-tab" data-togglable="Properties">Properties</button></div>
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,FUNCTION,PROPERTY">Members</button></div>
     <div class="tabs-section-body">
-      <h2 class="tabbedcontent">Constructors</h2>
-      <div class="table" data-togglable="Constructors"><a data-name="395634468%2FConstructors%2F769193423" anchor-label="ReceiverSettings" id="395634468%2FConstructors%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-          <div class="main-subrow keyValue TabbedContent">
-            <div class=""><span class="inline-flex">
-                <div><a href="-receiver-settings.html"><span>Receiver</span><wbr></wbr><span><span>Settings</span></span></a></div>
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="">Constructors</h2>
+        <div class="table"><a data-name="395634468%2FConstructors%2F769193423" anchor-label="ReceiverSettings" id="395634468%2FConstructors%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table-row" data-togglable="CONSTRUCTOR" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-receiver-settings.html"><span>Receiver</span><wbr></wbr><span><span>Settings</span></span></a></div>
 <span class="anchor-wrapper"><span class="anchor-icon" pointing-to="395634468%2FConstructors%2F769193423"></span>
-                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                </span></span></div>
-            <div>
-              <div class="title">
-                <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">K</a><span class="token punctuation">, </span><span class="token keyword"></span><a href="index.html">V</a><span class="token operator">&gt; </span><a href="-receiver-settings.html"><span class="token function">ReceiverSettings</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">bootstrapServers<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">keyDeserializer<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Deserializer///PointingToDeclaration/">Deserializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">K</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">valueDeserializer<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Deserializer///PointingToDeclaration/">Deserializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">V</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">groupId<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">autoOffsetReset<span class="token operator">: </span><a href="../index.html#2035466174%2FClasslikes%2F769193423">AutoOffsetReset</a><span class="token operator"> = </span>AutoOffsetReset.Earliest<span class="token punctuation">, </span></span><span class="parameter ">commitStrategy<span class="token operator">: </span><a href="../-commit-strategy/index.html">CommitStrategy</a><span class="token operator"> = </span>CommitStrategy.ByTime(DEFAULT_COMMIT_INTERVAL)<span class="token punctuation">, </span></span><span class="parameter ">pollTimeout<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator"> = </span>DEFAULT_POLL_TIMEOUT<span class="token punctuation">, </span></span><span class="parameter ">commitRetryInterval<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator"> = </span>DEFAULT_COMMIT_RETRY_INTERVAL<span class="token punctuation">, </span></span><span class="parameter ">maxCommitAttempts<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span>DEFAULT_MAX_COMMIT_ATTEMPTS<span class="token punctuation">, </span></span><span class="parameter ">maxDeferredCommits<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">0</span><span class="token punctuation">, </span></span><span class="parameter ">closeTimeout<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator"> = </span>Duration.INFINITE<span class="token punctuation">, </span></span><span class="parameter ">properties<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/util/Properties.html">Properties</a><span class="token operator"> = </span>Properties()</span></span><span class="token punctuation">)</span></div></div></div>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">bootstrapServers<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">keyDeserializer<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Deserializer///PointingToDeclaration/">Deserializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">K</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">valueDeserializer<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Deserializer///PointingToDeclaration/">Deserializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">V</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">groupId<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">autoOffsetReset<span class="token operator">: </span><a href="../index.html#2035466174%2FClasslikes%2F769193423">AutoOffsetReset</a><span class="token operator"> = </span>AutoOffsetReset.Earliest<span class="token punctuation">, </span></span><span class="parameter ">commitStrategy<span class="token operator">: </span><a href="../-commit-strategy/index.html">CommitStrategy</a><span class="token operator"> = </span>CommitStrategy.ByTime(DEFAULT_COMMIT_INTERVAL)<span class="token punctuation">, </span></span><span class="parameter ">pollTimeout<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator"> = </span>DEFAULT_POLL_TIMEOUT<span class="token punctuation">, </span></span><span class="parameter ">commitRetryInterval<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator"> = </span>DEFAULT_COMMIT_RETRY_INTERVAL<span class="token punctuation">, </span></span><span class="parameter ">maxCommitAttempts<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span>DEFAULT_MAX_COMMIT_ATTEMPTS<span class="token punctuation">, </span></span><span class="parameter ">maxDeferredCommits<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">0</span><span class="token punctuation">, </span></span><span class="parameter ">closeTimeout<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator"> = </span>Duration.INFINITE<span class="token punctuation">, </span></span><span class="parameter ">properties<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/util/Properties.html">Properties</a><span class="token operator"> = </span>Properties()</span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-      <h2 class="">Properties</h2>
-      <div class="table" data-togglable="Properties"><a data-name="-1678185901%2FProperties%2F769193423" anchor-label="autoOffsetReset" id="-1678185901%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-          <div class="main-subrow keyValue ">
-            <div class=""><span class="inline-flex">
-                <div><a href="auto-offset-reset.html"><span>auto</span><wbr></wbr><span>Offset</span><wbr></wbr><span><span>Reset</span></span></a></div>
+      <div data-togglable="PROPERTY">
+        <h2 class="">Properties</h2>
+        <div class="table"><a data-name="-1678185901%2FProperties%2F769193423" anchor-label="autoOffsetReset" id="-1678185901%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="auto-offset-reset.html"><span>auto</span><wbr></wbr><span>Offset</span><wbr></wbr><span><span>Reset</span></span></a></div>
 <span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1678185901%2FProperties%2F769193423"></span>
-                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                </span></span></div>
-            <div>
-              <div class="title">
-                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-1678185901%2FProperties%2F769193423" anchor-label="autoOffsetReset" id="-1678185901%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="auto-offset-reset.html">autoOffsetReset</a><span class="token operator">: </span><a href="../index.html#2035466174%2FClasslikes%2F769193423">AutoOffsetReset</a></div></div></div>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="auto-offset-reset.html">autoOffsetReset</a><span class="token operator">: </span><a href="../index.html#2035466174%2FClasslikes%2F769193423">AutoOffsetReset</a></div></div></div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 <a data-name="-630831656%2FProperties%2F769193423" anchor-label="bootstrapServers" id="-630831656%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-          <div class="main-subrow keyValue ">
-            <div class=""><span class="inline-flex">
-                <div><a href="bootstrap-servers.html"><span>bootstrap</span><wbr></wbr><span><span>Servers</span></span></a></div>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="bootstrap-servers.html"><span>bootstrap</span><wbr></wbr><span><span>Servers</span></span></a></div>
 <span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-630831656%2FProperties%2F769193423"></span>
-                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                </span></span></div>
-            <div>
-              <div class="title">
-                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-630831656%2FProperties%2F769193423" anchor-label="bootstrapServers" id="-630831656%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="bootstrap-servers.html">bootstrapServers</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="bootstrap-servers.html">bootstrapServers</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 <a data-name="1597009201%2FProperties%2F769193423" anchor-label="closeTimeout" id="1597009201%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-          <div class="main-subrow keyValue ">
-            <div class=""><span class="inline-flex">
-                <div><a href="close-timeout.html"><span>close</span><wbr></wbr><span><span>Timeout</span></span></a></div>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="close-timeout.html"><span>close</span><wbr></wbr><span><span>Timeout</span></span></a></div>
 <span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1597009201%2FProperties%2F769193423"></span>
-                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                </span></span></div>
-            <div>
-              <div class="title">
-                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="1597009201%2FProperties%2F769193423" anchor-label="closeTimeout" id="1597009201%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="close-timeout.html">closeTimeout</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.time/-duration/index.html">Duration</a></div></div></div>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="close-timeout.html">closeTimeout</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.time/-duration/index.html">Duration</a></div></div></div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 <a data-name="-2095944534%2FProperties%2F769193423" anchor-label="commitRetryInterval" id="-2095944534%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-          <div class="main-subrow keyValue ">
-            <div class=""><span class="inline-flex">
-                <div><a href="commit-retry-interval.html"><span>commit</span><wbr></wbr><span>Retry</span><wbr></wbr><span><span>Interval</span></span></a></div>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="commit-retry-interval.html"><span>commit</span><wbr></wbr><span>Retry</span><wbr></wbr><span><span>Interval</span></span></a></div>
 <span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2095944534%2FProperties%2F769193423"></span>
-                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                </span></span></div>
-            <div>
-              <div class="title">
-                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-2095944534%2FProperties%2F769193423" anchor-label="commitRetryInterval" id="-2095944534%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="commit-retry-interval.html">commitRetryInterval</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.time/-duration/index.html">Duration</a></div></div></div>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="commit-retry-interval.html">commitRetryInterval</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.time/-duration/index.html">Duration</a></div></div></div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 <a data-name="-2019863664%2FProperties%2F769193423" anchor-label="commitStrategy" id="-2019863664%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-          <div class="main-subrow keyValue ">
-            <div class=""><span class="inline-flex">
-                <div><a href="commit-strategy.html"><span>commit</span><wbr></wbr><span><span>Strategy</span></span></a></div>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="commit-strategy.html"><span>commit</span><wbr></wbr><span><span>Strategy</span></span></a></div>
 <span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2019863664%2FProperties%2F769193423"></span>
-                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                </span></span></div>
-            <div>
-              <div class="title">
-                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-2019863664%2FProperties%2F769193423" anchor-label="commitStrategy" id="-2019863664%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="commit-strategy.html">commitStrategy</a><span class="token operator">: </span><a href="../-commit-strategy/index.html">CommitStrategy</a></div></div></div>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="commit-strategy.html">commitStrategy</a><span class="token operator">: </span><a href="../-commit-strategy/index.html">CommitStrategy</a></div></div></div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 <a data-name="-1512763066%2FProperties%2F769193423" anchor-label="groupId" id="-1512763066%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-          <div class="main-subrow keyValue ">
-            <div class=""><span class="inline-flex">
-                <div><a href="group-id.html"><span>group</span><wbr></wbr><span><span>Id</span></span></a></div>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="group-id.html"><span>group</span><wbr></wbr><span><span>Id</span></span></a></div>
 <span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1512763066%2FProperties%2F769193423"></span>
-                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                </span></span></div>
-            <div>
-              <div class="title">
-                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-1512763066%2FProperties%2F769193423" anchor-label="groupId" id="-1512763066%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="group-id.html">groupId</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="group-id.html">groupId</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 <a data-name="1682058350%2FProperties%2F769193423" anchor-label="keyDeserializer" id="1682058350%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-          <div class="main-subrow keyValue ">
-            <div class=""><span class="inline-flex">
-                <div><a href="key-deserializer.html"><span>key</span><wbr></wbr><span><span>Deserializer</span></span></a></div>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="key-deserializer.html"><span>key</span><wbr></wbr><span><span>Deserializer</span></span></a></div>
 <span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1682058350%2FProperties%2F769193423"></span>
-                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                </span></span></div>
-            <div>
-              <div class="title">
-                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="1682058350%2FProperties%2F769193423" anchor-label="keyDeserializer" id="1682058350%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="key-deserializer.html">keyDeserializer</a><span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Deserializer///PointingToDeclaration/">Deserializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">K</a><span class="token operator">&gt;</span></div></div></div>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="key-deserializer.html">keyDeserializer</a><span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Deserializer///PointingToDeclaration/">Deserializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">K</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 <a data-name="-1064616129%2FProperties%2F769193423" anchor-label="maxCommitAttempts" id="-1064616129%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-          <div class="main-subrow keyValue ">
-            <div class=""><span class="inline-flex">
-                <div><a href="max-commit-attempts.html"><span>max</span><wbr></wbr><span>Commit</span><wbr></wbr><span><span>Attempts</span></span></a></div>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="max-commit-attempts.html"><span>max</span><wbr></wbr><span>Commit</span><wbr></wbr><span><span>Attempts</span></span></a></div>
 <span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1064616129%2FProperties%2F769193423"></span>
-                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                </span></span></div>
-            <div>
-              <div class="title">
-                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-1064616129%2FProperties%2F769193423" anchor-label="maxCommitAttempts" id="-1064616129%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="max-commit-attempts.html">maxCommitAttempts</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="max-commit-attempts.html">maxCommitAttempts</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 <a data-name="210775681%2FProperties%2F769193423" anchor-label="maxDeferredCommits" id="210775681%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-          <div class="main-subrow keyValue ">
-            <div class=""><span class="inline-flex">
-                <div><a href="max-deferred-commits.html"><span>max</span><wbr></wbr><span>Deferred</span><wbr></wbr><span><span>Commits</span></span></a></div>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="max-deferred-commits.html"><span>max</span><wbr></wbr><span>Deferred</span><wbr></wbr><span><span>Commits</span></span></a></div>
 <span class="anchor-wrapper"><span class="anchor-icon" pointing-to="210775681%2FProperties%2F769193423"></span>
-                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                </span></span></div>
-            <div>
-              <div class="title">
-                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="210775681%2FProperties%2F769193423" anchor-label="maxDeferredCommits" id="210775681%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="max-deferred-commits.html">maxDeferredCommits</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">0</span></div></div></div>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="max-deferred-commits.html">maxDeferredCommits</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">0</span></div></div></div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 <a data-name="-1574127586%2FProperties%2F769193423" anchor-label="pollTimeout" id="-1574127586%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-          <div class="main-subrow keyValue ">
-            <div class=""><span class="inline-flex">
-                <div><a href="poll-timeout.html"><span>poll</span><wbr></wbr><span><span>Timeout</span></span></a></div>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="poll-timeout.html"><span>poll</span><wbr></wbr><span><span>Timeout</span></span></a></div>
 <span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1574127586%2FProperties%2F769193423"></span>
-                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                </span></span></div>
-            <div>
-              <div class="title">
-                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="-1574127586%2FProperties%2F769193423" anchor-label="pollTimeout" id="-1574127586%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="poll-timeout.html">pollTimeout</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.time/-duration/index.html">Duration</a></div></div></div>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="poll-timeout.html">pollTimeout</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.time/-duration/index.html">Duration</a></div></div></div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 <a data-name="1764753095%2FProperties%2F769193423" anchor-label="properties" id="1764753095%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-          <div class="main-subrow keyValue ">
-            <div class=""><span class="inline-flex">
-                <div><a href="properties.html"><span><span>properties</span></span></a></div>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="properties.html"><span><span>properties</span></span></a></div>
 <span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1764753095%2FProperties%2F769193423"></span>
-                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                </span></span></div>
-            <div>
-              <div class="title">
-                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="1764753095%2FProperties%2F769193423" anchor-label="properties" id="1764753095%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="properties.html">properties</a><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/util/Properties.html">Properties</a></div></div></div>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="properties.html">properties</a><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/util/Properties.html">Properties</a></div></div></div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 <a data-name="593811420%2FProperties%2F769193423" anchor-label="valueDeserializer" id="593811420%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-          <div class="main-subrow keyValue ">
-            <div class=""><span class="inline-flex">
-                <div><a href="value-deserializer.html"><span>value</span><wbr></wbr><span><span>Deserializer</span></span></a></div>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="value-deserializer.html"><span>value</span><wbr></wbr><span><span>Deserializer</span></span></a></div>
 <span class="anchor-wrapper"><span class="anchor-icon" pointing-to="593811420%2FProperties%2F769193423"></span>
-                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                </span></span></div>
-            <div>
-              <div class="title">
-                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="593811420%2FProperties%2F769193423" anchor-label="valueDeserializer" id="593811420%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="value-deserializer.html">valueDeserializer</a><span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Deserializer///PointingToDeclaration/">Deserializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">V</a><span class="token operator">&gt;</span></div></div></div>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="value-deserializer.html">valueDeserializer</a><span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Deserializer///PointingToDeclaration/">Deserializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">V</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
               </div>
             </div>
           </div>

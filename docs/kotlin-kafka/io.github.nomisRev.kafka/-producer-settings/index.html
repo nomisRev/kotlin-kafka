@@ -42,6 +42,9 @@
     <div>
 0.3.1-SNAPSHOT    </div>
     <div class="pull-right d-flex">
+        <div class="filter-section" id="filter-section">
+                <button class="platform-tag platform-selector jvm-like" data-active="" data-filter=":dokkaHtml/main">jvm</button>
+        </div>
         <button id="theme-toggle-button"><span id="theme-toggle"></span></button>
         <div id="searchBar"></div>
     </div>
@@ -51,125 +54,127 @@
         <div id="sideMenu"></div>
     </div>
     <div id="main">
-<div class="main-content" id="content" pageIds="kotlin-kafka::io.github.nomisRev.kafka/ProducerSettings///PointingToDeclaration//769193423">
+<div class="main-content" data-page-type="classlike" id="content" pageIds="kotlin-kafka::io.github.nomisRev.kafka/ProducerSettings///PointingToDeclaration//769193423">
   <div class="breadcrumbs"><a href="../../../index.html">kotlin-kafka</a><span class="delimiter">/</span><a href="../index.html">io.github.nomisRev.kafka</a><span class="delimiter">/</span><span class="current">ProducerSettings</span></div>
   <div class="cover ">
     <h1 class="cover"><span>Producer</span><wbr></wbr><span><span>Settings</span></span></h1>
-    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="index.html">ProducerSettings</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">K</a><span class="token punctuation">, </span><span class="token keyword"></span><a href="index.html">V</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>bootstrapServers<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>keyDeserializer<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Serializer///PointingToDeclaration/">Serializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">K</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>valueDeserializer<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Serializer///PointingToDeclaration/">Serializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">V</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>acks<span class="token operator">: </span><a href="../-acks/index.html">Acks</a><span class="token operator"> = </span>Acks.One<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>other<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/util/Properties.html">Properties</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span><span class="clearfix"><span class="floating-right">(<a href="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/io/github/nomisRev/kafka/Producer.kt#L144">source</a>)</span></span></div><p class="paragraph">A type-safe constructor for <span data-unresolved-link="org.apache.kafka.clients.producer/KafkaProducer///PointingToDeclaration/">KafkaProducer</span> settings. It forces you to specify the bootstrapServer, and serializers for <a href="index.html">K</a> and <a href="index.html">V</a>. These are the minimum requirements for constructing a valid <span data-unresolved-link="org.apache.kafka.clients.producer/KafkaProducer///PointingToDeclaration/">KafkaProducer</span>.</p></div></div>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="index.html">ProducerSettings</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">K</a><span class="token punctuation">, </span><span class="token keyword"></span><a href="index.html">V</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>bootstrapServers<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>keyDeserializer<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Serializer///PointingToDeclaration/">Serializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">K</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>valueDeserializer<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Serializer///PointingToDeclaration/">Serializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">V</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>acks<span class="token operator">: </span><a href="../-acks/index.html">Acks</a><span class="token operator"> = </span>Acks.One<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>other<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/util/Properties.html">Properties</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span><span class="clearfix"><span class="floating-right">(<a href="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/io/github/nomisRev/kafka/Producer.kt#L151">source</a>)</span></span></div><p class="paragraph">A type-safe constructor for <span data-unresolved-link="org.apache.kafka.clients.producer/KafkaProducer///PointingToDeclaration/">KafkaProducer</span> settings. It forces you to specify the bootstrapServer, and serializers for <a href="index.html">K</a> and <a href="index.html">V</a>. These are the minimum requirements for constructing a valid <span data-unresolved-link="org.apache.kafka.clients.producer/KafkaProducer///PointingToDeclaration/">KafkaProducer</span>.</p><h4 class="">See also</h4><div class="table"><div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><span><span>http</span></span></div></span></div><div><div class="title"><p class="paragraph">://kafka.apache.org/documentation.html#producerconfigs</p></div></div></div></div></div></div></div>
   </div>
   <div class="tabbedcontent">
-    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="Constructors">Constructors</button><button class="section-tab" data-togglable="Functions">Functions</button><button class="section-tab" data-togglable="Properties">Properties</button><button class="section-tab" data-togglable="See also">See also</button></div>
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,FUNCTION,PROPERTY">Members</button></div>
     <div class="tabs-section-body">
-      <h4 class="">See also</h4>
-      <div data-togglable="See also">
-        <div class="platform-hinted WithExtraAttributes" data-platform-hinted="data-platform-hinted" data-togglable="See also"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div data-togglable="See also"><div class="table" data-togglable="See also"><div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main"><div class="main-subrow keyValue WithExtraAttributes"><div class=""><span class="inline-flex"><div><span><span>http</span></span></div></span></div><div><div class="title"><div data-togglable="See also"><p class="paragraph">://kafka.apache.org/documentation.html#producerconfigs</p></div></div></div></div></div></div></div></div></div>
-      </div>
-      <h2 class="tabbedcontent">Constructors</h2>
-      <div class="table" data-togglable="Constructors"><a data-name="528603521%2FConstructors%2F769193423" anchor-label="ProducerSettings" id="528603521%2FConstructors%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-          <div class="main-subrow keyValue TabbedContent">
-            <div class=""><span class="inline-flex">
-                <div><a href="-producer-settings.html"><span>Producer</span><wbr></wbr><span><span>Settings</span></span></a></div>
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="">Constructors</h2>
+        <div class="table"><a data-name="528603521%2FConstructors%2F769193423" anchor-label="ProducerSettings" id="528603521%2FConstructors%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table-row" data-togglable="CONSTRUCTOR" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-producer-settings.html"><span>Producer</span><wbr></wbr><span><span>Settings</span></span></a></div>
 <span class="anchor-wrapper"><span class="anchor-icon" pointing-to="528603521%2FConstructors%2F769193423"></span>
-                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                </span></span></div>
-            <div>
-              <div class="title">
-                <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">K</a><span class="token punctuation">, </span><span class="token keyword"></span><a href="index.html">V</a><span class="token operator">&gt; </span><a href="-producer-settings.html"><span class="token function">ProducerSettings</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">bootstrapServers<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">keyDeserializer<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Serializer///PointingToDeclaration/">Serializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">K</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">valueDeserializer<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Serializer///PointingToDeclaration/">Serializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">V</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">acks<span class="token operator">: </span><a href="../-acks/index.html">Acks</a><span class="token operator"> = </span>Acks.One<span class="token punctuation">, </span></span><span class="parameter ">other<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/util/Properties.html">Properties</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span></div></div></div>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">bootstrapServers<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">keyDeserializer<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Serializer///PointingToDeclaration/">Serializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">K</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">valueDeserializer<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Serializer///PointingToDeclaration/">Serializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">V</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">acks<span class="token operator">: </span><a href="../-acks/index.html">Acks</a><span class="token operator"> = </span>Acks.One<span class="token punctuation">, </span></span><span class="parameter ">other<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/util/Properties.html">Properties</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-      <h2 class="">Functions</h2>
-      <div class="table" data-togglable="Functions"><a data-name="-79385065%2FFunctions%2F769193423" anchor-label="properties" id="-79385065%2FFunctions%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-          <div class="main-subrow keyValue ">
-            <div class=""><span class="inline-flex">
-                <div><a href="properties.html"><span><span>properties</span></span></a></div>
+      <div data-togglable="FUNCTION">
+        <h2 class="">Functions</h2>
+        <div class="table"><a data-name="-79385065%2FFunctions%2F769193423" anchor-label="properties" id="-79385065%2FFunctions%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="properties.html"><span><span>properties</span></span></a></div>
 <span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-79385065%2FFunctions%2F769193423"></span>
-                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                </span></span></div>
-            <div>
-              <div class="title">
-                <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><a href="properties.html"><span class="token function">properties</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/util/Properties.html">Properties</a></div></div></div>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><a href="properties.html"><span class="token function">properties</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/util/Properties.html">Properties</a></div></div></div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-      <h2 class="">Properties</h2>
-      <div class="table" data-togglable="Properties"><a data-name="306493408%2FProperties%2F769193423" anchor-label="acks" id="306493408%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-          <div class="main-subrow keyValue ">
-            <div class=""><span class="inline-flex">
-                <div><a href="acks.html"><span><span>acks</span></span></a></div>
+      <div data-togglable="PROPERTY">
+        <h2 class="">Properties</h2>
+        <div class="table"><a data-name="306493408%2FProperties%2F769193423" anchor-label="acks" id="306493408%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="acks.html"><span><span>acks</span></span></a></div>
 <span class="anchor-wrapper"><span class="anchor-icon" pointing-to="306493408%2FProperties%2F769193423"></span>
-                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                </span></span></div>
-            <div>
-              <div class="title">
-                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="306493408%2FProperties%2F769193423" anchor-label="acks" id="306493408%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="acks.html">acks</a><span class="token operator">: </span><a href="../-acks/index.html">Acks</a></div></div></div>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="acks.html">acks</a><span class="token operator">: </span><a href="../-acks/index.html">Acks</a></div></div></div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 <a data-name="2012100904%2FProperties%2F769193423" anchor-label="bootstrapServers" id="2012100904%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-          <div class="main-subrow keyValue ">
-            <div class=""><span class="inline-flex">
-                <div><a href="bootstrap-servers.html"><span>bootstrap</span><wbr></wbr><span><span>Servers</span></span></a></div>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="bootstrap-servers.html"><span>bootstrap</span><wbr></wbr><span><span>Servers</span></span></a></div>
 <span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2012100904%2FProperties%2F769193423"></span>
-                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                </span></span></div>
-            <div>
-              <div class="title">
-                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="2012100904%2FProperties%2F769193423" anchor-label="bootstrapServers" id="2012100904%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="bootstrap-servers.html">bootstrapServers</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="bootstrap-servers.html">bootstrapServers</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 <a data-name="658935582%2FProperties%2F769193423" anchor-label="keyDeserializer" id="658935582%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-          <div class="main-subrow keyValue ">
-            <div class=""><span class="inline-flex">
-                <div><a href="key-deserializer.html"><span>key</span><wbr></wbr><span><span>Deserializer</span></span></a></div>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="key-deserializer.html"><span>key</span><wbr></wbr><span><span>Deserializer</span></span></a></div>
 <span class="anchor-wrapper"><span class="anchor-icon" pointing-to="658935582%2FProperties%2F769193423"></span>
-                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                </span></span></div>
-            <div>
-              <div class="title">
-                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="658935582%2FProperties%2F769193423" anchor-label="keyDeserializer" id="658935582%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="key-deserializer.html">keyDeserializer</a><span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Serializer///PointingToDeclaration/">Serializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">K</a><span class="token operator">&gt;</span></div></div></div>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="key-deserializer.html">keyDeserializer</a><span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Serializer///PointingToDeclaration/">Serializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">K</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 <a data-name="1689364064%2FProperties%2F769193423" anchor-label="other" id="1689364064%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-          <div class="main-subrow keyValue ">
-            <div class=""><span class="inline-flex">
-                <div><a href="other.html"><span><span>other</span></span></a></div>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="other.html"><span><span>other</span></span></a></div>
 <span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1689364064%2FProperties%2F769193423"></span>
-                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                </span></span></div>
-            <div>
-              <div class="title">
-                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="1689364064%2FProperties%2F769193423" anchor-label="other" id="1689364064%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="other.html">other</a><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/util/Properties.html">Properties</a><span class="token operator">?</span><span class="token operator"> = </span>null</div></div></div>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="other.html">other</a><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/util/Properties.html">Properties</a><span class="token operator">?</span><span class="token operator"> = </span>null</div></div></div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 <a data-name="920342156%2FProperties%2F769193423" anchor-label="valueDeserializer" id="920342156%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-        <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-          <div class="main-subrow keyValue ">
-            <div class=""><span class="inline-flex">
-                <div><a href="value-deserializer.html"><span>value</span><wbr></wbr><span><span>Deserializer</span></span></a></div>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="value-deserializer.html"><span>value</span><wbr></wbr><span><span>Deserializer</span></span></a></div>
 <span class="anchor-wrapper"><span class="anchor-icon" pointing-to="920342156%2FProperties%2F769193423"></span>
-                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                </span></span></div>
-            <div>
-              <div class="title">
-                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><a data-name="920342156%2FProperties%2F769193423" anchor-label="valueDeserializer" id="920342156%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="value-deserializer.html">valueDeserializer</a><span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Serializer///PointingToDeclaration/">Serializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">V</a><span class="token operator">&gt;</span></div></div></div>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="value-deserializer.html">valueDeserializer</a><span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common.serialization/Serializer///PointingToDeclaration/">Serializer</span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="index.html">V</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
               </div>
             </div>
           </div>
