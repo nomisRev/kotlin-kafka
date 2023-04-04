@@ -2,12 +2,12 @@
 arrowGradleConfig = "0.11.0"
 kotest = "5.5.5"
 kafka = "3.4.0"
-kotlin = "1.8.10"
+kotlin = "1.8.20"
 kotlinx-coroutines = "1.6.4"
 dokka = "1.8.10"
 knit = "0.4.0"
 kover = "0.6.1"
-testcontainers-kafka = "1.17.6"
+testcontainers-kafka = "1.18.0"
 slf4j = "2.0.7"
 
 [libraries]
