@@ -2,7 +2,7 @@
 arrowGradleConfig = "0.11.0"
 kotest = "5.6.1"
 kafka = "3.4.0"
-kotlin = "1.8.20"
+kotlin = "1.8.21"
 kotlinx-coroutines = "1.6.4"
 dokka = "1.8.10"
 knit = "0.4.0"
