@@ -61,42 +61,8 @@
     <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="index.html">Offset</a><span class="clearfix"><span class="floating-right">(<a href="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/io/github/nomisRev/kafka/receiver/Offset.kt#L17">source</a>)</span></span></div><p class="paragraph">Topic partition offset that must be acknowledged after the record is processed.</p><p class="paragraph">When you <a href="acknowledge.html">acknowledge</a> this <a href="index.html">Offset</a>  it will be added to the batch of offsets to be committed based on <a href="../-commit-strategy/index.html">CommitStrategy</a>, whilst <a href="commit.html">commit</a> will actually commit this commit to kafka, and suspend until it's completed.</p><p class="paragraph">So if you want to <i>force</i> a commit without back-pressuring a stream, you can use <code class="lang-kotlin">launch { offset.commit() }</code>. This is considered a niche use-case, and using the batch commit functionality with <a href="../-commit-strategy/index.html">CommitStrategy</a> and <a href="acknowledge.html">acknowledge</a> is recommended.</p></div></div>
   </div>
   <div class="tabbedcontent">
-    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,FUNCTION,PROPERTY">Members</button></div>
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
     <div class="tabs-section-body">
-      <div data-togglable="FUNCTION">
-        <h2 class="">Functions</h2>
-        <div class="table"><a data-name="356186659%2FFunctions%2F769193423" anchor-label="acknowledge" id="356186659%2FFunctions%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-            <div class="main-subrow keyValue ">
-              <div class=""><span class="inline-flex">
-                  <div><a href="acknowledge.html"><span><span>acknowledge</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="356186659%2FFunctions%2F769193423"></span>
-                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                  </span></span></div>
-              <div>
-                <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">suspend </span><span class="token keyword">fun </span><a href="acknowledge.html"><span class="token function">acknowledge</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Acknowledges the <a href="../-receiver-record/index.html">ReceiverRecord</a> associated with this offset. The offset will be committed automatically based on the commit configuration <a href="../-commit-strategy/index.html">CommitStrategy</a>. When an offset is acknowledged, it is assumed that all records in this partition up to, and including this offset have been processed. All acknowledged offsets are committed if possible when the receiver <span data-unresolved-link="kotlinx.coroutines.flow/Flow///PointingToDeclaration/">Flow</span> completes or according to <a href="../-commit-strategy/index.html">CommitStrategy</a>.</p></div></div></div>
-                </div>
-              </div>
-            </div>
-          </div>
-<a data-name="1806089124%2FFunctions%2F769193423" anchor-label="commit" id="1806089124%2FFunctions%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
-          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
-            <div class="main-subrow keyValue ">
-              <div class=""><span class="inline-flex">
-                  <div><a href="commit.html"><span><span>commit</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1806089124%2FFunctions%2F769193423"></span>
-                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                  </span></span></div>
-              <div>
-                <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">suspend </span><span class="token keyword">fun </span><a href="commit.html"><span class="token function">commit</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Acknowledges the record associated with this instance and commits all acknowledged offsets. This method suspends until the record has been committed, it may be wrapped in <code class="lang-kotlin">launch</code> to avoid suspending until commit has completed.</p></div></div></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
       <div data-togglable="PROPERTY">
         <h2 class="">Properties</h2>
         <div class="table"><a data-name="-17776696%2FProperties%2F769193423" anchor-label="offset" id="-17776696%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
@@ -125,6 +91,40 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword"></span><span class="token keyword">val </span><a href="topic-partition.html">topicPartition</a><span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.common/TopicPartition///PointingToDeclaration/">TopicPartition</span></div><div class="brief "><p class="paragraph">The topic partition corresponding to this <a href="../-receiver-record/index.html">ReceiverRecord</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="">Functions</h2>
+        <div class="table"><a data-name="356186659%2FFunctions%2F769193423" anchor-label="acknowledge" id="356186659%2FFunctions%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="acknowledge.html"><span><span>acknowledge</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="356186659%2FFunctions%2F769193423"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">suspend </span><span class="token keyword">fun </span><a href="acknowledge.html"><span class="token function">acknowledge</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Acknowledges the <a href="../-receiver-record/index.html">ReceiverRecord</a> associated with this offset. The offset will be committed automatically based on the commit configuration <a href="../-commit-strategy/index.html">CommitStrategy</a>. When an offset is acknowledged, it is assumed that all records in this partition up to, and including this offset have been processed. All acknowledged offsets are committed if possible when the receiver <span data-unresolved-link="kotlinx.coroutines.flow/Flow///PointingToDeclaration/">Flow</span> completes or according to <a href="../-commit-strategy/index.html">CommitStrategy</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1806089124%2FFunctions%2F769193423" anchor-label="commit" id="1806089124%2FFunctions%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="commit.html"><span><span>commit</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1806089124%2FFunctions%2F769193423"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">suspend </span><span class="token keyword">fun </span><a href="commit.html"><span class="token function">commit</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Acknowledges the record associated with this instance and commits all acknowledged offsets. This method suspends until the record has been committed, it may be wrapped in <code class="lang-kotlin">launch</code> to avoid suspending until commit has completed.</p></div></div></div>
                 </div>
               </div>
             </div>
