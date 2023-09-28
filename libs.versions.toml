@@ -1,5 +1,5 @@
 [versions]
-arrowGradleConfig = "0.12.0-rc.5"
+arrowGradleConfig = "0.12.0-rc.6"
 kotest = "5.7.2"
 kafka = "3.5.1"
 kotlin = "1.9.10"
