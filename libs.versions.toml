@@ -7,7 +7,7 @@ kotlinx-coroutines = "1.7.3"
 dokka = "1.9.0"
 knit = "0.4.0"
 kover = "0.7.3"
-testcontainers-kafka = "1.19.0"
+testcontainers-kafka = "1.19.1"
 slf4j = "2.0.9"
 
 [libraries]
