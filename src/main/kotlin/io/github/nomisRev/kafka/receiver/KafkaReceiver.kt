@@ -13,7 +13,7 @@ import java.util.concurrent.ThreadFactory
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
-// TODO Copy name from reactor-kafka,
+// TODO Copied name from reactor-kafka,
 //  conflict with org.apache.kafka.clients.consumer.KafkaConsumer,
 //  or figure out a other good name
 public interface KafkaReceiver<K, V> {
@@ -31,19 +31,16 @@ public interface KafkaReceiver<K, V> {
   public suspend fun <A> withConsumer(action: suspend KafkaConsumer<K, V>.(KafkaConsumer<K, V>) -> A): A
 }
 
-@Suppress("FunctionName")
 public fun <K, V> KafkaReceiver(settings: ReceiverSettings<K, V>): KafkaReceiver<K, V> =
   DefaultKafkaReceiver(settings)
 
-@OptIn(FlowPreview::class)
 private class DefaultKafkaReceiver<K, V>(private val settings: ReceiverSettings<K, V>) : KafkaReceiver<K, V> {
-
-  private val consumer: AtomicReference<Consumer<K, V>?> = AtomicReference(null)
 
   override suspend fun <A> withConsumer(action: suspend KafkaConsumer<K, V>.(KafkaConsumer<K, V>) -> A): A =
     KafkaConsumer(settings.toProperties(), settings.keyDeserializer, settings.valueDeserializer)
       .use { action(it, it) }
 
+  @OptIn(ExperimentalCoroutinesApi::class)
   override fun receive(topicNames: Collection<String>): Flow<ReceiverRecord<K, V>> =
     scopedConsumer(settings.groupId) { scope, dispatcher, consumer ->
       val loop = PollLoop(topicNames, settings, consumer, scope)
@@ -84,6 +81,7 @@ private class DefaultKafkaReceiver<K, V>(private val settings: ReceiverSettings<
    * This [Flow] returns a scheduler and CoroutineScope that is scoped to the stream,
    * it gets lazily initialized when the [Flow] is collected and gets closed when the flow terminates.
    */
+  @OptIn(ExperimentalCoroutinesApi::class)
   fun <A> scopedConsumer(
     groupId: String,
     block: (CoroutineScope, ExecutorCoroutineDispatcher, KafkaConsumer<K, V>) -> Flow<A>
