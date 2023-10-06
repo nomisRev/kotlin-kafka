@@ -6,10 +6,6 @@ on:
       - 'docs/**'
       - '*.md'
 
-env:
-  JAVA_OPTS: -Xms512m -Xmx1024m
-  GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.configureondemand=true -Dorg.gradle.jvmargs=-Xmx3g -XX:MaxPermSize=2048m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8"
-
 jobs:
   check:
     runs-on: ubuntu-latest

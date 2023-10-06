@@ -10,8 +10,6 @@ on:
         type: string
 
 env:
-  JAVA_OPTS: -Xms1g -Xmx3g
-  GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.configureondemand=true -Dorg.gradle.jvmargs=-Xmx3g -XX:MaxPermSize=2048m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8"
   ORG_GRADLE_PROJECT_mavenCentralUsername: '${{ secrets.SONATYPE_USER }}'
   ORG_GRADLE_PROJECT_mavenCentralPassword: '${{ secrets.SONATYPE_PWD }}'
   ORG_GRADLE_PROJECT_signingInMemoryKeyId: '${{ secrets.SIGNING_KEY_ID }}'
