@@ -1,0 +1,25 @@
+name: githubpages
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  githubpages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: gradle/gradle-build-action@v2
+        with:
+          arguments: -Pversion=${{ github.event.release.tag_name }} dokkaHtml
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
