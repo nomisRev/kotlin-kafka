@@ -37,7 +37,7 @@ internal class CommittableBatch {
           batchSize++
         }
       } else {
-        logger.debug("No uncommitted offset for $topicPartition@$offset, partition revoked?")
+        logger.debug("No uncommitted offset for {}@{}, partition revoked?", topicPartition, offset)
       }
     } else if (offset != consumedOffsets.put(topicPartition, offset)) {
       batchSize++

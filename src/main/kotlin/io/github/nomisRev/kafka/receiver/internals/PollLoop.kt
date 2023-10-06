@@ -27,12 +27,7 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.apache.kafka.clients.consumer.ConsumerRebalanceListener
-import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.clients.consumer.ConsumerRecords
-import org.apache.kafka.clients.consumer.KafkaConsumer
-import org.apache.kafka.clients.consumer.OffsetAndMetadata
-import org.apache.kafka.clients.consumer.RetriableCommitFailedException
+import org.apache.kafka.clients.consumer.*
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.WakeupException
 import org.slf4j.Logger
@@ -42,7 +37,7 @@ internal class PollLoop<K, V>(
   // TODO also allow for Pattern, and assign
   private val topicNames: Collection<String>,
   private val settings: ReceiverSettings<K, V>,
-  private val consumer: KafkaConsumer<K, V>,
+  private val consumer: Consumer<K, V>,
   scope: CoroutineScope,
   awaitingTransaction: AtomicBoolean = AtomicBoolean(false),
   private val isActive: AtomicBoolean = AtomicBoolean(true),
@@ -61,7 +56,7 @@ internal class PollLoop<K, V>(
     awaitingTransaction,
     atMostOnceOffset
   )
-  
+
   /*
    * Takes care of scheduling our commits to Kafka.
    * It will schedule a commit after `reachedMaxCommitBatchSize` channel signals it has reach the batch size,
@@ -80,7 +75,7 @@ internal class PollLoop<K, V>(
       loop::scheduleCommitIfRequired
     )
   }
-  
+
   fun receive(): Flow<ConsumerRecords<K, V>> =
     loop.channel.consumeAsFlow()
       .onStart {
@@ -88,7 +83,7 @@ internal class PollLoop<K, V>(
         loop.schedulePoll()
         commitManagerJob.start()
       }.onCompletion { stop() }
-  
+
   private suspend fun stop() {
     if (!isActive.compareAndSet(true, false)) Unit
     reachedMaxCommitBatchSize.close()
@@ -96,7 +91,7 @@ internal class PollLoop<K, V>(
     consumer.wakeup()
     loop.close(settings.closeTimeout)
   }
-  
+
   internal fun toCommittableOffset(record: ConsumerRecord<K, V>): CommittableOffset<K, V> =
     CommittableOffset(
       TopicPartition(record.topic(), record.partition()),
@@ -115,7 +110,7 @@ internal class CommittableOffset<K, V>(
   private val reachedMaxCommitBatchSize: Channel<Unit>,
 ) : Offset {
   private val acknowledged = AtomicBoolean(false)
-  
+
   override suspend fun commit(): Unit =
     if (maybeUpdateOffset() > 0) suspendCoroutine { cont ->
         loop.commitBatch.addContinuation(cont)
@@ -128,7 +123,7 @@ internal class CommittableOffset<K, V>(
       reachedMaxCommitBatchSize.send(Unit)
     }
   }
-  
+
   private /*suspend*/ fun maybeUpdateOffset(): Int =
     if (acknowledged.compareAndSet(false, true)) loop.commitBatch.updateOffset(topicPartition, offset)
     else loop.commitBatch.batchSize()
@@ -142,7 +137,7 @@ private val logger: Logger =
 internal class EventLoop<K, V>(
   private val ackMode: AckMode,
   private val settings: ReceiverSettings<K, V>,
-  private val consumer: KafkaConsumer<K, V>,
+  private val consumer: Consumer<K, V>,
   private val isRetriableException: (Throwable) -> Boolean,
   private val scope: CoroutineScope,
   private val isActive: AtomicBoolean,
@@ -153,7 +148,7 @@ internal class EventLoop<K, V>(
   private val pausedByUs = AtomicBoolean(false)
   val channel: Channel<ConsumerRecords<K, V>> = Channel()
   private val pollTimeout = settings.pollTimeout.toJavaDuration()
-  
+
   private fun onPartitionsRevoked(partitions: Collection<TopicPartition>) {
     if (!partitions.isEmpty()) {
       // It is safe to use the consumer here since we are in a poll()
@@ -166,7 +161,7 @@ internal class EventLoop<K, V>(
       // }
     }
   }
-  
+
   fun subscriber(topicNames: Collection<String>): Job = scope.launch {
     try {
       consumer.subscribe(topicNames, object : ConsumerRebalanceListener {
@@ -212,7 +207,7 @@ internal class EventLoop<K, V>(
             }
           }
         }
-        
+
         override fun onPartitionsRevoked(partitions: MutableCollection<TopicPartition>) {
           logger.debug("onPartitionsRevoked $partitions")
           this@EventLoop.onPartitionsRevoked(partitions)
@@ -224,7 +219,7 @@ internal class EventLoop<K, V>(
       channel.close(e)
     }
   }
-  
+
   private fun checkAndSetPausedByUs(): Boolean {
     logger.debug("checkAndSetPausedByUs")
     val pausedNow = !pausedByUs.getAndSet(true)
@@ -233,7 +228,7 @@ internal class EventLoop<K, V>(
     }
     return pausedNow
   }
-  
+
   /*
    * TODO this can probably be removed
    * Race condition where onRequest was called to increase requested but we
@@ -248,11 +243,11 @@ internal class EventLoop<K, V>(
         if (isActive.get()) {
           // Ensure that commits are not queued behind polls since number of poll events is chosen by reactor.
           runCommitIfRequired(false)
-          
+
           val pauseForDeferred =
             (settings.maxDeferredCommits > 0 && commitBatch.deferredCount() >= settings.maxDeferredCommits)
           val shouldPoll: Boolean = if (pauseForDeferred || retrying.get()) false else requesting.get()
-          
+
           if (shouldPoll) {
             if (!awaitingTransaction.get()) {
               if (pausedByUs.getAndSet(false)) {
@@ -280,7 +275,7 @@ internal class EventLoop<K, V>(
               else -> logger.debug("Paused - back pressure")
             }
           }
-          
+
           val records: ConsumerRecords<K, V> = try {
             consumer.poll(pollTimeout)
           } catch (e: WakeupException) {
@@ -300,7 +295,7 @@ internal class EventLoop<K, V>(
                   logger.error("Channel send failed when trying to send records.", error)
                   channel.close(error)
                 } else logger.debug("Back-pressuring kafka consumer. Might pause KafkaConsumer on next tick.")
-                
+
                 requesting.set(false)
                 // TODO Can we rely on a dispatcher from above?
                 //      This should not run on the kafka consumer thread
@@ -355,7 +350,7 @@ internal class EventLoop<K, V>(
             }
             schedulePoll()
           }
-          
+
           AckMode.ATMOST_ONCE -> {
             logger.debug("Sync committing: ${commitArgs.offsets}")
             consumer.commitSync(commitArgs.offsets)
@@ -371,7 +366,7 @@ internal class EventLoop<K, V>(
       commitFailure(commitArgs, e)
     }
   }
-  
+
   private fun commitSuccess(commitArgs: CommittableBatch.CommitArgs?, offsets: Map<TopicPartition, OffsetAndMetadata>) {
     if (offsets.isNotEmpty()) {
       consecutiveCommitFailures.set(0)
@@ -411,16 +406,16 @@ internal class EventLoop<K, V>(
       }
     }
   }
-  
+
   private fun runCommitIfRequired(force: Boolean) {
     if (force) isPending.set(true)
     if (!retrying.get() && isPending.get()) commit()
   }
-  
+
   fun scheduleCommitIfRequired(): Job? =
     if (isActive.get() && !retrying.get() && isPending.compareAndSet(false, true)) scope.launch { commit() }
     else null
-  
+
   // TODO investigate
   //  https://github.com/akka/alpakka-kafka/blob/aad6a1ccbd4f549b3053988c85cbbe9b11d51542/core/src/main/scala/akka/kafka/internal/KafkaConsumerActor.scala#L514
   private fun waitFor(endTimeMillis: Long) {
@@ -428,7 +423,7 @@ internal class EventLoop<K, V>(
       consumer.poll(Duration.ofMillis(1))
     }
   }
-  
+
   suspend fun close(timeout: kotlin.time.Duration): Unit = withContext(scope.coroutineContext) {
     val closeEndTimeMillis = System.currentTimeMillis() + timeout.inWholeMilliseconds
     // val manualAssignment: Collection<TopicPartition> = receiverOptions.assignment()
