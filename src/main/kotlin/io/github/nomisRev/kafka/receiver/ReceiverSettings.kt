@@ -43,7 +43,7 @@ public data class ReceiverSettings<K, V>(
     require(pollTimeout.isPosNonZero()) { "Poll timeout must be >= 0 but found $pollTimeout" }
     require(closeTimeout.isPosNonZero()) { "Close timeout must be >= 0 but found $closeTimeout" }
   }
-  
+
   internal fun toProperties() = Properties().apply {
     put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
     if (keyDeserializer !== NothingDeserializer) {

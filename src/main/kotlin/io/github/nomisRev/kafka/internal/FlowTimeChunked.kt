@@ -38,6 +38,7 @@ import kotlin.time.Duration
  * interval constraint. If so happens, time-to-next-chunk gets reset to the interval value.
  */
 @ExperimentalCoroutinesApi
+@Deprecated("Will no longer be part of kotlin-kafka.")
 public fun <T> Flow<T>.chunked(
   size: Int,
   duration: Duration,
@@ -56,14 +57,14 @@ public fun <T> Flow<T>.chunked(
       }
       emitNowAndMaybeContinue.send(false)
     }
-    
+
     whileSelect {
       emitNowAndMaybeContinue.onReceive { shouldContinue ->
         val chunk = elements.drain(maxElements = size)
         if (chunk.isNotEmpty()) downstream.emit(chunk)
         shouldContinue
       }
-      
+
       onTimeout(duration) {
         val chunk: List<T> = elements.drain(maxElements = size)
         if (chunk.isNotEmpty()) downstream.emit(chunk)

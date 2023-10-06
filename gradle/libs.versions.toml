@@ -1,5 +1,4 @@
 [versions]
-arrowGradleConfig = "0.12.0-rc.6"
 kotest = "5.7.2"
 kafka = "3.6.0"
 kotlin = "1.9.10"
@@ -9,6 +8,8 @@ knit = "0.4.0"
 kover = "0.7.3"
 testcontainers-kafka = "1.19.1"
 slf4j = "2.0.9"
+spotless="6.22.0"
+publish="0.25.3"
 
 [libraries]
 kotest-assertions = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
@@ -36,11 +37,8 @@ kotest = [
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
-arrowGradleConfig-kotlin = { id = "io.arrow-kt.arrow-gradle-config-kotlin", version.ref = "arrowGradleConfig" }
-arrowGradleConfig-formatter = { id = "io.arrow-kt.arrow-gradle-config-formatter", version.ref = "arrowGradleConfig" }
-arrowGradleConfig-nexus = { id = "io.arrow-kt.arrow-gradle-config-nexus", version.ref = "arrowGradleConfig" }
-arrowGradleConfig-publish = { id = "io.arrow-kt.arrow-gradle-config-publish", version.ref = "arrowGradleConfig" }
-arrowGradleConfig-versioning = { id = "io.arrow-kt.arrow-gradle-config-versioning", version.ref = "arrowGradleConfig" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
-knit = { id = "org.jetbrains.kotlinx:kotlinx-knit", version.ref = "knit" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+publish = { id = "com.vanniktech.maven.publish", version.ref="publish" }
+knit = { id = "org.jetbrains.kotlinx.knit", version.ref="knit" }
