@@ -113,8 +113,8 @@ internal class CommittableOffset<K, V>(
 
   override suspend fun commit(): Unit =
     if (maybeUpdateOffset() > 0) suspendCoroutine { cont ->
-        loop.commitBatch.addContinuation(cont)
-        loop.scheduleCommitIfRequired()
+      loop.commitBatch.addContinuation(cont)
+      loop.scheduleCommitIfRequired()
     } else Unit
 
   override suspend fun acknowledge() {
@@ -255,11 +255,11 @@ internal class EventLoop<K, V>(
                 toResume.removeAll(pausedByUser)
                 pausedByUser.clear()
                 consumer.resume(toResume)
-              if (logger.isDebugEnabled) {
-                logger.debug("Resumed partitions: $toResume")
+                if (logger.isDebugEnabled) {
+                  logger.debug("Resumed partitions: $toResume")
+                }
               }
-            }
-          } else {
+            } else {
               if (checkAndSetPausedByUs()) {
                 pausedByUser.addAll(consumer.paused())
                 consumer.pause(consumer.assignment())
@@ -357,7 +357,7 @@ internal class EventLoop<K, V>(
             commitSuccess(commitArgs, commitArgs.offsets)
             atmostOnceOffsets.onCommit(commitArgs.offsets)
           }
-          // Handled separately using transactional KafkaSender
+          // Handled separately using transactional KafkaPublisher
           AckMode.EXACTLY_ONCE -> Unit
         }
       }
