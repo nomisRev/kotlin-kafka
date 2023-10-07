@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
-import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -134,12 +133,12 @@ public fun <K, V> kafkaProducer(
   }
 }
 
-public enum class Acks(public val value: String) {
-  All("all"),
-  MinusOne("-1"),
-  Zero("0"),
-  One("1")
-}
+@Deprecated(
+  "Use io.github.nomisRev.kafka.publisher.Acks instead",
+  ReplaceWith("this", "io.github.nomisRev.kafka.publisher.Acks")
+)
+typealias Acks =
+  io.github.nomisRev.kafka.publisher.Acks
 
 /**
  * A type-safe constructor for [KafkaProducer] settings.

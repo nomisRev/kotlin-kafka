@@ -1,5 +1,6 @@
 package io.github.nomisRev.kafka.receiver
 
+import io.github.nomisRev.kafka.NothingDeserializer
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.serialization.Deserializer
 import java.util.Properties
@@ -86,9 +87,3 @@ public fun <V> ReceiverSettings(
     closeTimeout,
     properties
   )
-
-private object NothingDeserializer : Deserializer<Nothing> {
-  override fun close(): Unit = Unit
-  override fun configure(configs: MutableMap<String, *>?, isKey: Boolean): Unit = Unit
-  override fun deserialize(topic: String?, data: ByteArray?): Nothing = TODO("Impossible")
-}
