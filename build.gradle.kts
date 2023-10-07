@@ -8,6 +8,7 @@ plugins {
   alias(libs.plugins.dokka)
   alias(libs.plugins.spotless)
   alias(libs.plugins.knit)
+  alias(libs.plugins.publish)
 }
 
 repositories {

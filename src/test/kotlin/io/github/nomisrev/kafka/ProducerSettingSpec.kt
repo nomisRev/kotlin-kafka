@@ -34,6 +34,7 @@ class ProducerSettingSpec : StringSpec({
       )
       
       assertSoftly(settings.properties()) {
+        @Suppress("UNCHECKED_CAST")
         toMap().shouldContainAll(map as Map<Any, Any>)
         getProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG) shouldBe bootstrapServers
         getProperty(ProducerConfig.ACKS_CONFIG) shouldBe acks.value

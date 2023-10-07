@@ -2,7 +2,7 @@ package io.github.nomisrev.kafka
 
 import io.github.nomisRev.kafka.Admin
 import io.github.nomisRev.kafka.AdminSettings
-import io.github.nomisRev.kafka.AutoOffsetReset
+import io.github.nomisRev.kafka.receiver.AutoOffsetReset
 import io.github.nomisRev.kafka.ProducerSettings
 import io.github.nomisRev.kafka.createTopic
 import io.github.nomisRev.kafka.deleteTopic
@@ -11,7 +11,6 @@ import io.github.nomisRev.kafka.produce
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import io.kotest.core.spec.style.StringSpec
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map

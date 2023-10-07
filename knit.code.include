@@ -1,5 +1,1 @@
 package ${knit.package}.${knit.name}
-
-import io.github.nomisRev.kafka.*
-import java.util.Properties
-import kotlinx.coroutines.runBlocking
