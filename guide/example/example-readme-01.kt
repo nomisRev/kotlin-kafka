@@ -1,10 +1,15 @@
 package example.exampleReadme01
 
-import io.github.nomisRev.kafka.*
-import java.util.Properties
-import kotlinx.coroutines.runBlocking
-
 import arrow.continuations.SuspendApp
+import io.github.nomisRev.kafka.Acks
+import io.github.nomisRev.kafka.Admin
+import io.github.nomisRev.kafka.AdminSettings
+import io.github.nomisRev.kafka.ProducerSettings
+import io.github.nomisRev.kafka.createTopic
+import io.github.nomisRev.kafka.imap
+import io.github.nomisRev.kafka.map
+import io.github.nomisRev.kafka.produce
+import io.github.nomisRev.kafka.receiver.AutoOffsetReset
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import kotlinx.coroutines.Dispatchers

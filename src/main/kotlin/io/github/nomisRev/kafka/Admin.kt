@@ -17,12 +17,19 @@ import org.apache.kafka.clients.admin.TopicDescription
  * [kotlin.use], or arrow.fx.coroutines.Resource.
  *
  * <!--- INCLUDE
+ * import arrow.continuations.SuspendApp
+ * import io.github.nomisRev.kafka.Admin
+ * import io.github.nomisRev.kafka.AdminSettings
+ * import io.github.nomisRev.kafka.await
+ * import io.github.nomisRev.kafka.createTopic
+ * import io.github.nomisRev.kafka.deleteTopic
  * import org.apache.kafka.clients.ClientDnsLookup
  * import org.apache.kafka.clients.admin.AdminClientConfig.CLIENT_DNS_LOOKUP_CONFIG
  * import org.apache.kafka.clients.admin.NewTopic
+ * import java.util.Properties
  * -->
  * ```kotlin
- * fun main() = runBlocking {
+ * fun main() = SuspendApp {
  *   val settings = AdminSettings(
  *     Kafka.container.bootstrapServers,
  *     Properties().apply {

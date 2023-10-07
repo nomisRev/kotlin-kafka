@@ -8,6 +8,7 @@ import io.kotest.assertions.assertSoftly
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectIndexed
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.yield
 import org.apache.kafka.clients.producer.ProducerRecord
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class KafakReceiverSpec : KafkaSpec({
   
   val depth = 100

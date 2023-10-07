@@ -2,6 +2,7 @@
 
 package io.github.nomisRev.kafka
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.util.Properties
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -23,8 +24,12 @@ import org.apache.kafka.common.serialization.Serializer
  * all [ProducerRecord] are published *in-order* in a synchronous way.
  *
  * <!--- INCLUDE
+ * import arrow.continuations.SuspendApp
+ * import io.github.nomisRev.kafka.Acks
+ * import io.github.nomisRev.kafka.ProducerSettings
+ * import io.github.nomisRev.kafka.imap
+ * import io.github.nomisRev.kafka.produce
  * import kotlinx.coroutines.flow.asFlow
- * import kotlinx.coroutines.flow.collect
  * import org.apache.kafka.clients.producer.ProducerRecord
  * import org.apache.kafka.common.serialization.IntegerSerializer
  * import org.apache.kafka.common.serialization.StringSerializer
@@ -32,7 +37,7 @@ import org.apache.kafka.common.serialization.Serializer
  * @JvmInline value class Message(val content: String)
  * -->
  * ```kotlin
- * fun main() = runBlocking {
+ * fun main() = SuspendApp {
  *   val settings: ProducerSettings<Key, Message> = ProducerSettings(
  *     Kafka.container.bootstrapServers,
  *     IntegerSerializer().imap { key: Key -> key.index },
@@ -48,7 +53,7 @@ import org.apache.kafka.common.serialization.Serializer
  * ```
  * <!--- KNIT example-producer-01.kt -->
  */
-@OptIn(FlowPreview::class)
+@OptIn(ExperimentalCoroutinesApi::class)
 public fun <A, B> Flow<ProducerRecord<A, B>>.produce(
   settings: ProducerSettings<A, B>,
 ): Flow<RecordMetadata> =
@@ -60,12 +65,15 @@ public fun <A, B> Flow<ProducerRecord<A, B>>.produce(
  * Sends a record to a Kafka topic in a suspending way.
  *
  * <!--- INCLUDE
+ * import arrow.continuations.SuspendApp
+ * import io.github.nomisRev.kafka.sendAwait
  * import org.apache.kafka.clients.producer.KafkaProducer
  * import org.apache.kafka.clients.producer.ProducerRecord
  * import org.apache.kafka.common.serialization.StringSerializer
+ * import java.util.Properties
  * -->
  * ```kotlin
- * fun main() = runBlocking<Unit> {
+ * fun main() = SuspendApp {
  *   KafkaProducer(Properties(), StringSerializer(), StringSerializer()).use { producer ->
  *     producer.sendAwait(ProducerRecord("topic-name", "message #1"))
  *     producer.sendAwait(ProducerRecord("topic-name", "message #2"))
