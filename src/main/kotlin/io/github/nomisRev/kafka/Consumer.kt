@@ -263,9 +263,8 @@ public fun <K, V> KafkaConsumer<K, V>.subscribeTo(
     "io.github.nomisRev.kafka.receiver.AutoOffsetReset"
   )
 )
-public enum class AutoOffsetReset(public val value: String) {
-  Earliest("earliest"), Latest("latest"), None("none")
-}
+public typealias AutoOffsetReset =
+  io.github.nomisRev.kafka.receiver.AutoOffsetReset
 
 /** Default values taken from [org.apache.kafka.clients.consumer.ConsumerConfig] */
 @Deprecated(
