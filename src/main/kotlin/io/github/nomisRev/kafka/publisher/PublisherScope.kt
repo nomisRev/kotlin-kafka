@@ -173,19 +173,8 @@ private class DefaultProduceScope<Key, Value>(
     } catch (e: Throwable) {
       withContext(producerContext) { p.abortTransaction() }
       log.debug("Abort current transaction for producer {}", settings.transactionalId())
-      if (e is ChildCancelScope) e.checkMyScope(token)
-      else throw e
+      if (e is ChildCancelScope) e.checkMyScope(token) else throw e
     }
-  }
-
-  suspend fun completeAndJoin() {
-    val promise = CompletableDeferred<Unit>()
-//    parent.complete()
-//    parent.invokeOnCompletion { e ->
-//      if (e == null) promise.complete(Unit)
-//      else promise.completeExceptionally(e.checkMyScope(this))
-//    }
-    promise.await()
   }
 
   companion object {
@@ -247,13 +236,6 @@ private fun throwFatal(t: Throwable): Unit =
     is ProducerFencedException -> throw t
 
     else -> Unit
-  }
-
-private fun ChildCancelScope.checkMyScope(scope: Token): Throwable =
-  when {
-    this is ChildCancelScope && this.token === scope -> cause
-    this is ChildCancelScope && this.token !== scope -> throw this
-    else -> this
   }
 
 private val ASSERTIONS_ENABLED = ChildCancelScope::class.java.desiredAssertionStatus()
