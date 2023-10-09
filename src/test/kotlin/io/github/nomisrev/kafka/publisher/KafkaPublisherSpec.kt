@@ -1,26 +1,18 @@
 package io.github.nomisrev.kafka.publisher
 
 import io.github.nomisRev.kafka.publisher.Acks
-import io.github.nomisRev.kafka.publisher.PublisherScope
 import io.github.nomisRev.kafka.publisher.publish
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisrev.kafka.KafkaSpec
 import io.kotest.assertions.async.shouldTimeout
-import io.kotest.assertions.fail
 import io.kotest.assertions.throwables.shouldThrow
-import io.kotest.matchers.result.shouldBeSuccess
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.CoroutineStart.UNDISPATCHED
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.take
@@ -43,7 +35,6 @@ import java.util.Properties
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
-import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration.Companion.seconds
 
@@ -138,21 +129,19 @@ class KafkaPublisherSpec : KafkaSpec({
     withTopic(partitions = 4) { topic ->
       val boom = RuntimeException("Boom!")
       val record = topic.createProducerRecord(0)
-      val failingProducer = publisher.withProducer {
-        it.stubProducer(_sendCallback = { metadata, callback ->
-          if (metadata.key().equals("0")) {
-            Executors.newScheduledThreadPool(1).schedule(
-              {
-                callback.onCompletion(null, boom)
-              },
-              1,
-              TimeUnit.SECONDS
-            )
+      val failingProducer = producer.stubProducer(_sendCallback = { metadata, callback ->
+        if (metadata.key().equals("0")) {
+          Executors.newScheduledThreadPool(1).schedule(
+            {
+              callback.onCompletion(null, boom)
+            },
+            1,
+            TimeUnit.SECONDS
+          )
 
-            CompletableFuture.supplyAsync { throw AssertionError("Should never be called") }
-          } else send(record, callback)
-        })
-      }
+          CompletableFuture.supplyAsync { throw AssertionError("Should never be called") }
+        } else send(record, callback)
+      })
 
       shouldThrow<RuntimeException> {
         publish(publisherSettings(), { failingProducer }) {
@@ -160,16 +149,6 @@ class KafkaPublisherSpec : KafkaSpec({
         }
       } shouldBe boom
     }
-  }
-
-  "test" {
-    val boom = RuntimeException("Boom!")
-    shouldThrow<RuntimeException> {
-      coroutineScope {
-        launch { throw boom }
-      }
-    } shouldBe boom
-    runCatching { delay(100) }.shouldBeSuccess()
   }
 
   "An async failure is rethrow at the end" {
@@ -192,7 +171,7 @@ class KafkaPublisherSpec : KafkaSpec({
           Pair(record.partition(), listOf(record.value()))
             .also { record.offset.acknowledge() }
         }
-        .take(3)
+        .take(3 + 1)
         .toList()
         .toMap() shouldBe records.groupBy({ it.partition() }) { it.value() }
     }
@@ -202,14 +181,12 @@ class KafkaPublisherSpec : KafkaSpec({
     withTopic(partitions = 4) { topic ->
       val record = topic.createProducerRecord(0)
       val record2 = topic.createProducerRecord(1)
-      val failingProducer = publisher.withProducer {
-        it.stubProducer(_sendCallback = { metadata, callback ->
-          if (metadata.key().equals("0")) {
-            callback.onCompletion(null, RuntimeException("Boom!"))
-            CompletableFuture.supplyAsync { throw AssertionError("Should never be called") }
-          } else send(record, callback)
-        })
-      }
+      val failingProducer = producer.stubProducer(_sendCallback = { metadata, callback ->
+        if (metadata.key().equals("0")) {
+          callback.onCompletion(null, RuntimeException("Boom!"))
+          CompletableFuture.supplyAsync { throw AssertionError("Should never be called") }
+        } else send(record, callback)
+      })
 
       publish(publisherSettings(), { failingProducer }) {
         publishCatching(record)
@@ -336,7 +313,7 @@ class KafkaPublisherSpec : KafkaSpec({
       shouldThrow<RuntimeException> {
         publish(settings) {
           transaction {
-            publish(records)
+            offer(records)
             launch { throw boom }
           }
         }

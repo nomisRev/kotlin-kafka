@@ -1,7 +1,7 @@
 package io.github.nomisRev.kafka.publisher
 
+import io.github.nomisRev.kafka.publisher.DefaultProduceScope.Companion.log
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CompletableJob
 import kotlinx.coroutines.CopyableThrowable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DEBUG_PROPERTY_NAME
@@ -15,12 +15,10 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import org.apache.kafka.clients.producer.KafkaProducer
@@ -34,7 +32,6 @@ import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.util.UUID
 import java.util.concurrent.Executors
-import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.toJavaDuration
 
@@ -84,31 +81,25 @@ suspend fun <Key, Value, A> publish(
     createProducer().apply {
       settings.producerListener.producerAdded(producerId, this)
       if (settings.isTransactional()) {
-        DefaultKafkaPublisher.log.info("Initializing transactions for producer {}", settings.transactionalId())
+        log.info("Initializing transactions for producer {}", settings.transactionalId())
         initTransactions()
       }
     }
   }
-
-  val scope = DefaultProduceScope(
-    settings,
-    producer,
-    producerContext,
-    currentCoroutineContext(),
-    Job(currentCoroutineContext()[Job])
-  )
+  val token = Token()
   return try {
-    runCatching {
-      withContext(scope.coroutineContext) { block(scope) }
-    }.onSuccess {
-      runCatching { scope.completeAndJoin() }
-        .also(::println)
-        .getOrThrow()
-    }.onFailure { e ->
-      val error = e.checkMyScope(scope)
-      scope.parent.join()
-      throw error
-    }.getOrThrow()
+    coroutineScope {
+      val scope = DefaultProduceScope(
+        settings,
+        producer,
+        producerContext,
+        token,
+        this
+      )
+      block(scope)
+    }
+  } catch (e: ChildCancelScope) {
+    e.checkMyScope(token)
   } finally {
     withContext(NonCancellable) {
       listOf(
@@ -125,23 +116,23 @@ suspend fun <Key, Value, A> publish(
   }
 }
 
+private class Token
+
 private class DefaultProduceScope<Key, Value>(
   val settings: PublisherSettings<Key, Value>,
   val producer: Deferred<Producer<Key, Value>>,
   val producerContext: ExecutorCoroutineDispatcher,
-  currentContext: CoroutineContext,
-  val parent: CompletableJob
-) : PublisherScope<Key, Value>, CoroutineScope {
-
-  override val coroutineContext: CoroutineContext =
-    currentContext + parent
+  val token: Token,
+  scope: CoroutineScope
+) : PublisherScope<Key, Value>, CoroutineScope by scope {
+  val parent: Job = requireNotNull(coroutineContext[Job]) { "Impossible, can only be called within coroutineScope" }
 
   override suspend fun offer(record: ProducerRecord<Key, Value>) {
     val p: Producer<Key, Value> = producer.await()
     val child = Job(parent)
     runInterruptible(producerContext) {
       p.send(record) { _, exception ->
-        if (exception != null) parent.cancel(ChildCancelScope("Child failed", exception, this))
+        if (exception != null) parent.cancel(ChildCancelScope("Child failed", exception, token))
         else child.complete()
       }
     }
@@ -161,42 +152,39 @@ private class DefaultProduceScope<Key, Value>(
 
 
   override suspend fun <A> transaction(block: suspend PublisherScope<Key, Value>.() -> A): A {
-    val transactionScope = DefaultProduceScope(
-      settings,
-      producer,
-      producerContext,
-      currentCoroutineContext(),
-      Job(currentCoroutineContext()[Job])
-    )
-    val producer = producer.await()
-    withContext(producerContext) { producer.beginTransaction() }
+    val token = Token()
+    val p = producer.await()
+    withContext(producerContext) { p.beginTransaction() }
     log.debug("Begin a new transaction for producer {}", settings.transactionalId())
-    return runCatching {
-      withContext(transactionScope.coroutineContext) {
-        block(transactionScope)
+    return try {
+      coroutineScope {
+        val scope = DefaultProduceScope(
+          settings,
+          producer,
+          producerContext,
+          token,
+          this
+        )
+        block(scope)
+      }.also {
+        withContext(producerContext) { p.commitTransaction() }
+        log.debug("Commit current transaction for producer {}", settings.transactionalId())
       }
-    }.mapCatching {
-      transactionScope.completeAndJoin()
-      it
-    }.onSuccess {
-      withContext(producerContext) { producer.commitTransaction() }
-      log.debug("Commit current transaction for producer {}", settings.transactionalId())
-    }.onFailure { e ->
-      val error = e.checkMyScope(transactionScope)
-      transactionScope.parent.join()
-      withContext(producerContext) { producer.abortTransaction() }
+    } catch (e: Throwable) {
+      withContext(producerContext) { p.abortTransaction() }
       log.debug("Abort current transaction for producer {}", settings.transactionalId())
-      throw error
-    }.getOrThrow()
+      if (e is ChildCancelScope) e.checkMyScope(token)
+      else throw e
+    }
   }
 
   suspend fun completeAndJoin() {
     val promise = CompletableDeferred<Unit>()
-    parent.complete()
-    parent.invokeOnCompletion { e ->
-      if (e == null) promise.complete(Unit)
-      else promise.completeExceptionally(e.checkMyScope(this))
-    }
+//    parent.complete()
+//    parent.invokeOnCompletion { e ->
+//      if (e == null) promise.complete(Unit)
+//      else promise.completeExceptionally(e.checkMyScope(this))
+//    }
     promise.await()
   }
 
@@ -217,7 +205,7 @@ private fun Iterable<Result<Unit>>.throwIfErrors() {
 private class ChildCancelScope(
   message: String,
   override val cause: Throwable,
-  @Transient @JvmField val scope: PublisherScope<*, *>,
+  @Transient @JvmField val token: Token,
 ) : CancellationException(message), CopyableThrowable<ChildCancelScope> {
   init {
     initCause(cause)
@@ -235,8 +223,14 @@ private class ChildCancelScope(
 
   /* In non-debug mode we don't copy JCE for speed as it does not have the stack trace anyway. */
   override fun createCopy(): ChildCancelScope? =
-    if (DEBUG) ChildCancelScope(message!!, cause, scope)
+    if (DEBUG) ChildCancelScope(message!!, cause, token)
     else null
+
+  fun checkMyScope(scope: Token): Nothing =
+    when {
+      this.token === scope -> throw cause
+      else -> throw this
+    }
 }
 
 private fun throwFatal(t: Throwable): Unit =
@@ -255,14 +249,11 @@ private fun throwFatal(t: Throwable): Unit =
     else -> Unit
   }
 
-private fun Throwable.checkMyScope(scope: DefaultProduceScope<*, *>): Throwable =
+private fun ChildCancelScope.checkMyScope(scope: Token): Throwable =
   when {
-    this is ChildCancelScope && this.scope === scope -> cause
-    this is ChildCancelScope && this.scope !== scope -> throw this
-    else -> {
-      scope.parent.cancel(CancellationException("ProducerScope failed, cancelling children", this))
-      this
-    }
+    this is ChildCancelScope && this.token === scope -> cause
+    this is ChildCancelScope && this.token !== scope -> throw this
+    else -> this
   }
 
 private val ASSERTIONS_ENABLED = ChildCancelScope::class.java.desiredAssertionStatus()

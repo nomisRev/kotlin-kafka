@@ -8,16 +8,14 @@ import io.github.nomisRev.kafka.deleteTopic
 import io.github.nomisRev.kafka.describeTopic
 import io.github.nomisRev.kafka.publisher.Acks
 import io.github.nomisRev.kafka.publisher.PublisherSettings
+import io.github.nomisRev.kafka.publisher.publish
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import io.kotest.core.spec.style.StringSpec
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.buffer
-import kotlinx.coroutines.flow.collect
 import org.apache.kafka.clients.admin.Admin
 import org.apache.kafka.clients.admin.AdminClientConfig
 import org.apache.kafka.clients.admin.NewTopic
+import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.TopicPartition
@@ -95,7 +93,7 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
       }
     )
 
-  val publisher = autoClose(KafkaPublisher.create(publisherSettings()))
+  val producer = autoClose(KafkaProducer<String, String>(publisherSettings().properties()))
 
   private fun nextTopicName(): String =
     "topic-${UUID.randomUUID()}"
@@ -122,18 +120,16 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
     topic: NewTopic,
     messages: Iterable<Pair<String, String>>,
   ): Unit =
-    publisher.send(
-      messages.mapIndexed { index, (key, value) ->
-        PublisherRecord(ProducerRecord(topic.name(), key, value), index)
-      }.asFlow()
-    ).buffer(Channel.UNLIMITED).collect()
+    publish(publisherSettings()) {
+      offer(messages.map { (key, value) ->
+        ProducerRecord(topic.name(), key, value)
+      })
+    }
 
   suspend fun publishToKafka(messages: Iterable<ProducerRecord<String, String>>): Unit =
-    publisher.send(
-      messages.mapIndexed { index, producerRecord ->
-        PublisherRecord(producerRecord, index)
-      }.asFlow()
-    ).buffer(Channel.UNLIMITED).collect()
+    publish(publisherSettings()) {
+      offer(messages)
+    }
 
   suspend fun <K, V> KafkaReceiver<K, V>.committedCount(topic: String): Long =
     admin {
