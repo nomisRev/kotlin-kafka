@@ -123,7 +123,7 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
 
   suspend fun <A> withTopic(
     topicConfig: Map<String, String> = emptyMap(),
-    partitions: Int = 1,
+    partitions: Int = 4,
     replicationFactor: Short = 1,
     action: suspend Admin.(NewTopic) -> A,
   ): A {
@@ -144,11 +144,9 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
     topic: NewTopic,
     messages: Iterable<Pair<String, String>>,
   ): Unit =
-    publisher.publishScope {
-      offer(messages.map { (key, value) ->
-        ProducerRecord(topic.name(), key, value)
-      })
-    }
+    publishToKafka(messages.map { (key, value) ->
+      ProducerRecord(topic.name(), key, value)
+    })
 
   suspend fun publishToKafka(messages: Iterable<ProducerRecord<String, String>>): Unit =
     publisher.publishScope {

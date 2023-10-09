@@ -12,7 +12,7 @@ import java.util.Properties
 import kotlin.time.Duration
 
 /**
- * Typed setting to create a [Publisher], enforces the required parameters and leaves the rest as [Properties].
+ * Typed setting to create a [KafkaPublisher], enforces the required parameters and leaves the rest as [Properties].
  *
  * @param bootstrapServers list of host/port pairs to use for establishing the initial connection to the Kafka cluster. Should be comma separated.
  * @param keySerializer the [Serializer] to use to serialize the [Key] when sending messages to kafka.

@@ -2,7 +2,6 @@ package io.github.nomisrev.kafka.publisher
 
 import io.github.nomisRev.kafka.publisher.Acks
 import io.github.nomisRev.kafka.publisher.KafkaPublisher
-import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisrev.kafka.KafkaSpec
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
@@ -12,10 +11,6 @@ import kotlinx.coroutines.CoroutineStart.UNDISPATCHED
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.take
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.producer.ProducerConfig
@@ -25,8 +20,8 @@ import java.util.Properties
 
 class KafkaPublisherSpec : KafkaSpec({
 
-  "Can receive all messages that were offered on the right partitions" {
-    withTopic(partitions = 4) { topic ->
+  "All offered messages are received" {
+    withTopic { topic ->
       val count = 3
       val records = (0..count).map {
         topic.createProducerRecord(it)
@@ -40,7 +35,7 @@ class KafkaPublisherSpec : KafkaSpec({
   }
 
   "Can receive all messages that were published on the right partitions" {
-    withTopic(partitions = 4) { topic ->
+    withTopic { topic ->
       val count = 3
       val records = (0..count).map {
         topic.createProducerRecord(it)
@@ -54,11 +49,11 @@ class KafkaPublisherSpec : KafkaSpec({
   }
 
   "A failure in a produce block, rethrows the error" {
-    withTopic(partitions = 4) { topic ->
+    withTopic { topic ->
       val record = topic.createProducerRecord(0)
 
       shouldThrow<RuntimeException> {
-        publisher.publishScope {
+        publisher.publishScope<Unit> {
           offer(record)
           throw boom
         }
@@ -69,10 +64,10 @@ class KafkaPublisherSpec : KafkaSpec({
   }
 
   "A failure in a produce block with a concurrent launch cancels the launch, rethrows the error" {
-    withTopic(partitions = 4) { topic ->
+    withTopic { _ ->
       val cancelSignal = CompletableDeferred<CancellationException>()
       shouldThrow<RuntimeException> {
-        publisher.publishScope {
+        publisher.publishScope<Unit> {
           launch(start = UNDISPATCHED) {
             try {
               awaitCancellation()
@@ -89,7 +84,7 @@ class KafkaPublisherSpec : KafkaSpec({
   }
 
   "A failed offer is rethrown at the end" {
-    withTopic(partitions = 4) { topic ->
+    withTopic { topic ->
       val record = topic.createProducerRecord(0)
 
       shouldThrow<RuntimeException> {
@@ -101,13 +96,13 @@ class KafkaPublisherSpec : KafkaSpec({
   }
 
   "A failed offer await is rethrow at the end" {
-    withTopic(partitions = 4) { topic ->
+    withTopic { topic ->
       val record0 = topic.createProducerRecord(0)
       val record1 = topic.createProducerRecord(1)
       shouldThrow<RuntimeException> {
         KafkaPublisher(publisherSettings(), stubProducer(failOnNumber = 1)).publishScope {
           publish(record0)
-          offer(record1).await()
+          offer(record1).acknowledgement.await()
         }
       } shouldBe boom
 
@@ -116,7 +111,7 @@ class KafkaPublisherSpec : KafkaSpec({
   }
 
   "An async failure is rethrow at the end" {
-    withTopic(partitions = 4) { topic ->
+    withTopic { topic ->
       val count = 3
       val records: List<ProducerRecord<String, String>> = (0..count).map {
         topic.createProducerRecord(it)
@@ -133,7 +128,7 @@ class KafkaPublisherSpec : KafkaSpec({
   }
 
   "A failure of a sendAwait can be caught in the block" {
-    withTopic(partitions = 4) { topic ->
+    withTopic { topic ->
       val record0 = topic.createProducerRecord(0)
       val record1 = topic.createProducerRecord(1)
 
@@ -149,11 +144,11 @@ class KafkaPublisherSpec : KafkaSpec({
   }
 
   "concurrent publishing" {
-    withTopic(partitions = 4) { topic ->
+    withTopic { topic ->
       val count = 4
       val records =
-        (1..count).map {
-          (it + 1..it + count).map { topic.createProducerRecord(it) }
+        (0..<count).map { base ->
+          (base..base + count).map { topic.createProducerRecord(it) }
         }
 
       publisher.publishScope {
@@ -170,7 +165,7 @@ class KafkaPublisherSpec : KafkaSpec({
   }
 
   "transaction an receive all messages that were published on the right partitions" {
-    withTopic(partitions = 4) { topic ->
+    withTopic { topic ->
       val count = 3
       val records = (0..count).map {
         topic.createProducerRecord(it)
@@ -195,7 +190,7 @@ class KafkaPublisherSpec : KafkaSpec({
   }
 
   "A failure in a transaction aborts the transaction" {
-    withTopic(partitions = 4) { topic ->
+    withTopic { topic ->
       val count = 3
       val records = (0..count).map {
         topic.createProducerRecord(it)
@@ -209,7 +204,7 @@ class KafkaPublisherSpec : KafkaSpec({
       )
       shouldThrow<RuntimeException> {
         KafkaPublisher(settings).use {
-          it.publishScope {
+          it.publishScope<Unit> {
             transaction {
               publish(records)
               throw boom
@@ -223,7 +218,7 @@ class KafkaPublisherSpec : KafkaSpec({
   }
 
   "An async failure in a transaction aborts the transaction" {
-    withTopic(partitions = 4) { topic ->
+    withTopic { topic ->
       val count = 3
       val records = (0..count).map {
         topic.createProducerRecord(it)
@@ -251,11 +246,11 @@ class KafkaPublisherSpec : KafkaSpec({
   }
 
   "transaction - concurrent publishing" {
-    withTopic(partitions = 4) { topic ->
+    withTopic { topic ->
       val count = 4
       val records =
-        (1..count).map {
-          (it + 1..it + count).map { topic.createProducerRecord(it) }
+        (0..<count).map { base ->
+          (base..base + count).map { topic.createProducerRecord(it) }
         }
 
       val settings = publisherSettings(
@@ -283,8 +278,8 @@ class KafkaPublisherSpec : KafkaSpec({
     }
   }
 
-  "Only one transactional sender with a specific transactional id is allowed at the same time" {
-    withTopic(partitions = 4) { topic ->
+  "Only one KafkaProducer can have transactional.id at the same time, resulting ProducerFencedException is fatal" {
+    withTopic { topic ->
       val settings = publisherSettings(
         acknowledgments = Acks.All,
         properties = Properties().apply {
@@ -308,16 +303,17 @@ class KafkaPublisherSpec : KafkaSpec({
         }
       }
 
+      // publisher1 was previous transactional.id, will result in fatal ProducerFencedException
       val records3 = (10..14).map { topic.createProducerRecord(it) }
       shouldThrow<ProducerFencedException> {
         publisher1.publishScope {
           transaction {
-            // Test that ProducerFencedException is fatal
             publishCatching(records3)
           }
         }
       }
 
+      // Due to ProducerFencedException, only records1 and records2 are received
       topic.shouldHaveRecords(records1 + records2)
     }
   }

@@ -1,5 +1,4 @@
-@file:JvmMultifileClass
-@file:JvmName("PublisherScope.kt")
+@file:JvmMultifileClass @file:JvmName("PublisherScope.kt")
 
 package io.github.nomisRev.kafka.publisher
 
@@ -7,35 +6,102 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.clients.producer.Producer
 import org.apache.kafka.clients.producer.RecordMetadata
+import org.apache.kafka.clients.producer.ProducerConfig
+import org.apache.kafka.common.errors.ProducerFencedException
 
 @DslMarker
 annotation class PublisherDSL
 
+@JvmInline
+value class OfferAck(val acknowledgement: Deferred<RecordMetadata>)
+
+@JvmInline
+value class OfferAcks(val acknowledgements: Deferred<List<RecordMetadata>>)
+
+/**
+ * The DSL, or receiver type, of [KafkaPublisher.publishScope] and [TransactionalScope.transaction].
+ *
+ * There are 2 main methods for sending recordings to kafka.
+ *  - [offer], this gives you highest throughput and should generally be preferred.
+ *  - [publish], this gives you less throughput, but waits on the delivery of the messages.
+ */
 @PublisherDSL
 interface PublishScope<Key, Value> : CoroutineScope {
-  suspend fun offer(record: ProducerRecord<Key, Value>): Deferred<RecordMetadata>
 
+  /**
+   * Offer a [record] to Kafka, and immediately return.
+   * This methods should be prepared for highest throughput,
+   * if the [offer] fails it will cancel the [CoroutineScope] & [PublishScope].
+   *
+   * **IMPORTANT:** The returned [OfferAck] is typically not awaited,
+   *   this results in slower throughput since you'll be awaiting every message to be delivered. Use [publish] instead.
+   *   Cancelling doesn't cancel the [offer]/[Producer.send].
+   *
+   * @param record to be offered to kafka
+   */
+  suspend fun offer(record: ProducerRecord<Key, Value>): OfferAck
+
+  /**
+   * Publisher a [record] to Kafka, and suspends until acknowledged by kafka.
+   * This way of sending records to kafka results in a lower throughput.
+   *
+   * **IMPORTANT:** publish is slower than offer, if you need high throughput simply use [offer].
+   *   Cancelling doesn't cancel the [publish]/[Producer.send].
+   *
+   * @param record to be delivered to kafka
+   */
   suspend fun publish(record: ProducerRecord<Key, Value>): RecordMetadata
 
-  suspend fun publishCatching(record: ProducerRecord<Key, Value>): Result<RecordMetadata>
-
-  suspend fun publishCatching(record: Iterable<ProducerRecord<Key, Value>>): Result<List<RecordMetadata>>
-
-  suspend fun offer(records: Iterable<ProducerRecord<Key, Value>>): Deferred<List<RecordMetadata>> {
+  /**
+   * [offer] an [Iterable] of [ProducerRecord]
+   * This methods should be prepared for highest throughput,
+   * if one of [offer] fails it will cancel the [CoroutineScope] & [PublishScope].
+   *
+   * **IMPORTANT:** The returned [OfferAck] is typically not awaited to maintain high throughput,
+   * if you need Ack
+   * and cancelling doesn't cancel the [Producer.send].
+   */
+  suspend fun offer(records: Iterable<ProducerRecord<Key, Value>>): OfferAcks {
     val scope = this
-    return scope.async { records.map { offer(it) }.awaitAll() }
+    return OfferAcks(scope.async { records.map { offer(it).acknowledgement }.awaitAll() })
   }
 
-  suspend fun publish(record: Iterable<ProducerRecord<Key, Value>>): List<RecordMetadata> =
-    coroutineScope {
-      record.map { async { publish(it) } }.awaitAll()
-    }
+  suspend fun publish(record: Iterable<ProducerRecord<Key, Value>>): List<RecordMetadata> = coroutineScope {
+    record.map { async { publish(it) } }.awaitAll()
+  }
 
+  /** Alias for `runCatching`, and `publish` except rethrows fatal exceptions */
+  suspend fun publishCatching(record: ProducerRecord<Key, Value>): Result<RecordMetadata>
+
+  /**
+   * Catch first failure of [publish], except fatal exceptions.
+   * Alias for `runCatching`, `publish`, and `awaitAll`, except rethrows fatal exceptions
+   */
+  suspend fun publishCatching(record: Iterable<ProducerRecord<Key, Value>>): Result<List<RecordMetadata>>
 }
 
+/**
+ * The DSL, or receiver type, of [KafkaPublisher.publishScope],
+ * it allows for publisher configured with [ProducerConfig.TRANSACTIONAL_ID_CONFIG],
+ * and [ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG] set to `true` to work transitionally.
+ * Only one publisher with the same [ProducerConfig.TRANSACTIONAL_ID_CONFIG] can run at a given time.
+ * An expired producer, still works but will throw [ProducerFencedException] if attempt to make a transaction again.
+ *
+ * In addition to [PublishScope] 2 main methods, a [TransactionalScope] also has the [transaction] method.
+ *
+ * It creates a **new** nested [PublishScope], and runs the lambda with the new scope as receiver.
+ *
+ * If the lambda succeeds, and the children of [Job] have completed,
+ * it automatically commits the [transaction].
+ *
+ * In case the lambda fails, or any children of this [Job] fail,
+ * then it'll be rethrown from this block and the transaction will be aborted.
+ */
 @PublisherDSL
 interface TransactionalScope<Key, Value> : PublishScope<Key, Value> {
   suspend fun <A> transaction(block: suspend PublishScope<Key, Value>.() -> A): A

@@ -39,10 +39,10 @@ fun <Key, Value> KafkaPublisher(
   settings: PublisherSettings<Key, Value>,
   createProducer: suspend () -> Producer<Key, Value> =
     { KafkaProducer(settings.properties(), settings.keySerializer, settings.valueSerializer) }
-): Publisher<Key, Value> =
+): KafkaPublisher<Key, Value> =
   DefaultKafkaPublisher(settings, createProducer)
 
-interface Publisher<Key, Value> : AutoCloseable {
+interface KafkaPublisher<Key, Value> : AutoCloseable {
   suspend fun <A> publishScope(block: suspend TransactionalScope<Key, Value>.() -> A): A
 
   /**
@@ -60,7 +60,7 @@ interface Publisher<Key, Value> : AutoCloseable {
 private class DefaultKafkaPublisher<Key, Value>(
   val settings: PublisherSettings<Key, Value>,
   createProducer: suspend () -> Producer<Key, Value>
-) : Publisher<Key, Value> {
+) : KafkaPublisher<Key, Value> {
 
   val producerId = "reactor-kafka-sender-${System.identityHashCode(this)}"
   val producerContext: ExecutorCoroutineDispatcher =
@@ -128,7 +128,7 @@ private class DefaultKafkaPublisher<Key, Value>(
   }
 
   companion object {
-    val log: Logger = LoggerFactory.getLogger(Publisher::class.java.name)
+    val log: Logger = LoggerFactory.getLogger(KafkaPublisher::class.java.name)
   }
 }
 
@@ -151,7 +151,7 @@ private class DefaultProduceScope<Key, Value>(
 ) : TransactionalScope<Key, Value>, CoroutineScope by scope {
   val parent: Job = requireNotNull(coroutineContext[Job]) { "Impossible, can only be called within coroutineScope" }
 
-  override suspend fun offer(record: ProducerRecord<Key, Value>): Deferred<RecordMetadata> {
+  override suspend fun offer(record: ProducerRecord<Key, Value>): OfferAck {
     val p: Producer<Key, Value> = producer.await()
     val child = Job(parent)
     val deferred = CompletableDeferred<RecordMetadata>(child)
@@ -166,7 +166,7 @@ private class DefaultProduceScope<Key, Value>(
         }
       }
     }
-    return deferred
+    return OfferAck(deferred)
   }
 
   override suspend fun publish(record: ProducerRecord<Key, Value>): RecordMetadata {
@@ -231,6 +231,10 @@ private class DefaultProduceScope<Key, Value>(
     ) throw t else Unit
 }
 
+/*
+ * Marker type, that this is our cancellation signal.
+ * This allows us to check if it's our scope that is failing using [token].
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 private class ChildCancelScope(
   message: String,
@@ -263,6 +267,8 @@ private class ChildCancelScope(
     }
 }
 
+// Piggyback (copied) on KotlinX Coroutines DEBUG mechanism.
+// https://github.com/Kotlin/kotlinx.coroutines/blob/ed0cf7aa02b1266cb81e65e61b3a97b0e041a817/kotlinx-coroutines-core/jvm/src/Debug.kt#L70
 private val ASSERTIONS_ENABLED = ChildCancelScope::class.java.desiredAssertionStatus()
 
 private val DEBUG = try {
