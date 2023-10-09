@@ -103,5 +103,30 @@ interface PublishScope<Key, Value> : CoroutineScope {
  */
 @PublisherDSL
 interface TransactionalScope<Key, Value> : PublishScope<Key, Value> {
+
+  /**
+   * Create and run a [transaction], which can [PublishScope.offer] and [PublishScope.publish] records to Kafka.
+   * It awaits all inflight offers to finish, when successfully it commits the transaction and returns.
+   * In case of failure
+   *
+   * If the [block] fails, or one of the children of the created [CoroutineScope],
+   * then it aborts the transaction and the exception is rethrown and the [PublishScope] gets cancelled.
+   *
+   * Just like [coroutineScope] it awaits all its children to finish.
+   *
+   * ```kotlin
+   * publisher.publishScope {
+   *   transaction {
+   *     // transaction { } compiler error: illegal to be called here
+   *     offer((21..30).map {
+   *       ProducerRecord(topic.name(), "$it", "msg-$it")
+   *     })
+   *     publish((31..40).map {
+   *       ProducerRecord(topic.name(), "$it", "msg-$it")
+   *     })
+   *   }// Waits until all offer finished in transaction, fails if any failed
+   * }
+   * ```
+   */
   suspend fun <A> transaction(block: suspend PublishScope<Key, Value>.() -> A): A
 }
