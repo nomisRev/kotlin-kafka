@@ -4,6 +4,7 @@
 package io.github.nomisRev.kafka.publisher
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -15,7 +16,7 @@ annotation class PublisherDSL
 
 @PublisherDSL
 interface PublishScope<Key, Value> : CoroutineScope {
-  suspend fun offer(record: ProducerRecord<Key, Value>)
+  suspend fun offer(record: ProducerRecord<Key, Value>): Deferred<RecordMetadata>
 
   suspend fun publish(record: ProducerRecord<Key, Value>): RecordMetadata
 
@@ -23,8 +24,10 @@ interface PublishScope<Key, Value> : CoroutineScope {
 
   suspend fun publishCatching(record: Iterable<ProducerRecord<Key, Value>>): Result<List<RecordMetadata>>
 
-  suspend fun offer(records: Iterable<ProducerRecord<Key, Value>>) =
-    records.map { offer(it) }
+  suspend fun offer(records: Iterable<ProducerRecord<Key, Value>>): Deferred<List<RecordMetadata>> {
+    val scope = this
+    return scope.async { records.map { offer(it) }.awaitAll() }
+  }
 
   suspend fun publish(record: Iterable<ProducerRecord<Key, Value>>): List<RecordMetadata> =
     coroutineScope {
