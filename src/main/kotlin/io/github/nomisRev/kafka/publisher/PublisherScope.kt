@@ -58,19 +58,18 @@ interface PublishScope<Key, Value> : CoroutineScope {
   suspend fun publish(record: ProducerRecord<Key, Value>): RecordMetadata
 
   /**
-   * [offer] an [Iterable] of [ProducerRecord]
-   * This methods should be prepared for highest throughput,
-   * if one of [offer] fails it will cancel the [CoroutineScope] & [PublishScope].
-   *
-   * **IMPORTANT:** The returned [OfferAck] is typically not awaited to maintain high throughput,
-   * if you need Ack
-   * and cancelling doesn't cancel the [Producer.send].
+   * Same as [offer], but for an [Iterable]] of [ProducerRecord].
+   * @see offer
    */
   suspend fun offer(records: Iterable<ProducerRecord<Key, Value>>): OfferAcks {
     val scope = this
     return OfferAcks(scope.async { records.map { offer(it).acknowledgement }.awaitAll() })
   }
 
+  /**
+   * Same as [publish], but for an [Iterable]] of [ProducerRecord].
+   * @see publish
+   */
   suspend fun publish(record: Iterable<ProducerRecord<Key, Value>>): List<RecordMetadata> = coroutineScope {
     record.map { async { publish(it) } }.awaitAll()
   }
