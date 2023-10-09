@@ -4,7 +4,6 @@ import io.github.nomisRev.kafka.publisher.Acks
 import io.github.nomisRev.kafka.publisher.KafkaPublisher
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisrev.kafka.KafkaSpec
-import io.kotest.assertions.async.shouldTimeout
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.CancellationException
@@ -23,10 +22,6 @@ import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.errors.ProducerFencedException
 import java.util.Properties
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
-import kotlin.time.Duration.Companion.seconds
 
 class KafkaPublisherSpec : KafkaSpec({
 
@@ -40,15 +35,7 @@ class KafkaPublisherSpec : KafkaSpec({
         offer(records)
       }
 
-      KafkaReceiver(receiverSetting())
-        .receive(topic.name())
-        .map { record ->
-          Pair(record.partition(), listOf(record.value()))
-            .also { record.offset.acknowledge() }
-        }
-        .take(count + 1)
-        .toList()
-        .toMap() shouldBe records.groupBy({ it.partition() }) { it.value() }
+      topic.shouldHaveRecords(records)
     }
   }
 
@@ -62,21 +49,12 @@ class KafkaPublisherSpec : KafkaSpec({
         publish(records)
       }
 
-      KafkaReceiver(receiverSetting())
-        .receive(topic.name())
-        .map { record ->
-          Pair(record.partition(), listOf(record.value()))
-            .also { record.offset.acknowledge() }
-        }
-        .take(count + 1)
-        .toList()
-        .toMap() shouldBe records.groupBy({ it.partition() }) { it.value() }
+      topic.shouldHaveRecords(records)
     }
   }
 
   "A failure in a produce block, rethrows the error" {
     withTopic(partitions = 4) { topic ->
-      val boom = RuntimeException("Boom!")
       val record = topic.createProducerRecord(0)
 
       shouldThrow<RuntimeException> {
@@ -86,17 +64,12 @@ class KafkaPublisherSpec : KafkaSpec({
         }
       } shouldBe boom
 
-      KafkaReceiver(receiverSetting())
-        .receive(topic.name())
-        .map {
-          it.apply { offset.acknowledge() }
-        }.first().value() shouldBe record.value()
+      topic.shouldHaveRecord(record)
     }
   }
 
   "A failure in a produce block with a concurrent launch cancels the launch, rethrows the error" {
     withTopic(partitions = 4) { topic ->
-      val boom = RuntimeException("Boom!")
       val cancelSignal = CompletableDeferred<CancellationException>()
       shouldThrow<RuntimeException> {
         publisher.publishScope {
@@ -115,37 +88,37 @@ class KafkaPublisherSpec : KafkaSpec({
     }
   }
 
-  "A failed offer is rethrow at the end" {
+  "A failed offer is rethrown at the end" {
     withTopic(partitions = 4) { topic ->
-      val boom = RuntimeException("Boom!")
       val record = topic.createProducerRecord(0)
-      val failingProducer = stubProducer(_sendCallback = { metadata, callback ->
-        if (metadata.key().equals("0")) {
-          Executors.newScheduledThreadPool(1).schedule(
-            {
-              callback.onCompletion(null, boom)
-            },
-            1,
-            TimeUnit.SECONDS
-          )
-
-          CompletableFuture.supplyAsync { throw AssertionError("Should never be called") }
-        } else send(record, callback)
-      })
 
       shouldThrow<RuntimeException> {
-        KafkaPublisher(publisherSettings()) { failingProducer }.publishScope {
+        KafkaPublisher(publisherSettings(), stubProducer(failOnNumber = 0)).publishScope {
           offer(record)
         }
       } shouldBe boom
     }
   }
 
+  "A failed offer await is rethrow at the end" {
+    withTopic(partitions = 4) { topic ->
+      val record0 = topic.createProducerRecord(0)
+      val record1 = topic.createProducerRecord(1)
+      shouldThrow<RuntimeException> {
+        KafkaPublisher(publisherSettings(), stubProducer(failOnNumber = 1)).publishScope {
+          publish(record0)
+          offer(record1).await()
+        }
+      } shouldBe boom
+
+      topic.shouldHaveRecord(record0)
+    }
+  }
+
   "An async failure is rethrow at the end" {
     withTopic(partitions = 4) { topic ->
       val count = 3
-      val boom = RuntimeException("Boom!")
-      val records = (0..count).map {
+      val records: List<ProducerRecord<String, String>> = (0..count).map {
         topic.createProducerRecord(it)
       }
       shouldThrow<RuntimeException> {
@@ -155,41 +128,23 @@ class KafkaPublisherSpec : KafkaSpec({
         }
       } shouldBe boom
 
-      KafkaReceiver(receiverSetting())
-        .receive(topic.name())
-        .map { record ->
-          Pair(record.partition(), listOf(record.value()))
-            .also { record.offset.acknowledge() }
-        }
-        .take(3 + 1)
-        .toList()
-        .toMap() shouldBe records.groupBy({ it.partition() }) { it.value() }
+      topic.shouldHaveRecords(records)
     }
   }
 
   "A failure of a sendAwait can be caught in the block" {
     withTopic(partitions = 4) { topic ->
-      val record = topic.createProducerRecord(0)
-      val record2 = topic.createProducerRecord(1)
-      val failingProducer = stubProducer(_sendCallback = { metadata, callback ->
-        if (metadata.key().equals("0")) {
-          callback.onCompletion(null, RuntimeException("Boom!"))
-          CompletableFuture.supplyAsync { throw AssertionError("Should never be called") }
-        } else send(record, callback)
-      })
+      val record0 = topic.createProducerRecord(0)
+      val record1 = topic.createProducerRecord(1)
 
-      KafkaPublisher(publisherSettings()) { failingProducer }.use {
+      KafkaPublisher(publisherSettings(), stubProducer(failOnNumber = 0)).use {
         it.publishScope {
-          publishCatching(record)
-          offer(record2)
+          publishCatching(record0)
+          offer(record1)
         }
       }
 
-      KafkaReceiver(receiverSetting())
-        .receive(topic.name())
-        .map {
-          it.apply { offset.acknowledge() }
-        }.first().value() shouldBe record.value()
+      topic.shouldHaveRecord(record1)
     }
   }
 
@@ -210,18 +165,7 @@ class KafkaPublisherSpec : KafkaSpec({
         ).awaitAll()
       }
 
-      val expected =
-        records.flatten().groupBy({ it.partition() }) { it.value() }.mapValues { it.value.toSet() }
-
-      KafkaReceiver(receiverSetting())
-        .receive(topic.name())
-        .map { record ->
-          record.also { record.offset.acknowledge() }
-        }
-        .take(records.flatten().size)
-        .toList()
-        .groupBy({ it.partition() }) { it.value() }
-        .mapValues { it.value.toSet() } shouldBe expected
+      topic.shouldHaveRecords(records)
     }
   }
 
@@ -246,22 +190,13 @@ class KafkaPublisherSpec : KafkaSpec({
         }
       }
 
-      KafkaReceiver(receiverSetting())
-        .receive(topic.name())
-        .map { record ->
-          Pair(record.partition(), listOf(record.value()))
-            .also { record.offset.acknowledge() }
-        }
-        .take(count + 1)
-        .toList()
-        .toMap() shouldBe records.groupBy({ it.partition() }) { it.value() }
+      topic.shouldHaveRecords(records)
     }
   }
 
   "A failure in a transaction aborts the transaction" {
     withTopic(partitions = 4) { topic ->
       val count = 3
-      val boom = RuntimeException("Boom!")
       val records = (0..count).map {
         topic.createProducerRecord(it)
       }
@@ -283,19 +218,13 @@ class KafkaPublisherSpec : KafkaSpec({
         }
       } shouldBe boom
 
-      shouldTimeout(1.seconds) {
-        KafkaReceiver(receiverSetting())
-          .receive(topic.name())
-          .take(1)
-          .toList()
-      }
+      topic.shouldBeEmpty()
     }
   }
 
   "An async failure in a transaction aborts the transaction" {
     withTopic(partitions = 4) { topic ->
       val count = 3
-      val boom = RuntimeException("Boom!")
       val records = (0..count).map {
         topic.createProducerRecord(it)
       }
@@ -317,12 +246,7 @@ class KafkaPublisherSpec : KafkaSpec({
         }
       } shouldBe boom
 
-      shouldTimeout(1.seconds) {
-        KafkaReceiver(receiverSetting())
-          .receive(topic.name())
-          .take(1)
-          .toList()
-      }
+      topic.shouldBeEmpty()
     }
   }
 
@@ -355,18 +279,7 @@ class KafkaPublisherSpec : KafkaSpec({
         }
       }
 
-      val expected =
-        records.flatten().groupBy({ it.partition() }) { it.value() }.mapValues { it.value.toSet() }
-
-      KafkaReceiver(receiverSetting())
-        .receive(topic.name())
-        .map { record ->
-          record.also { record.offset.acknowledge() }
-        }
-        .take(records.flatten().size)
-        .toList()
-        .groupBy({ it.partition() }) { it.value() }
-        .mapValues { it.value.toSet() } shouldBe expected
+      topic.shouldHaveRecords(records)
     }
   }
 
@@ -405,17 +318,7 @@ class KafkaPublisherSpec : KafkaSpec({
         }
       }
 
-      val expected =
-        (records1 + records2).groupBy({ it.partition() }) { it.value() }
-
-      KafkaReceiver(receiverSetting())
-        .receive(topic.name())
-        .map { record ->
-          record.also { record.offset.acknowledge() }
-        }
-        .take((records1 + records2).size)
-        .toList()
-        .groupBy({ it.partition() }) { it.value() } shouldBe expected
+      topic.shouldHaveRecords(records1 + records2)
     }
   }
 })

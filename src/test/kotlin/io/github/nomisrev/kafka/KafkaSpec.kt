@@ -11,7 +11,14 @@ import io.github.nomisRev.kafka.publisher.KafkaPublisher
 import io.github.nomisRev.kafka.publisher.PublisherSettings
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
+import io.kotest.assertions.assertSoftly
+import io.kotest.assertions.async.shouldTimeout
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
 import org.apache.kafka.clients.admin.Admin
 import org.apache.kafka.clients.admin.AdminClientConfig
 import org.apache.kafka.clients.admin.NewTopic
@@ -34,7 +41,11 @@ import org.testcontainers.utility.DockerImageName
 import java.time.Duration
 import java.util.Properties
 import java.util.UUID
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
 import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
@@ -44,6 +55,7 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
 
   private val transactionTimeoutInterval = 1.seconds
   private val consumerPollingTimeout = 1.seconds
+  val boom = RuntimeException("Boom!")
 
   private val kafkaImage: DockerImageName =
     DockerImageName.parse("confluentinc/cp-kafka:latest")
@@ -121,6 +133,7 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
       try {
         action(topic)
       } finally {
+        topic.shouldBeEmpty()
         deleteTopic(topic.name())
       }
     }
@@ -157,52 +170,126 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
       }
     }
 
-  fun stubProducer(
-    _sendCallback: Producer<String, String>.(record: ProducerRecord<String, String>, callback: Callback) -> Future<RecordMetadata> =
-      { record, callback -> send(record, callback) },
-    _send: Producer<String, String>.(record: ProducerRecord<String, String>) -> Future<RecordMetadata> = { send(it) }
-  ) = object : Producer<String, String> {
-    override fun close() {}
+  @JvmName("shouldHaveAllRecords")
+  suspend fun NewTopic.shouldHaveRecords(
+    records: Iterable<Iterable<ProducerRecord<String, String>>>
+  ) {
+    val expected =
+      records.flatten().groupBy({ it.partition() }) { it.value() }.mapValues { it.value.toSet() }
+    KafkaReceiver(receiverSetting())
+      .receive(name())
+      .map { record ->
+        record.also { record.offset.acknowledge() }
+      }
+      .take(records.flatten().size)
+      .toList()
+      .groupBy({ it.partition() }) { it.value() }
+      .mapValues { it.value.toSet() } shouldBe expected
+  }
 
-    override fun close(timeout: Duration?) {}
+  suspend fun NewTopic.shouldHaveRecords(records: Iterable<ProducerRecord<String, String>>) {
+    KafkaReceiver(receiverSetting())
+      .receive(name())
+      .map { record ->
+        record
+          .also { record.offset.acknowledge() }
+      }
+      .take(records.toList().size)
+      .toList()
+      .groupBy({ it.partition() }) { it.value() } shouldBe records.groupBy({ it.partition() }) { it.value() }
+  }
 
-    override fun initTransactions() =
-      producer.initTransactions()
+  suspend fun NewTopic.shouldBeEmpty() {
+    shouldTimeout(100.milliseconds) {
+      KafkaReceiver(receiverSetting())
+        .receive(name())
+        .take(1)
+        .toList()
+    }
+  }
 
-    override fun beginTransaction() =
-      producer.beginTransaction()
+  suspend fun NewTopic.shouldHaveRecord(records: ProducerRecord<String, String>) {
+    assertSoftly {
+      KafkaReceiver(receiverSetting())
+        .receive(name())
+        .map {
+          it.apply { offset.acknowledge() }
+        }.take(1)
+        .map { it.value() }
+        .toList() shouldBe listOf(records.value())
+      shouldBeEmpty()
+    }
+  }
 
-    @Suppress("DEPRECATION")
-    @Deprecated("Deprecated in Java")
-    override fun sendOffsetsToTransaction(
-      offsets: MutableMap<TopicPartition, OffsetAndMetadata>?,
-      consumerGroupId: String?
-    ) = producer.sendOffsetsToTransaction(offsets, consumerGroupId)
+  suspend fun topicWithSingleMessage(topic: NewTopic, record: ProducerRecord<String, String>) =
+    KafkaReceiver(receiverSetting())
+      .receive(topic.name())
+      .map {
+        it.apply { offset.acknowledge() }
+      }.first().value() shouldBe record.value()
 
-    override fun sendOffsetsToTransaction(
-      offsets: MutableMap<TopicPartition, OffsetAndMetadata>?,
-      groupMetadata: ConsumerGroupMetadata?
-    ) = producer.sendOffsetsToTransaction(offsets, groupMetadata)
+  suspend fun topicShouldBeEmpty(topic: NewTopic) =
+    shouldTimeout(1.seconds) {
+      KafkaReceiver(receiverSetting())
+        .receive(topic.name())
+        .take(1)
+        .toList()
+    }
 
-    override fun commitTransaction() =
-      producer.commitTransaction()
+  fun stubProducer(failOnNumber: Int? = null): suspend () -> Producer<String, String> = suspend {
+    object : Producer<String, String> {
+      override fun close() {}
 
-    override fun abortTransaction() =
-      producer.abortTransaction()
+      override fun close(timeout: Duration?) {}
 
-    override fun flush() =
-      producer.flush()
+      override fun initTransactions() =
+        producer.initTransactions()
 
-    override fun partitionsFor(topic: String?): MutableList<PartitionInfo> =
-      producer.partitionsFor(topic)
+      override fun beginTransaction() =
+        producer.beginTransaction()
 
-    override fun metrics(): MutableMap<MetricName, out Metric> =
-      producer.metrics()
+      @Suppress("DEPRECATION")
+      @Deprecated("Deprecated in Java")
+      override fun sendOffsetsToTransaction(
+        offsets: MutableMap<TopicPartition, OffsetAndMetadata>?,
+        consumerGroupId: String?
+      ) = producer.sendOffsetsToTransaction(offsets, consumerGroupId)
 
-    override fun send(record: ProducerRecord<String, String>, callback: Callback): Future<RecordMetadata> =
-      _sendCallback.invoke(producer, record, callback)
+      override fun sendOffsetsToTransaction(
+        offsets: MutableMap<TopicPartition, OffsetAndMetadata>?,
+        groupMetadata: ConsumerGroupMetadata?
+      ) = producer.sendOffsetsToTransaction(offsets, groupMetadata)
 
-    override fun send(record: ProducerRecord<String, String>): Future<RecordMetadata> =
-      _send.invoke(producer, record)
+      override fun commitTransaction() =
+        producer.commitTransaction()
+
+      override fun abortTransaction() =
+        producer.abortTransaction()
+
+      override fun flush() =
+        producer.flush()
+
+      override fun partitionsFor(topic: String?): MutableList<PartitionInfo> =
+        producer.partitionsFor(topic)
+
+      override fun metrics(): MutableMap<MetricName, out Metric> =
+        producer.metrics()
+
+      override fun send(record: ProducerRecord<String, String>, callback: Callback): Future<RecordMetadata> =
+        if (failOnNumber != null && record.key() == failOnNumber.toString()) {
+          Executors.newScheduledThreadPool(1).schedule(
+            {
+              callback.onCompletion(null, boom)
+            },
+            50,
+            TimeUnit.MILLISECONDS
+          )
+
+          CompletableFuture.supplyAsync { throw AssertionError("Should never be called") }
+        } else producer.send(record, callback)
+
+      override fun send(record: ProducerRecord<String, String>): Future<RecordMetadata> =
+        producer.send(record)
+    }
   }
 }
