@@ -49,13 +49,10 @@ data class PublisherSettings<Key, Value>(
     properties[ProducerConfig.TRANSACTIONAL_ID_CONFIG] as? String
 
   /**
-   * Senders created from this options will be transactional if a transactional id is
-   * configured using {@link ProducerConfig#TRANSACTIONAL_ID_CONFIG}. If transactional,
-   * {@link KafkaProducer#initTransactions()} is invoked on the producer to initialize
-   * transactions before any operations are performed on the sender. If scheduler is overridden
-   * using {@link #scheduler(Scheduler)}, the configured scheduler
-   * must be single-threaded. Otherwise, the behaviour is undefined and may result in unexpected
-   * exceptions.
+   * [KafkaPublisher] created from this options will be transactional if a transactional id is
+   * configured using [ProducerConfig.TRANSACTIONAL_ID_CONFIG]. If transactional,
+   * [Producer.initTransactions] is invoked on the producer to initialize
+   * transactions before any operations are performed on the publisher.
    */
   fun isTransactional(): Boolean =
     !transactionalId().isNullOrBlank()
