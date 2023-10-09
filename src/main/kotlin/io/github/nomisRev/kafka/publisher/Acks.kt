@@ -1,18 +1,19 @@
 package io.github.nomisRev.kafka.publisher
 
+import org.apache.kafka.clients.producer.ProducerConfig
+
 /**
  * The number of acknowledgments the producer requires the leader to have received before considering a request complete.
  * This controls the durability of records that are sent
  *
- * **Note:** that enabling idempotence requires this config value to be 'all'.
- * If conflicting configurations are set and idempotence is not explicitly enabled, idempotence is disabled.
+ * **NOTE:** Enabling idempotence requires this config value to be [All], otherwise [ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG] is ignored.
  */
 public enum class Acks(public val value: String) {
   /**
-   * If set to zero then the producer will not wait for any acknowledgment from the server at all.
+   * Using [Zero] the producer will not wait for any acknowledgment from the server at all.
    * The record will be immediately added to the socket buffer and considered sent.
    * No guarantee can be made that the server has received the record in this case,
-   * and the <code>retries</code> configuration will not take effect (as the client won't generally know of any failures).
+   * and [ProducerConfig.RETRIES_CONFIG] will not take effect (as the client won't generally know of any failures).
    * The offset given back for each record will always be set to `-1`
    */
   Zero("0"),
@@ -26,7 +27,7 @@ public enum class Acks(public val value: String) {
   /**
    * This means the leader will wait for the full set of in-sync replicas to acknowledge the record.
    * This guarantees that the record will not be lost as long as at least one in-sync replica remains alive.
-   * This is the strongest available guarantee. This is equivalent to the `acks=-1` setting.
+   * This is the strongest available guarantee. This is equivalent to the [MinusOne] setting.
    */
   All("all"),
 

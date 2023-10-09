@@ -35,24 +35,65 @@ import java.util.concurrent.Executors
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.toJavaDuration
 
+/**
+ * Constructing a [KafkaPublisher] requires [PublisherSettings].
+ * Optionally you can provide a different way to how the [Producer] is created.
+ */
 fun <Key, Value> KafkaPublisher(
   settings: PublisherSettings<Key, Value>,
-  createProducer: suspend () -> Producer<Key, Value> =
+  configureProducer: suspend () -> Producer<Key, Value> =
     { KafkaProducer(settings.properties(), settings.keySerializer, settings.valueSerializer) }
 ): KafkaPublisher<Key, Value> =
-  DefaultKafkaPublisher(settings, createProducer)
+  DefaultKafkaPublisher(settings, configureProducer)
 
+/**
+ * A [KafkaPublisher] wraps an [Producer], so needs to be closed by [AutoCloseable].
+ * It has 1 main method, [publishScope] which creates a [PublishScope],
+ * and two suspending methods from the [Producer] [partitionsFor], and [metrics].
+ */
 interface KafkaPublisher<Key, Value> : AutoCloseable {
+
+  /**
+   * Create and run a [publishScope], which can [PublishScope.offer] and [PublishScope.publish] records to Kafka.
+   * It awaits all inflight offers to finish, and reports any errors.
+   *
+   * If the [block] fails, or one of the children of the created [CoroutineScope],
+   * than the exception is rethrown and the [PublishScope] gets cancelled.
+   *
+   * Just like [coroutineScope] it awaits all its children to finish.
+   *
+   * ```kotlin
+   * publisher.publishScope {
+   *   offer((1..10).map {
+   *     ProducerRecord(topic.name(), "$it", "msg-$it")
+   *   })
+   *   publish((11..20).map {
+   *     ProducerRecord(topic.name(), "$it", "msg-$it")
+   *   })
+   *   transaction {
+   *     // transaction { } compiler error: illegal to be called here
+   *     offer((21..30).map {
+   *       ProducerRecord(topic.name(), "$it", "msg-$it")
+   *     })
+   *     publish((31..40).map {
+   *       ProducerRecord(topic.name(), "$it", "msg-$it")
+   *     })
+   *   }// Waits until all offer finished in transaction, fails if any failed
+   *
+   *   // streaming
+   *   flow(1..100)
+   *     .onEach { delay(100.milliseconds) }
+   *     .map { ProducerRecord(topic.name(), "$it", "msg-$it") }
+   *     .collect { offer(it) }
+   * }
+   * ```
+   */
   suspend fun <A> publishScope(block: suspend TransactionalScope<Key, Value>.() -> A): A
 
-  /**
-   * @see KafkaProducer.partitionsFor
-   */
+  /** @see KafkaProducer.partitionsFor */
   suspend fun partitionsFor(topic: String): List<PartitionInfo>
 
-  /**
-   * @see KafkaProducer.metrics
-   */
+  /** @see KafkaProducer.metrics */
   suspend fun metrics(): Map<MetricName, Metric>
 
 }
