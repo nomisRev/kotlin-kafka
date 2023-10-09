@@ -1,7 +1,7 @@
 package io.github.nomisrev.kafka.publisher
 
 import io.github.nomisRev.kafka.publisher.Acks
-import io.github.nomisRev.kafka.publisher.publishScope
+import io.github.nomisRev.kafka.publisher.KafkaPublisher
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisrev.kafka.KafkaSpec
 import io.kotest.assertions.async.shouldTimeout
@@ -30,6 +30,8 @@ import org.apache.kafka.common.Metric
 import org.apache.kafka.common.MetricName
 import org.apache.kafka.common.PartitionInfo
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.errors.FencedInstanceIdException
+import org.apache.kafka.common.errors.ProducerFencedException
 import java.time.Duration
 import java.util.Properties
 import java.util.concurrent.CompletableFuture
@@ -46,7 +48,7 @@ class KafkaPublisherSpec : KafkaSpec({
       val records = (0..count).map {
         topic.createProducerRecord(it)
       }
-      publishScope(publisherSettings()) {
+      publisher.publishScope {
         offer(records)
       }
 
@@ -68,7 +70,7 @@ class KafkaPublisherSpec : KafkaSpec({
       val records = (0..count).map {
         topic.createProducerRecord(it)
       }
-      publishScope(publisherSettings()) {
+      publisher.publishScope {
         publish(records)
       }
 
@@ -90,7 +92,7 @@ class KafkaPublisherSpec : KafkaSpec({
       val record = topic.createProducerRecord(0)
 
       shouldThrow<RuntimeException> {
-        publishScope(publisherSettings()) {
+        publisher.publishScope {
           offer(record)
           throw boom
         }
@@ -109,7 +111,7 @@ class KafkaPublisherSpec : KafkaSpec({
       val boom = RuntimeException("Boom!")
       val cancelSignal = CompletableDeferred<CancellationException>()
       shouldThrow<RuntimeException> {
-        publishScope(publisherSettings()) {
+        publisher.publishScope {
           launch(start = UNDISPATCHED) {
             try {
               awaitCancellation()
@@ -144,7 +146,7 @@ class KafkaPublisherSpec : KafkaSpec({
       })
 
       shouldThrow<RuntimeException> {
-        publishScope(publisherSettings(), { failingProducer }) {
+        KafkaPublisher(publisherSettings()) { failingProducer }.publishScope {
           offer(record)
         }
       } shouldBe boom
@@ -159,7 +161,7 @@ class KafkaPublisherSpec : KafkaSpec({
         topic.createProducerRecord(it)
       }
       shouldThrow<RuntimeException> {
-        publishScope(publisherSettings()) {
+        publisher.publishScope {
           publish(records)
           launch { throw boom }
         }
@@ -188,9 +190,11 @@ class KafkaPublisherSpec : KafkaSpec({
         } else send(record, callback)
       })
 
-      publishScope(publisherSettings(), { failingProducer }) {
-        publishCatching(record)
-        offer(record2)
+      KafkaPublisher(publisherSettings()) { failingProducer }.use {
+        it.publishScope {
+          publishCatching(record)
+          offer(record2)
+        }
       }
 
       KafkaReceiver(receiverSetting())
@@ -209,7 +213,7 @@ class KafkaPublisherSpec : KafkaSpec({
           (it + 1..it + count).map { topic.createProducerRecord(it) }
         }
 
-      publishScope(publisherSettings()) {
+      publisher.publishScope {
         listOf(
           async { offer(records[0]) },
           async { offer(records[1]) },
@@ -246,9 +250,11 @@ class KafkaPublisherSpec : KafkaSpec({
           put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true")
         }
       )
-      publishScope(settings) {
-        transaction {
-          offer(records)
+      KafkaPublisher(settings).use {
+        it.publishScope {
+          transaction {
+            offer(records)
+          }
         }
       }
 
@@ -279,10 +285,12 @@ class KafkaPublisherSpec : KafkaSpec({
         }
       )
       shouldThrow<RuntimeException> {
-        publishScope(settings) {
-          transaction {
-            publish(records)
-            throw boom
+        KafkaPublisher(settings).use {
+          it.publishScope {
+            transaction {
+              publish(records)
+              throw boom
+            }
           }
         }
       } shouldBe boom
@@ -311,10 +319,12 @@ class KafkaPublisherSpec : KafkaSpec({
         }
       )
       shouldThrow<RuntimeException> {
-        publishScope(settings) {
-          transaction {
-            offer(records)
-            launch { throw boom }
+        KafkaPublisher(settings).use {
+          it.publishScope {
+            transaction {
+              offer(records)
+              launch { throw boom }
+            }
           }
         }
       } shouldBe boom
@@ -344,14 +354,16 @@ class KafkaPublisherSpec : KafkaSpec({
         }
       )
 
-      publishScope(settings) {
-        transaction {
-          listOf(
-            async { offer(records[0]) },
-            async { offer(records[1]) },
-            async { publish(records[2]) },
-            async { publish(records[3]) }
-          ).awaitAll()
+      KafkaPublisher(settings).use {
+        it.publishScope {
+          transaction {
+            listOf(
+              async { offer(records[0]) },
+              async { offer(records[1]) },
+              async { publish(records[2]) },
+              async { publish(records[3]) }
+            ).awaitAll()
+          }
         }
       }
 
@@ -367,6 +379,55 @@ class KafkaPublisherSpec : KafkaSpec({
         .toList()
         .groupBy({ it.partition() }) { it.value() }
         .mapValues { it.value.toSet() } shouldBe expected
+    }
+  }
+
+  "Only one transactional sender with a specific transactional id is allowed at the same time" {
+    withTopic(partitions = 4) { topic ->
+      val settings = publisherSettings(
+        acknowledgments = Acks.All,
+        properties = Properties().apply {
+          put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, testCase.name.testName)
+          put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true")
+        }
+      )
+      val records1 = (0..4).map { topic.createProducerRecord(it) }
+      val publisher1 = KafkaPublisher(settings)
+      publisher1.publishScope {
+        transaction {
+          publish(records1)
+        }
+      }
+
+      val records2 = (5..9).map { topic.createProducerRecord(it) }
+      val publisher2 = KafkaPublisher(settings)
+      publisher2.publishScope {
+        transaction {
+          publish(records2)
+        }
+      }
+
+      val records3 = (10..14).map { topic.createProducerRecord(it) }
+      shouldThrow<ProducerFencedException> {
+        publisher1.publishScope {
+          transaction {
+            // Test that ProducerFencedException is fatal
+            publishCatching(records3)
+          }
+        }
+      }
+
+      val expected =
+        (records1 + records2).groupBy({ it.partition() }) { it.value() }
+
+      KafkaReceiver(receiverSetting())
+        .receive(topic.name())
+        .map { record ->
+          record.also { record.offset.acknowledge() }
+        }
+        .take((records1 + records2).size)
+        .toList()
+        .groupBy({ it.partition() }) { it.value() } shouldBe expected
     }
   }
 })

@@ -3,7 +3,6 @@ package io.github.nomisRev.kafka.publisher
 import io.github.nomisRev.kafka.NothingSerializer
 import io.github.nomisRev.kafka.publisher.PublisherSettings.ProducerListener
 import io.github.nomisRev.kafka.receiver.isPosNonZero
-import kotlinx.coroutines.channels.Channel
 import org.apache.kafka.clients.producer.Producer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.errors.AuthenticationException
@@ -13,13 +12,13 @@ import java.util.Properties
 import kotlin.time.Duration
 
 /**
+ * Typed setting to create a [Publisher], enforces the required parameters and leaves the rest as [Properties].
+ *
  * @param bootstrapServers list of host/port pairs to use for establishing the initial connection to the Kafka cluster. Should be comma separated.
  * @param keySerializer the [Serializer] to use to serialize the [Key] when sending messages to kafka.
  * @param valueSerializer the [Serializer] to use to serialize the [Value] when sending messages to kafka.
  * @param acknowledgments configuration to use.
  * @param closeTimeout the timeout when closing the created underlying [Producer], default [Duration.INFINITE].
- * @param maxInFlight the maximum number of in-flight records that are fetched from the outbound record publisher while acknowledgements are pending. Default [Channel.BUFFERED].
- * @param stopOnError if a send operation should be terminated when an error is encountered. If set to false, send is attempted for all records in a sequence even if send of one of the records fails with a non-fatal exception.
  * @param producerListener listener that is called whenever a [Producer] is added, and removed.
  */
 data class PublisherSettings<Key, Value>(
@@ -28,8 +27,6 @@ data class PublisherSettings<Key, Value>(
   val valueSerializer: Serializer<Value>,
   val acknowledgments: Acks = Acks.One,
   val closeTimeout: Duration = Duration.INFINITE,
-  val maxInFlight: Int = Channel.BUFFERED,
-  val stopOnError: Boolean = true,
   val isFatal: (t: Throwable) -> Boolean =
     { it is AuthenticationException || it is ProducerFencedException },
   val producerListener: ProducerListener = NoOpProducerListener,
@@ -87,8 +84,6 @@ public fun <Value> PublisherOptions(
   valueSerializer: Serializer<Value>,
   acknowledgments: Acks = Acks.One,
   closeTimeout: Duration = Duration.INFINITE,
-  maxInFlight: Int = Channel.BUFFERED,
-  stopOnError: Boolean = true,
   isFatal: (t: Throwable) -> Boolean =
     { it is AuthenticationException || it is ProducerFencedException },
   producerListener: ProducerListener = NoOpProducerListener,
@@ -100,8 +95,6 @@ public fun <Value> PublisherOptions(
     valueSerializer,
     acknowledgments,
     closeTimeout,
-    maxInFlight,
-    stopOnError,
     isFatal,
     producerListener,
     properties

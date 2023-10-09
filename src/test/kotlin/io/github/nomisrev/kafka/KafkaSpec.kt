@@ -7,8 +7,8 @@ import io.github.nomisRev.kafka.createTopic
 import io.github.nomisRev.kafka.deleteTopic
 import io.github.nomisRev.kafka.describeTopic
 import io.github.nomisRev.kafka.publisher.Acks
+import io.github.nomisRev.kafka.publisher.KafkaPublisher
 import io.github.nomisRev.kafka.publisher.PublisherSettings
-import io.github.nomisRev.kafka.publisher.publishScope
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import io.kotest.core.spec.style.StringSpec
@@ -93,7 +93,8 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
       }
     )
 
-  val producer = autoClose(KafkaProducer<String, String>(publisherSettings().properties()))
+  val producer = KafkaProducer<String, String>(publisherSettings().properties())
+  val publisher = autoClose(KafkaPublisher(publisherSettings()) { producer })
 
   private fun nextTopicName(): String =
     "topic-${UUID.randomUUID()}"
@@ -120,14 +121,14 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
     topic: NewTopic,
     messages: Iterable<Pair<String, String>>,
   ): Unit =
-    publishScope(publisherSettings()) {
+    publisher.publishScope {
       offer(messages.map { (key, value) ->
         ProducerRecord(topic.name(), key, value)
       })
     }
 
   suspend fun publishToKafka(messages: Iterable<ProducerRecord<String, String>>): Unit =
-    publishScope(publisherSettings()) {
+    publisher.publishScope {
       offer(messages)
     }
 
