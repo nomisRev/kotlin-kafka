@@ -131,7 +131,7 @@ class KafkaPublisherSpec : KafkaSpec({
     withTopic(partitions = 4) { topic ->
       val boom = RuntimeException("Boom!")
       val record = topic.createProducerRecord(0)
-      val failingProducer = producer.stubProducer(_sendCallback = { metadata, callback ->
+      val failingProducer = stubProducer(_sendCallback = { metadata, callback ->
         if (metadata.key().equals("0")) {
           Executors.newScheduledThreadPool(1).schedule(
             {
@@ -183,7 +183,7 @@ class KafkaPublisherSpec : KafkaSpec({
     withTopic(partitions = 4) { topic ->
       val record = topic.createProducerRecord(0)
       val record2 = topic.createProducerRecord(1)
-      val failingProducer = producer.stubProducer(_sendCallback = { metadata, callback ->
+      val failingProducer = stubProducer(_sendCallback = { metadata, callback ->
         if (metadata.key().equals("0")) {
           callback.onCompletion(null, RuntimeException("Boom!"))
           CompletableFuture.supplyAsync { throw AssertionError("Should never be called") }
@@ -435,53 +435,4 @@ class KafkaPublisherSpec : KafkaSpec({
 fun NewTopic.createProducerRecord(index: Int, partitions: Int = 4): ProducerRecord<String, String> {
   val partition: Int = index % partitions
   return ProducerRecord<String, String>(name(), partition, "$index", "Message $index")
-}
-
-fun <Key, Value> Producer<Key, Value>.stubProducer(
-  _sendCallback: Producer<Key, Value>.(record: ProducerRecord<Key, Value>, callback: Callback) -> Future<RecordMetadata> =
-    { record, callback -> send(record, callback) },
-  _send: Producer<Key, Value>.(record: ProducerRecord<Key, Value>) -> Future<RecordMetadata> = { send(it) }
-) = object : Producer<Key, Value> {
-  override fun close() {}
-
-  override fun close(timeout: Duration?) {}
-
-  override fun initTransactions() =
-    this@stubProducer.initTransactions()
-
-  override fun beginTransaction() =
-    this@stubProducer.beginTransaction()
-
-  @Suppress("DEPRECATION")
-  @Deprecated("Deprecated in Java")
-  override fun sendOffsetsToTransaction(
-    offsets: MutableMap<TopicPartition, OffsetAndMetadata>?,
-    consumerGroupId: String?
-  ) = this@stubProducer.sendOffsetsToTransaction(offsets, consumerGroupId)
-
-  override fun sendOffsetsToTransaction(
-    offsets: MutableMap<TopicPartition, OffsetAndMetadata>?,
-    groupMetadata: ConsumerGroupMetadata?
-  ) = this@stubProducer.sendOffsetsToTransaction(offsets, groupMetadata)
-
-  override fun commitTransaction() =
-    this@stubProducer.commitTransaction()
-
-  override fun abortTransaction() =
-    this@stubProducer.abortTransaction()
-
-  override fun flush() =
-    this@stubProducer.flush()
-
-  override fun partitionsFor(topic: String?): MutableList<PartitionInfo> =
-    this@stubProducer.partitionsFor(topic)
-
-  override fun metrics(): MutableMap<MetricName, out Metric> =
-    this@stubProducer.metrics()
-
-  override fun send(record: ProducerRecord<Key, Value>, callback: Callback): Future<RecordMetadata> =
-    _sendCallback.invoke(this@stubProducer, record, callback)
-
-  override fun send(record: ProducerRecord<Key, Value>): Future<RecordMetadata> =
-    _send.invoke(this@stubProducer, record)
 }

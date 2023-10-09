@@ -15,16 +15,26 @@ import io.kotest.core.spec.style.StringSpec
 import org.apache.kafka.clients.admin.Admin
 import org.apache.kafka.clients.admin.AdminClientConfig
 import org.apache.kafka.clients.admin.NewTopic
+import org.apache.kafka.clients.consumer.ConsumerGroupMetadata
+import org.apache.kafka.clients.consumer.OffsetAndMetadata
+import org.apache.kafka.clients.producer.Callback
 import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.Producer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.clients.producer.RecordMetadata
+import org.apache.kafka.common.Metric
+import org.apache.kafka.common.MetricName
+import org.apache.kafka.common.PartitionInfo
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.testcontainers.containers.KafkaContainer
 import org.testcontainers.utility.DockerImageName
+import java.time.Duration
 import java.util.Properties
 import java.util.UUID
+import java.util.concurrent.Future
 import kotlin.time.Duration.Companion.seconds
 
 abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
@@ -146,4 +156,53 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
           }.sum()
       }
     }
+
+  fun stubProducer(
+    _sendCallback: Producer<String, String>.(record: ProducerRecord<String, String>, callback: Callback) -> Future<RecordMetadata> =
+      { record, callback -> send(record, callback) },
+    _send: Producer<String, String>.(record: ProducerRecord<String, String>) -> Future<RecordMetadata> = { send(it) }
+  ) = object : Producer<String, String> {
+    override fun close() {}
+
+    override fun close(timeout: Duration?) {}
+
+    override fun initTransactions() =
+      producer.initTransactions()
+
+    override fun beginTransaction() =
+      producer.beginTransaction()
+
+    @Suppress("DEPRECATION")
+    @Deprecated("Deprecated in Java")
+    override fun sendOffsetsToTransaction(
+      offsets: MutableMap<TopicPartition, OffsetAndMetadata>?,
+      consumerGroupId: String?
+    ) = producer.sendOffsetsToTransaction(offsets, consumerGroupId)
+
+    override fun sendOffsetsToTransaction(
+      offsets: MutableMap<TopicPartition, OffsetAndMetadata>?,
+      groupMetadata: ConsumerGroupMetadata?
+    ) = producer.sendOffsetsToTransaction(offsets, groupMetadata)
+
+    override fun commitTransaction() =
+      producer.commitTransaction()
+
+    override fun abortTransaction() =
+      producer.abortTransaction()
+
+    override fun flush() =
+      producer.flush()
+
+    override fun partitionsFor(topic: String?): MutableList<PartitionInfo> =
+      producer.partitionsFor(topic)
+
+    override fun metrics(): MutableMap<MetricName, out Metric> =
+      producer.metrics()
+
+    override fun send(record: ProducerRecord<String, String>, callback: Callback): Future<RecordMetadata> =
+      _sendCallback.invoke(producer, record, callback)
+
+    override fun send(record: ProducerRecord<String, String>): Future<RecordMetadata> =
+      _send.invoke(producer, record)
+  }
 }
