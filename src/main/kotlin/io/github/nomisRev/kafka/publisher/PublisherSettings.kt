@@ -1,11 +1,13 @@
 package io.github.nomisRev.kafka.publisher
 
 import io.github.nomisRev.kafka.NothingSerializer
+import io.github.nomisRev.kafka.publisher.PublisherSettings.ProducerListener
 import io.github.nomisRev.kafka.receiver.isPosNonZero
-import io.github.nomisRev.kafka.publisher.PublisherOptions.ProducerListener
 import kotlinx.coroutines.channels.Channel
 import org.apache.kafka.clients.producer.Producer
 import org.apache.kafka.clients.producer.ProducerConfig
+import org.apache.kafka.common.errors.AuthenticationException
+import org.apache.kafka.common.errors.ProducerFencedException
 import org.apache.kafka.common.serialization.Serializer
 import java.util.Properties
 import kotlin.time.Duration
@@ -20,7 +22,7 @@ import kotlin.time.Duration
  * @param stopOnError if a send operation should be terminated when an error is encountered. If set to false, send is attempted for all records in a sequence even if send of one of the records fails with a non-fatal exception.
  * @param producerListener listener that is called whenever a [Producer] is added, and removed.
  */
-data class PublisherOptions<Key, Value>(
+data class PublisherSettings<Key, Value>(
   val bootstrapServers: String,
   val keySerializer: Serializer<Key>,
   val valueSerializer: Serializer<Value>,
@@ -28,6 +30,8 @@ data class PublisherOptions<Key, Value>(
   val closeTimeout: Duration = Duration.INFINITE,
   val maxInFlight: Int = Channel.BUFFERED,
   val stopOnError: Boolean = true,
+  val isFatal: (t: Throwable) -> Boolean =
+    { it is AuthenticationException || it is ProducerFencedException },
   val producerListener: ProducerListener = NoOpProducerListener,
   val properties: Properties = Properties(),
 ) {
@@ -43,6 +47,21 @@ data class PublisherOptions<Key, Value>(
     put(ProducerConfig.ACKS_CONFIG, acknowledgments.value)
     putAll(properties)
   }
+
+  fun transactionalId(): String? =
+    properties[ProducerConfig.TRANSACTIONAL_ID_CONFIG] as? String
+
+  /**
+   * Senders created from this options will be transactional if a transactional id is
+   * configured using {@link ProducerConfig#TRANSACTIONAL_ID_CONFIG}. If transactional,
+   * {@link KafkaProducer#initTransactions()} is invoked on the producer to initialize
+   * transactions before any operations are performed on the sender. If scheduler is overridden
+   * using {@link #scheduler(Scheduler)}, the configured scheduler
+   * must be single-threaded. Otherwise, the behaviour is undefined and may result in unexpected
+   * exceptions.
+   */
+  fun isTransactional(): Boolean =
+    !transactionalId().isNullOrBlank()
 
   /** Called whenever a [Producer] is added or removed. */
   interface ProducerListener {
@@ -62,7 +81,7 @@ data class PublisherOptions<Key, Value>(
   }
 }
 
-/** Alternative constructor for [PublisherOptions] without a key */
+/** Alternative constructor for [PublisherSettings] without a key */
 public fun <Value> PublisherOptions(
   bootstrapServers: String,
   valueSerializer: Serializer<Value>,
@@ -70,10 +89,12 @@ public fun <Value> PublisherOptions(
   closeTimeout: Duration = Duration.INFINITE,
   maxInFlight: Int = Channel.BUFFERED,
   stopOnError: Boolean = true,
+  isFatal: (t: Throwable) -> Boolean =
+    { it is AuthenticationException || it is ProducerFencedException },
   producerListener: ProducerListener = NoOpProducerListener,
   properties: Properties = Properties(),
-): PublisherOptions<Nothing, Value> =
-  PublisherOptions(
+): PublisherSettings<Nothing, Value> =
+  PublisherSettings(
     bootstrapServers,
     NothingSerializer,
     valueSerializer,
@@ -81,6 +102,7 @@ public fun <Value> PublisherOptions(
     closeTimeout,
     maxInFlight,
     stopOnError,
+    isFatal,
     producerListener,
     properties
   )

@@ -2,18 +2,23 @@ package io.github.nomisrev.kafka
 
 import io.github.nomisRev.kafka.Admin
 import io.github.nomisRev.kafka.AdminSettings
+import io.github.nomisRev.kafka.Flow.KafkaPublisher
 import io.github.nomisRev.kafka.receiver.AutoOffsetReset
-import io.github.nomisRev.kafka.ProducerSettings
 import io.github.nomisRev.kafka.createTopic
 import io.github.nomisRev.kafka.deleteTopic
 import io.github.nomisRev.kafka.describeTopic
-import io.github.nomisRev.kafka.produce
+import io.github.nomisRev.kafka.publisher.Acks
+import io.github.nomisRev.kafka.publisher.PublisherRecord
+import io.github.nomisRev.kafka.publisher.PublisherSettings
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import io.kotest.core.spec.style.StringSpec
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import org.apache.kafka.clients.admin.Admin
 import org.apache.kafka.clients.admin.AdminClientConfig
 import org.apache.kafka.clients.admin.NewTopic
@@ -32,13 +37,13 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
   init {
     body()
   }
-  
+
   private val transactionTimeoutInterval = 1.seconds
   private val consumerPollingTimeout = 1.seconds
-  
+
   private val kafkaImage: DockerImageName =
     DockerImageName.parse("confluentinc/cp-kafka:latest")
-  
+
   private val container: KafkaContainer = autoClose(
     KafkaContainer(kafkaImage)
       .withExposedPorts(9092, 9093)
@@ -55,20 +60,20 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
       .withReuse(true)
       .also { container -> container.start() }
   )
-  
+
   private fun adminProperties(): Properties = Properties().apply {
     put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, container.bootstrapServers)
     put(AdminClientConfig.CLIENT_ID_CONFIG, "test-kafka-admin-client")
     put(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, "10000")
     put(AdminClientConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG, "10000")
   }
-  
+
   fun adminSettings(): AdminSettings =
     AdminSettings(container.bootstrapServers, adminProperties())
-  
+
   inline fun <A> admin(body: Admin.() -> A): A =
     Admin(adminSettings()).use(body)
-  
+
   fun receiverSetting(): ReceiverSettings<String, String> =
     ReceiverSettings(
       bootstrapServers = container.bootstrapServers,
@@ -78,22 +83,27 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
       autoOffsetReset = AutoOffsetReset.Earliest,
       pollTimeout = consumerPollingTimeout
     )
-  
-  fun producerSettings(): ProducerSettings<String, String> =
-    ProducerSettings(
+
+  fun publisherSettings(
+    acknowledgments: Acks = Acks.One,
+    properties: Properties = Properties()
+  ): PublisherSettings<String, String> =
+    PublisherSettings(
       bootstrapServers = container.bootstrapServers,
-      keyDeserializer = StringSerializer(),
-      valueDeserializer = StringSerializer(),
-      other = Properties().apply {
-        put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, container.bootstrapServers)
+      keySerializer = StringSerializer(),
+      valueSerializer = StringSerializer(),
+      acknowledgments = acknowledgments,
+      properties = properties.apply {
         put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 10000.toString())
         put(ProducerConfig.RETRY_BACKOFF_MS_CONFIG, 1000.toString())
       }
     )
-  
+
+  val publisher = autoClose(KafkaPublisher.create(publisherSettings()))
+
   private fun nextTopicName(): String =
     "topic-${UUID.randomUUID()}"
-  
+
   suspend fun <A> withTopic(
     topicConfig: Map<String, String> = emptyMap(),
     partitions: Int = 1,
@@ -110,30 +120,32 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
       }
     }
   }
-  
+
   @JvmName("publishPairsToKafka")
   suspend fun publishToKafka(
     topic: NewTopic,
     messages: Iterable<Pair<String, String>>,
   ): Unit =
-    messages.asFlow()
-      .map { (key, value) ->
-        ProducerRecord(topic.name(), key, value)
-      }.produce(producerSettings())
-      .collect()
-  
+    publisher.send(
+      messages.mapIndexed { index, (key, value) ->
+        PublisherRecord(ProducerRecord(topic.name(), key, value), index)
+      }.asFlow()
+    ).buffer(Channel.UNLIMITED).collect()
+
   suspend fun publishToKafka(messages: Iterable<ProducerRecord<String, String>>): Unit =
-    messages.asFlow()
-      .produce(producerSettings())
-      .collect()
-  
+    publisher.send(
+      messages.mapIndexed { index, producerRecord ->
+        PublisherRecord(producerRecord, index)
+      }.asFlow()
+    ).buffer(Channel.UNLIMITED).collect()
+
   suspend fun <K, V> KafkaReceiver<K, V>.committedCount(topic: String): Long =
     admin {
       val description = requireNotNull(describeTopic(topic)) { "Topic $topic not found" }
       val topicPartitions = description.partitions().map {
         TopicPartition(topic, it.partition())
       }.toSet()
-      
+
       withConsumer {
         committed(topicPartitions)
           .mapNotNull { (_, offset) ->
