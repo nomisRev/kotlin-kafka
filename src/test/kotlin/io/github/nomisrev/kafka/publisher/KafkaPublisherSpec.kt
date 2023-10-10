@@ -95,21 +95,6 @@ class KafkaPublisherSpec : KafkaSpec({
     }
   }
 
-  "A failed offer await is rethrow at the end" {
-    withTopic { topic ->
-      val record0 = topic.createProducerRecord(0)
-      val record1 = topic.createProducerRecord(1)
-      shouldThrow<RuntimeException> {
-        KafkaPublisher(publisherSettings(), stubProducer(failOnNumber = 1)).publishScope {
-          publish(record0)
-          offer(record1).acknowledgement.await()
-        }
-      } shouldBe boom
-
-      topic.shouldHaveRecord(record0)
-    }
-  }
-
   "An async failure is rethrow at the end" {
     withTopic { topic ->
       val count = 3

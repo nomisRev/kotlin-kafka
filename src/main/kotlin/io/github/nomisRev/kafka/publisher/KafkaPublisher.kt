@@ -192,22 +192,15 @@ private class DefaultProduceScope<Key, Value>(
 ) : TransactionalScope<Key, Value>, CoroutineScope by scope {
   val parent: Job = requireNotNull(coroutineContext[Job]) { "Impossible, can only be called within coroutineScope" }
 
-  override suspend fun offer(record: ProducerRecord<Key, Value>): OfferAck {
+  override suspend fun offer(record: ProducerRecord<Key, Value>) {
     val p: Producer<Key, Value> = producer.await()
     val child = Job(parent)
-    val deferred = CompletableDeferred<RecordMetadata>(child)
     runInterruptible(producerContext) {
-      p.send(record) { metadata, exception ->
-        if (exception != null) {
-          parent.cancel(ChildCancelScope("Child failed", exception, token))
-          deferred.completeExceptionally(exception)
-        } else {
-          child.complete()
-          deferred.complete(metadata)
-        }
+      p.send(record) { _, exception ->
+        if (exception != null) parent.cancel(ChildCancelScope("Child failed", exception, token))
+        else child.complete()
       }
     }
-    return OfferAck(deferred)
   }
 
   override suspend fun publish(record: ProducerRecord<Key, Value>): RecordMetadata {

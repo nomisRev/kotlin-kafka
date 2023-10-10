@@ -17,12 +17,6 @@ import org.apache.kafka.common.errors.ProducerFencedException
 @DslMarker
 annotation class PublisherDSL
 
-@JvmInline
-value class OfferAck(val acknowledgement: Deferred<RecordMetadata>)
-
-@JvmInline
-value class OfferAcks(val acknowledgements: Deferred<List<RecordMetadata>>)
-
 /**
  * The DSL, or receiver type, of [KafkaPublisher.publishScope] and [TransactionalScope.transaction].
  *
@@ -34,17 +28,13 @@ value class OfferAcks(val acknowledgements: Deferred<List<RecordMetadata>>)
 interface PublishScope<Key, Value> : CoroutineScope {
 
   /**
-   * Offer a [record] to Kafka, and immediately return.
+   * Offer the [record] to Kafka, and immediately return.
    * This methods should be prepared for highest throughput,
    * if the [offer] fails it will cancel the [CoroutineScope] & [PublishScope].
    *
-   * **IMPORTANT:** The returned [OfferAck] is typically not awaited,
-   *   this results in slower throughput since you'll be awaiting every message to be delivered. Use [publish] instead.
-   *   Cancelling doesn't cancel the [offer]/[Producer.send].
-   *
    * @param record to be offered to kafka
    */
-  suspend fun offer(record: ProducerRecord<Key, Value>): OfferAck
+  suspend fun offer(record: ProducerRecord<Key, Value>)
 
   /**
    * Publisher a [record] to Kafka, and suspends until acknowledged by kafka.
@@ -61,10 +51,8 @@ interface PublishScope<Key, Value> : CoroutineScope {
    * Same as [offer], but for an [Iterable]] of [ProducerRecord].
    * @see offer
    */
-  suspend fun offer(records: Iterable<ProducerRecord<Key, Value>>): OfferAcks {
-    val scope = this
-    return OfferAcks(scope.async { records.map { offer(it).acknowledgement }.awaitAll() })
-  }
+  suspend fun offer(records: Iterable<ProducerRecord<Key, Value>>) =
+    records.map { offer(it) }
 
   /**
    * Same as [publish], but for an [Iterable]] of [ProducerRecord].
