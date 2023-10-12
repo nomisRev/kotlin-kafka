@@ -52,13 +52,12 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
       )
       .withEnv("KAFKA_AUTHORIZER_CLASS_NAME", "kafka.security.authorizer.AclAuthorizer")
       .withEnv("KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND", "true")
-      .withReuse(true)
       .also { container -> container.start() }
   )
   
   private fun adminProperties(): Properties = Properties().apply {
     put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, container.bootstrapServers)
-    put(AdminClientConfig.CLIENT_ID_CONFIG, "test-kafka-admin-client")
+    put(AdminClientConfig.CLIENT_ID_CONFIG, "test-kafka-admin-client-${UUID.randomUUID()}")
     put(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, "10000")
     put(AdminClientConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG, "10000")
   }

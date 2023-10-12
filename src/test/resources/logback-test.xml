@@ -6,6 +6,8 @@
         </encoder>
     </appender>
 
+    <logger name="io.github.nomisRev.kafka.receiver.internals" level="debug" />
+
     <root level="INFO" additivity="false">
         <appender-ref ref="STDOUT"/>
     </root>

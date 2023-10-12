@@ -43,8 +43,9 @@ private class DefaultKafkaReceiver<K, V>(private val settings: ReceiverSettings<
   @OptIn(ExperimentalCoroutinesApi::class)
   override fun receive(topicNames: Collection<String>): Flow<ReceiverRecord<K, V>> =
     scopedConsumer(settings.groupId) { scope, dispatcher, consumer ->
+      println("############# scopedConsumer I AM ON: ${Thread.currentThread().name}")
       val loop = PollLoop(topicNames, settings, consumer, scope)
-      loop.receive().flowOn(dispatcher)
+      loop.receive()
         .flatMapConcat { records ->
           records.map { record ->
             ReceiverRecord(record, loop.toCommittableOffset(record))
@@ -90,8 +91,10 @@ private class DefaultKafkaReceiver<K, V>(private val settings: ReceiverSettings<
       val job = Job()
       val scope = CoroutineScope(job + dispatcher + defaultCoroutineExceptionHandler)
       try {
-        KafkaConsumer(settings.toProperties(), settings.keyDeserializer, settings.valueDeserializer)
-          .use { emit(block(scope, dispatcher, it)) }
+        withContext(dispatcher) {
+          println("############# KafkaConsumer(...) I AM ON: ${Thread.currentThread().name}")
+          KafkaConsumer(settings.toProperties(), settings.keyDeserializer, settings.valueDeserializer)
+        }.use { emit(block(scope, dispatcher, it)) }
       } finally {
         job.cancelAndJoin()
       }

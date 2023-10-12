@@ -39,6 +39,7 @@ class KafakReceiverSpec : KafkaSpec({
       KafkaReceiver(receiverSetting())
         .receive(topic.name())
         .map {
+          println("############# receive.map I AM ON: ${Thread.currentThread().name}")
           yield()
           Pair(it.key(), it.value())
         }.take(depth).toList() shouldContainExactlyInAnyOrder produced()
@@ -71,7 +72,7 @@ class KafakReceiverSpec : KafkaSpec({
     }
   }
   
-  "Should receive all records at least once when subscribing several consumers" {
+  "Should receive all records when subscribing several consumers" {
     withTopic(partitions = 3) { topic ->
       publishToKafka(topic, produced())
       val consumer =
