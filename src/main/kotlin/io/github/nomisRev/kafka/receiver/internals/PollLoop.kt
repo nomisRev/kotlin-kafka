@@ -19,6 +19,7 @@ import kotlin.coroutines.suspendCoroutine
 import kotlin.time.toJavaDuration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.CoroutineStart.UNDISPATCHED
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
@@ -217,6 +218,7 @@ internal class EventLoop<K, V>(
 
   private val pausedByUser: MutableSet<TopicPartition> = HashSet()
 
+  @ConsumerThread
   fun poll() {
     if (!isActive.get()) return
 
@@ -489,7 +491,9 @@ internal class EventLoop<K, V>(
       commitPending.set(true)
       isRetryingCommit.set(true)
       poll()
-      scope.launch {
+      // We launch UNDISPATCHED as optimisation since we're already on the consumer thread,
+      // and we immediately call delay.
+      scope.launch(start = UNDISPATCHED) {
         delay(settings.commitRetryInterval)
         commit()
       }
