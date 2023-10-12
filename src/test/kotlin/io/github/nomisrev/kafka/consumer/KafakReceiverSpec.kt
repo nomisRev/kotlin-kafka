@@ -39,7 +39,6 @@ class KafakReceiverSpec : KafkaSpec({
       KafkaReceiver(receiverSetting())
         .receive(topic.name())
         .map {
-          println("############# receive.map I AM ON: ${Thread.currentThread().name}")
           yield()
           Pair(it.key(), it.value())
         }.take(depth).toList() shouldContainExactlyInAnyOrder produced()

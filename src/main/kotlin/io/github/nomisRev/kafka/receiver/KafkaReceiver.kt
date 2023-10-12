@@ -43,8 +43,7 @@ private class DefaultKafkaReceiver<K, V>(private val settings: ReceiverSettings<
   @OptIn(ExperimentalCoroutinesApi::class)
   override fun receive(topicNames: Collection<String>): Flow<ReceiverRecord<K, V>> =
     scopedConsumer(settings.groupId) { scope, dispatcher, consumer ->
-      println("############# scopedConsumer I AM ON: ${Thread.currentThread().name}")
-      val loop = PollLoop(topicNames, settings, consumer, scope)
+      val loop = PollLoop(topicNames, settings, consumer, scope, currentCoroutineContext())
       loop.receive()
         .flatMapConcat { records ->
           records.map { record ->
@@ -55,8 +54,8 @@ private class DefaultKafkaReceiver<K, V>(private val settings: ReceiverSettings<
 
   override fun receiveAutoAck(topicNames: Collection<String>): Flow<Flow<ConsumerRecord<K, V>>> =
     scopedConsumer(settings.groupId) { scope, dispatcher, consumer ->
-      val loop = PollLoop(topicNames, settings, consumer, scope)
-      loop.receive().flowOn(dispatcher).map { records ->
+      val loop = PollLoop(topicNames, settings, consumer, scope, currentCoroutineContext())
+      loop.receive().map { records ->
         records.asFlow()
           .onCompletion { records.forEach { loop.toCommittableOffset(it).acknowledge() } }
       }
@@ -85,14 +84,13 @@ private class DefaultKafkaReceiver<K, V>(private val settings: ReceiverSettings<
   @OptIn(ExperimentalCoroutinesApi::class)
   fun <A> scopedConsumer(
     groupId: String,
-    block: (CoroutineScope, ExecutorCoroutineDispatcher, KafkaConsumer<K, V>) -> Flow<A>
+    block: suspend (CoroutineScope, ExecutorCoroutineDispatcher, KafkaConsumer<K, V>) -> Flow<A>
   ): Flow<A> = flow {
     kafkaConsumerDispatcher(groupId).use { dispatcher: ExecutorCoroutineDispatcher ->
       val job = Job()
       val scope = CoroutineScope(job + dispatcher + defaultCoroutineExceptionHandler)
       try {
         withContext(dispatcher) {
-          println("############# KafkaConsumer(...) I AM ON: ${Thread.currentThread().name}")
           KafkaConsumer(settings.toProperties(), settings.keyDeserializer, settings.valueDeserializer)
         }.use { emit(block(scope, dispatcher, it)) }
       } finally {

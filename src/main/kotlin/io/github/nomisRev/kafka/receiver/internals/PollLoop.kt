@@ -3,7 +3,10 @@ package io.github.nomisRev.kafka.receiver.internals
 import io.github.nomisRev.kafka.receiver.Offset
 import io.github.nomisRev.kafka.receiver.ReceiverRecord
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
+import io.github.nomisRev.kafka.receiver.internals.AckMode.ATMOST_ONCE
+import io.github.nomisRev.kafka.receiver.internals.AckMode.AUTO_ACK
 import io.github.nomisRev.kafka.receiver.internals.AckMode.EXACTLY_ONCE
+import io.github.nomisRev.kafka.receiver.internals.AckMode.MANUAL_ACK
 import io.github.nomisRev.kafka.receiver.size
 import java.time.Duration as JavaDuration
 import java.time.Duration.ofSeconds
@@ -17,11 +20,11 @@ import kotlin.time.toJavaDuration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.onClosed
 import kotlinx.coroutines.channels.onFailure
+import kotlinx.coroutines.channels.onSuccess
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.consumeAsFlow
@@ -34,11 +37,16 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.WakeupException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import kotlin.coroutines.CoroutineContext
 import kotlin.time.Duration
 
-// TODO: Testing facility
+/**
+ * Testing [ConsumerThread] for internal usage.
+ * Will be removed before 1.0.0
+ */
 private val DEBUG: Boolean = true
-fun checkConsumerThread(msg: String): Unit =
+
+private fun checkConsumerThread(msg: String): Unit =
   if (DEBUG) require(
     Thread.currentThread().name.startsWith("kotlin-kafka-")
   ) { "$msg => should run on kotlin-kafka thread, but found ${Thread.currentThread().name}" }
@@ -49,11 +57,12 @@ internal class PollLoop<K, V>(
   private val topicNames: Collection<String>,
   private val settings: ReceiverSettings<K, V>,
   private val consumer: Consumer<K, V>,
-  private val scope: CoroutineScope,
+  private val consumerScope: CoroutineScope,
+  outerContext: CoroutineContext,
   awaitingTransaction: AtomicBoolean = AtomicBoolean(false),
   private val isActive: AtomicBoolean = AtomicBoolean(true),
-  private val ackMode: AckMode = AckMode.MANUAL_ACK,
-  isRetriableException: (Throwable) -> Boolean = { e -> e is RetriableCommitFailedException },
+  private val ackMode: AckMode = MANUAL_ACK,
+  isRetriableCommit: (Throwable) -> Boolean = { e -> e is RetriableCommitFailedException },
 ) {
   private val reachedMaxCommitBatchSize = Channel<Unit>(Channel.RENDEZVOUS)
   private val atMostOnceOffset: AtmostOnceOffsets = AtmostOnceOffsets()
@@ -61,8 +70,9 @@ internal class PollLoop<K, V>(
     ackMode,
     settings,
     consumer,
-    isRetriableException,
-    scope,
+    isRetriableCommit,
+    consumerScope,
+    outerContext,
     isActive,
     awaitingTransaction,
     atMostOnceOffset
@@ -75,7 +85,7 @@ internal class PollLoop<K, V>(
    * This way it optimises sending commits to Kafka in an optimised way.
    * Either every `Duration` or `x` elements, whichever comes first.
    */
-  private val commitManagerJob = scope.launch(
+  private val commitManagerJob = consumerScope.launch(
     start = CoroutineStart.LAZY,
     context = Dispatchers.Default
   ) {
@@ -90,22 +100,20 @@ internal class PollLoop<K, V>(
   fun receive(): Flow<ConsumerRecords<K, V>> {
     return loop.channel.consumeAsFlow()
       .onStart {
-        println("############# onStart I AM ON: ${Thread.currentThread().name}")
         if (topicNames.isNotEmpty()) loop.subscribe(topicNames)
-        loop.schedulePoll()
+        withContext(consumerScope.coroutineContext) { loop.poll() }
         commitManagerJob.start()
-      }.onCompletion {
-        println("############# onCompletion I AM ON: ${Thread.currentThread().name}.")
-        stop()
-      }
+      }.onCompletion { stop() }
   }
 
-  private suspend fun stop() = withContext(scope.coroutineContext) {
+  private suspend fun stop() {
     isActive.set(false)
     reachedMaxCommitBatchSize.close()
-    commitManagerJob.cancelAndJoin()
-    consumer.wakeup()
-    loop.close(settings.closeTimeout)
+    withContext(consumerScope.coroutineContext) {
+      commitManagerJob.cancelAndJoin()
+      consumer.wakeup()
+      loop.close(settings.closeTimeout)
+    }
   }
 
   internal fun toCommittableOffset(record: ConsumerRecord<K, V>): CommittableOffset<K, V> =
@@ -154,8 +162,9 @@ internal class EventLoop<K, V>(
   private val ackMode: AckMode,
   private val settings: ReceiverSettings<K, V>,
   private val consumer: Consumer<K, V>,
-  private val isRetriableException: (Throwable) -> Boolean,
+  private val isRetriableCommit: (Throwable) -> Boolean,
   private val scope: CoroutineScope,
+  private val outerContext: CoroutineContext,
   private val isActive: AtomicBoolean,
   private val awaitingTransaction: AtomicBoolean,
   private val atmostOnceOffsets: AtmostOnceOffsets,
@@ -189,14 +198,13 @@ internal class EventLoop<K, V>(
     }
 
   //<editor-fold desc="Polling">
-
   /**
    * Checks if we need to pause,
    * If it was already paused, then we check if we need to wake up the consumer.
    * We wake up the consumer, if we're actively polling records and we're currently not retrying sending commits.
    */
   @ConsumerThread
-  private suspend fun pauseAndWakeupIfNeeded(): Boolean {
+  private fun pauseAndWakeupIfNeeded(): Boolean {
     checkConsumerThread("pauseAndWakeupIfNeeded")
     val pausedNow = !pausedByUs.getAndSet(true)
     val shouldWakeUpConsumer = pausedNow && isPolling.get() && !isRetryingCommit.get()
@@ -207,100 +215,90 @@ internal class EventLoop<K, V>(
     return pausedNow
   }
 
-  /*
-   * TODO this can probably be removed
-   * Race condition where onRequest was called to increase requested but we
-   * hadn't yet paused the consumer; wake immediately in this case.
-   */
-  private val scheduled = AtomicBoolean()
   private val pausedByUser: MutableSet<TopicPartition> = HashSet()
-  fun schedulePoll(): Job? =
-    if (!scheduled.getAndSet(true)) scope.launch {
-      try {
-        scheduled.set(false)
-        if (isActive.get()) {
-          // Ensure that commits are not queued behind polls since number of poll events is chosen by reactor.
-          runCommitIfRequired(false)
 
-          val pauseForDeferred =
-            (settings.maxDeferredCommits > 0 && commitBatch.deferredCount() >= settings.maxDeferredCommits)
-          val shouldPoll: Boolean = if (pauseForDeferred || isRetryingCommit.get()) false else isPolling.get()
+  fun poll() {
+    if (!isActive.get()) return
 
-          if (shouldPoll) {
-            if (!awaitingTransaction.get()) {
-              if (pausedByUs.getAndSet(false)) {
-                val toResume: MutableSet<TopicPartition> = HashSet(consumer.assignment())
-                toResume.removeAll(pausedByUser)
-                pausedByUser.clear()
-                consumer.resume(toResume)
-                logger.debug("Resumed partitions: {}", toResume)
-              }
-            } else {
-              if (pauseAndWakeupIfNeeded()) {
-                pausedByUser.addAll(consumer.paused())
-                consumer.pause(consumer.assignment())
-                logger.debug("Paused - awaiting transaction")
-              }
-            }
-          } else if (pauseAndWakeupIfNeeded()) {
+    try {
+      // Ensure that commits are not queued behind polls since number of poll events is chosen by reactor.
+      runCommitIfRequired(false)
+
+      val pauseForDeferred =
+        (settings.maxDeferredCommits > 0 && commitBatch.deferredCount() >= settings.maxDeferredCommits)
+      val shouldPoll: Boolean = if (pauseForDeferred || isRetryingCommit.get()) false else isPolling.get()
+
+      if (shouldPoll) {
+        if (!awaitingTransaction.get()) {
+          if (pausedByUs.getAndSet(false)) {
+            val toResume: MutableSet<TopicPartition> = HashSet(consumer.assignment())
+            toResume.removeAll(pausedByUser)
+            pausedByUser.clear()
+            consumer.resume(toResume)
+            logger.debug("Resumed partitions: {}", toResume)
+          }
+        } else {
+          if (pauseAndWakeupIfNeeded()) {
             pausedByUser.addAll(consumer.paused())
             consumer.pause(consumer.assignment())
-            when {
-              pauseForDeferred -> logger.debug("Paused - too many deferred commits")
-              isRetryingCommit.get() -> logger.debug("Paused - commits are retrying")
-              else -> logger.debug("Paused - back pressure")
-            }
-          }
-
-          val records: ConsumerRecords<K, V> = try {
-            println("############# consumer.poll I AM ON: ${Thread.currentThread().name}")
-            consumer.poll(pollTimeout)
-          } catch (e: WakeupException) {
-            logger.debug("Consumer woken")
-            ConsumerRecords.empty()
-          }
-          if (isActive.get()) schedulePoll()
-          if (!records.isEmpty) {
-            if (settings.maxDeferredCommits > 0) {
-              commitBatch.addUncommitted(records)
-            }
-            logger.debug("Emitting ${records.count()} records")
-            channel.trySend(records)
-              .onClosed { error -> logger.error("Channel closed when trying to send records.", error) }
-              .onFailure { error ->
-                if (error != null) {
-                  logger.error("Channel send failed when trying to send records.", error)
-                  channel.close(error)
-                } else logger.debug("Back-pressuring kafka consumer. Might pause KafkaConsumer on next tick.")
-
-                isPolling.set(false)
-                // TODO Can we rely on a dispatcher from above?
-                //      This should not run on the kafka consumer thread
-                scope.launch(Dispatchers.Default) {
-                  /*
-                   * Send the records down,
-                   * when send returns we attempt to send and empty set of records down to test the backpressure.
-                   * If our "backpressure test" returns we start requesting/polling again
-                   */
-                  channel.send(records)
-                  channel.send(ConsumerRecords.empty())
-                  if (pausedByUs.get()) {
-                    consumer.wakeup()
-                  }
-                  isPolling.set(true)
-                }
-              }
+            logger.debug("Paused - awaiting transaction")
           }
         }
-      } catch (e: Exception) {
-        logger.error("Unexpected exception", e)
-        channel.close(e)
+      } else if (pauseAndWakeupIfNeeded()) {
+        pausedByUser.addAll(consumer.paused())
+        consumer.pause(consumer.assignment())
+        when {
+          pauseForDeferred -> logger.debug("Paused - too many deferred commits")
+          isRetryingCommit.get() -> logger.debug("Paused - commits are retrying")
+          else -> logger.debug("Paused - back pressure")
+        }
       }
-    } else null
 
-  /**
-   * Callbacks are invoked on user thread
-   */
+      val records: ConsumerRecords<K, V> = try {
+        consumer.poll(pollTimeout)
+      } catch (e: WakeupException) {
+        logger.debug("Consumer woken")
+        ConsumerRecords.empty()
+      }
+
+      if (!records.isEmpty) {
+        if (settings.maxDeferredCommits > 0) {
+          commitBatch.addUncommitted(records)
+        }
+        logger.debug("Attempting to send ${records.count()} records to Channel")
+        channel.trySend(records)
+          .onSuccess { poll() }
+          .onClosed { error -> logger.error("Channel closed when trying to send records.", error) }
+          .onFailure { error ->
+            if (error != null) {
+              logger.error("Channel send failed when trying to send records.", error)
+              channel.close(error)
+            } else logger.debug("Back-pressuring kafka consumer. Might pause KafkaConsumer on next poll tick.")
+
+            isPolling.set(false)
+
+            scope.launch(outerContext) {
+              /*
+               * Send the records down,
+               * when send returns we attempt to send and empty set of records down to test the backpressure.
+               * If our "backpressure test" returns we start requesting/polling again
+               */
+              channel.send(records)
+              channel.send(ConsumerRecords.empty())
+              if (pausedByUs.get()) {
+                consumer.wakeup()
+              }
+              isPolling.set(true)
+              poll()
+            }
+          }
+      }
+    } catch (e: Exception) {
+      logger.error("Polling encountered an unexpected exception", e)
+      channel.close(e)
+    }
+  }
+
   @ConsumerThread
   inner class RebalanceListener : ConsumerRebalanceListener {
     @ConsumerThread
@@ -337,16 +335,16 @@ internal class EventLoop<K, V>(
     override fun onPartitionsRevoked(partitions: MutableCollection<TopicPartition>) {
       checkConsumerThread("RebalanceListener.onPartitionsRevoked")
       logger.debug("onPartitionsRevoked {}", partitions)
-      revokePartitions(partitions)
+      partitionsRevoked(partitions)
       commitBatch.onPartitionsRevoked(partitions)
     }
   }
 
   @ConsumerThread
-  private fun revokePartitions(partitions: Collection<TopicPartition>) {
+  private fun partitionsRevoked(partitions: Collection<TopicPartition>) {
     if (!partitions.isEmpty()) {
       // It is safe to use the consumer here since we are in a poll()
-      if (ackMode != AckMode.ATMOST_ONCE) {
+      if (ackMode != ATMOST_ONCE) {
         runCommitIfRequired(true)
       }
       // TODO Setup user listeners
@@ -359,8 +357,8 @@ internal class EventLoop<K, V>(
 
   //<editor-fold desc="Comitting">
   val commitBatch: CommittableBatch = CommittableBatch()
-  private val isPending = AtomicBoolean()
-  private val commitsInProgress = AtomicInteger()
+  private val commitPending = AtomicBoolean()
+  private val asyncCommitsInProgress = AtomicInteger()
   private val consecutiveCommitFailures = AtomicInteger()
   private val isRetryingCommit = AtomicBoolean()
 
@@ -368,60 +366,83 @@ internal class EventLoop<K, V>(
    * If we were retrying, schedule a poll and set isRetryingCommit to false
    * If we weren't retrying, do nothing.
    */
+  @ConsumerThread
   private fun schedulePollAfterRetrying() {
-    if (isRetryingCommit.getAndSet(false)) schedulePoll()
+    if (isRetryingCommit.getAndSet(false)) poll()
   }
 
   @ConsumerThread
   private fun runCommitIfRequired(force: Boolean) {
-    if (force) isPending.set(true)
-    if (!isRetryingCommit.get() && isPending.get()) commit()
+    if (force) commitPending.set(true)
+    if (!isRetryingCommit.get() && commitPending.get()) commit()
   }
 
-  fun scheduleCommitIfRequired(): Job? =
-    if (isActive.get() && !isRetryingCommit.get() && isPending.compareAndSet(false, true)) scope.launch { commit() }
-    else null
-
+  fun scheduleCommitIfRequired() {
+    if (
+      isActive.get() &&
+      !isRetryingCommit.get() &&
+      commitPending.compareAndSet(false, true)
+    ) scope.launch { commit() }
+  }
 
   // TODO  We should reset delay of commitJob
   @ConsumerThread
   private fun commit() {
     checkConsumerThread("commit")
-    if (!isPending.compareAndSet(true, false)) return
+    if (!commitPending.compareAndSet(true, false)) return
     val commitArgs: CommittableBatch.CommitArgs = commitBatch.getAndClearOffsets()
-    try {
-      if (commitArgs.offsets.isEmpty()) commitSuccess(commitArgs, commitArgs.offsets)
-      else {
-        when (ackMode) {
-          AckMode.MANUAL_ACK, AckMode.AUTO_ACK -> {
-            commitsInProgress.incrementAndGet()
-            try {
-              logger.debug("Async committing: {}", commitArgs.offsets)
-              consumer.commitAsync(commitArgs.offsets) { offsets, exception ->
-                commitsInProgress.decrementAndGet()
-                if (exception == null) commitSuccess(commitArgs, offsets)
-                else commitFailure(commitArgs, exception)
-              }
-            } catch (e: Throwable) {
-              commitsInProgress.decrementAndGet()
-              // Rethrow, and invoke commitFailure at bottom of function
-              throw e
-            }
-            schedulePoll()
-          }
-
-          AckMode.ATMOST_ONCE -> {
-            logger.debug("Sync committing: {}", commitArgs.offsets)
-            consumer.commitSync(commitArgs.offsets)
-            commitSuccess(commitArgs, commitArgs.offsets)
-            atmostOnceOffsets.onCommit(commitArgs.offsets)
-          }
-          /** [AckMode.EXACTLY_ONCE] offsets are committed by a producer. */
-          EXACTLY_ONCE -> Unit
-        }
+    if (commitArgs.offsets.isEmpty()) commitSuccess(commitArgs, commitArgs.offsets)
+    else {
+      when (ackMode) {
+        MANUAL_ACK, AUTO_ACK -> commitAsync(commitArgs)
+        ATMOST_ONCE -> commitSync(commitArgs)
+        /** [AckMode.EXACTLY_ONCE] offsets are committed by a producer. */
+        EXACTLY_ONCE -> Unit
       }
-    } catch (e: Exception) {
-      logger.error("Unexpected exception", e)
+    }
+  }
+
+  /**
+   * Commit async, for [MANUAL_ACK] & [AUTO_ACK].
+   * We increment the [asyncCommitsInProgress] and request the SDK to [Consumer.commitAsync].
+   *
+   * We always decrement  [asyncCommitsInProgress],
+   * and invoke the relevant handlers in case of [commitSuccess] or [commitFailure].
+   *
+   * We always need to poll after [Consumer.commitAsync].
+   */
+  private fun commitAsync(commitArgs: CommittableBatch.CommitArgs) {
+    runCatching {
+      asyncCommitsInProgress.incrementAndGet()
+      logger.debug("Async committing: {}", commitArgs.offsets)
+      consumer.commitAsync(commitArgs.offsets) { offsets, exception ->
+        asyncCommitsInProgress.decrementAndGet()
+        if (exception == null) commitSuccess(commitArgs, offsets)
+        else commitFailure(commitArgs, exception)
+      }
+      poll()
+    }.recoverCatching { e ->
+      // TODO("NonFatal")
+      asyncCommitsInProgress.decrementAndGet()
+      commitFailure(commitArgs, e)
+    }
+  }
+
+  /**
+   * Commit sync, for [ATMOST_ONCE].
+   * For [ATMOST_ONCE] we want to guarantee it's only received once,
+   * so we immediately commit the message before sending it to the [Channel].
+   * This is blocking, and invoke the relevant handlers in case of [commitSuccess] or [commitFailure].
+   */
+  private fun commitSync(commitArgs: CommittableBatch.CommitArgs): Unit {
+    runCatching {
+      logger.debug("Sync committing: {}", commitArgs.offsets)
+      // TODO check if this should be runInterruptible ??
+      consumer.commitSync(commitArgs.offsets)
+      commitSuccess(commitArgs, commitArgs.offsets)
+      atmostOnceOffsets.onCommit(commitArgs.offsets)
+    }.recoverCatching { e ->
+      // TODO("NonFatal")
       commitFailure(commitArgs, e)
     }
   }
@@ -434,28 +455,28 @@ internal class EventLoop<K, V>(
    */
   @ConsumerThread
   private fun commitSuccess(
-    commitArgs: CommittableBatch.CommitArgs?,
+    commitArgs: CommittableBatch.CommitArgs,
     offsets: Map<TopicPartition, OffsetAndMetadata>
   ) {
     checkConsumerThread("commitSuccess")
     if (offsets.isNotEmpty()) consecutiveCommitFailures.set(0)
     schedulePollAfterRetrying()
-    commitArgs?.continuations?.forEach { cont ->
+    commitArgs.continuations?.forEach { cont ->
       cont.resume(Unit)
     }
   }
 
   @ConsumerThread
-  private fun commitFailure(commitArgs: CommittableBatch.CommitArgs, exception: Exception) {
+  private fun commitFailure(commitArgs: CommittableBatch.CommitArgs, exception: Throwable) {
     checkConsumerThread("commitFailure")
     logger.warn("Commit failed", exception)
-    if (!isRetriableException(exception) && consecutiveCommitFailures.incrementAndGet() < settings.maxCommitAttempts) {
+    if (!isRetriableCommit(exception) && consecutiveCommitFailures.incrementAndGet() < settings.maxCommitAttempts) {
       logger.debug("Commit failed with exception $exception, zero retries remaining")
       schedulePollAfterRetrying()
       val callbackEmitters: List<Continuation<Unit>>? = commitArgs.continuations
       if (callbackEmitters.isNullOrEmpty()) channel.close(exception)
       else {
-        isPending.set(false)
+        commitPending.set(false)
         commitBatch.restoreOffsets(commitArgs, false)
         callbackEmitters.forEach { cont ->
           cont.resumeWithException(exception)
@@ -463,10 +484,11 @@ internal class EventLoop<K, V>(
       }
     } else {
       commitBatch.restoreOffsets(commitArgs, true)
+      // TODO addSuppressed if in the end we failed to commit within settings.maxCommitAttempts???
       logger.warn("Commit failed with exception $exception, retries remaining ${(settings.maxCommitAttempts - consecutiveCommitFailures.get())}")
-      isPending.set(true)
+      commitPending.set(true)
       isRetryingCommit.set(true)
-      schedulePoll()
+      poll()
       scope.launch {
         delay(settings.commitRetryInterval)
         commit()
@@ -500,7 +522,7 @@ internal class EventLoop<K, V>(
   private suspend fun commitOnClose(closeEndTime: Long, maxAttempts: Int) {
     try {
       val forceCommit = when (ackMode) {
-        AckMode.ATMOST_ONCE -> atmostOnceOffsets.undoCommitAhead(commitBatch)
+        ATMOST_ONCE -> atmostOnceOffsets.undoCommitAhead(commitBatch)
         else -> true
       }
       //
@@ -515,7 +537,7 @@ internal class EventLoop<K, V>(
          * The SDK doesn't send commit requests, unless we also poll.
          * So poll for 1 millis, until no more commitsInProgress.
          */
-        while (commitsInProgress.get() > 0 && closeEndTime - System.currentTimeMillis() > 0) {
+        while (asyncCommitsInProgress.get() > 0 && closeEndTime - System.currentTimeMillis() > 0) {
           consumer.poll(JavaDuration.ofMillis(1))
         }
       }
