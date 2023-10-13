@@ -1,4 +1,4 @@
-package io.github.nomisrev.kafka.consumer
+package io.github.nomisrev.kafka.receiver
 
 import io.github.nomisRev.kafka.receiver.CommitStrategy
 import io.kotest.assertions.throwables.shouldThrow

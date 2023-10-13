@@ -1,4 +1,4 @@
-package io.github.nomisrev.kafka.consumer
+package io.github.nomisrev.kafka.receiver
 
 import io.github.nomisRev.kafka.receiver.CommitStrategy
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
@@ -18,11 +18,9 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.take
-import kotlinx.coroutines.flow.timeout
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.yield
 import org.apache.kafka.clients.producer.ProducerRecord
-import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class KafakReceiverSpec : KafkaSpec({
