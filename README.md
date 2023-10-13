@@ -52,19 +52,18 @@ dependencies {
 
 <!--- INCLUDE
 import arrow.continuations.SuspendApp
-import io.github.nomisRev.kafka.Acks
 import io.github.nomisRev.kafka.Admin
 import io.github.nomisRev.kafka.AdminSettings
-import io.github.nomisRev.kafka.ProducerSettings
 import io.github.nomisRev.kafka.createTopic
 import io.github.nomisRev.kafka.imap
 import io.github.nomisRev.kafka.map
-import io.github.nomisRev.kafka.produce
+import io.github.nomisRev.kafka.publisher.Acks
+import io.github.nomisRev.kafka.publisher.KafkaPublisher
+import io.github.nomisRev.kafka.publisher.PublisherSettings
 import io.github.nomisRev.kafka.receiver.AutoOffsetReset
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
@@ -94,17 +93,19 @@ fun main(): Unit = SuspendApp {
   }
 
   launch(Dispatchers.IO) { // Send 20 messages, and then close the producer
-    val settings: ProducerSettings<Key, Message> = ProducerSettings(
+    val settings: PublisherSettings<Key, Message> = PublisherSettings(
       kafka.bootstrapServers,
       IntegerSerializer().imap { key: Key -> key.index },
       StringSerializer().imap { msg: Message -> msg.content },
       Acks.All
     )
-    (1..msgCount)
-      .asFlow()
-      .map { index -> ProducerRecord(topicName, Key(index), Message("msg: $index")) }
-      .produce(settings)
-      .collect(::println)
+    KafkaPublisher(settings).use { publisher ->
+      publisher.publishScope {
+        (1..msgCount).forEach { index ->
+          offer(ProducerRecord(topicName, Key(index), Message("msg: $index")))
+        }
+      }
+    }
   }
 
   launch(Dispatchers.IO) { // Consume 20 messages as a stream, and then close the consumer
@@ -127,16 +128,6 @@ fun main(): Unit = SuspendApp {
 > You can get the full code [here](guide/example/example-readme-01.kt).
 
 ```text
-test-topic-0@0
-test-topic-0@1
-test-topic-0@2
-test-topic-0@3
-test-topic-0@4
-test-topic-0@5
-test-topic-0@6
-test-topic-0@7
-test-topic-0@8
-test-topic-0@9
 Key(index=1) -> Message(content=msg: 1)
 Key(index=2) -> Message(content=msg: 2)
 Key(index=3) -> Message(content=msg: 3)

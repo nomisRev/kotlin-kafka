@@ -34,6 +34,7 @@ class KafakReceiverSpec : KafkaSpec({
     lastIndex: Int = count,
   ): List<Pair<String, String>> =
     (startIndex until lastIndex).map { n -> Pair("key-$n", "value->$n") }
+
   val produced = produced()
 
   "All produced records are received" {
@@ -72,6 +73,7 @@ class KafakReceiverSpec : KafkaSpec({
             received.headers().toArray().size shouldBe 2
             received.headers() shouldBe headers()
           }
+          received.offset.acknowledge()
         }
     }
   }

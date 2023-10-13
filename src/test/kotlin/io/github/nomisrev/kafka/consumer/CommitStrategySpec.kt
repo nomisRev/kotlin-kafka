@@ -22,7 +22,7 @@ class CommitStrategySpec : StringSpec({
       }.message shouldBe "Size based auto-commit requires positive non-zero commit batch size but found $size"
     }
   }
-  
+
   "Negative or zero sized BySizeOrTime strategy fails" {
     checkAll(Arb.int(max = 0)) { size ->
       shouldThrow<IllegalArgumentException> {
@@ -30,11 +30,11 @@ class CommitStrategySpec : StringSpec({
       }.message shouldBe "Size based auto-commit requires positive non-zero commit batch size but found $size"
     }
   }
-  
+
   fun Arb.Companion.duration(
     min: Long = Long.MIN_VALUE, max: Long = Long.MAX_VALUE,
   ): Arb<Duration> = Arb.long(min, max).map { it.nanoseconds }
-  
+
   "Negative or zero duration BySizeOrTime strategy fails" {
     checkAll(Arb.duration(max = 0)) { duration ->
       shouldThrow<IllegalArgumentException> {
@@ -42,7 +42,7 @@ class CommitStrategySpec : StringSpec({
       }.message shouldBe "Time based auto-commit requires positive non-zero interval but found $duration"
     }
   }
-  
+
   "Negative or zero duration ByTime strategy fails" {
     checkAll(Arb.duration(max = 0)) { duration ->
       shouldThrow<IllegalArgumentException> {
