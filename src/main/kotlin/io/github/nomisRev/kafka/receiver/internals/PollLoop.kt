@@ -136,12 +136,14 @@ internal class CommittableOffset<K, V>(
 ) : Offset {
   private val acknowledged = AtomicBoolean(false)
 
+  // TODO should throw if called after Flow finished
   override suspend fun commit(): Unit =
     if (maybeUpdateOffset() > 0) suspendCoroutine { cont ->
       loop.commitBatch.addContinuation(cont)
       loop.scheduleCommitIfRequired()
     } else Unit
 
+  // TODO should throw if called after Flow finished
   override suspend fun acknowledge() {
     val uncommittedCount = maybeUpdateOffset().toLong()
     if (commitBatchSize in 1..uncommittedCount) {

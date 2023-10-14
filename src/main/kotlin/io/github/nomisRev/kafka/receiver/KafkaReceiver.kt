@@ -22,6 +22,7 @@ public interface KafkaReceiver<K, V> {
 
   public fun receive(topicName: String): Flow<ReceiverRecord<K, V>> =
     receive(setOf(topicName))
+      .buffer()
 
   public fun receiveAutoAck(topicNames: Collection<String>): Flow<Flow<ConsumerRecord<K, V>>>
 

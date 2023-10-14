@@ -1,11 +1,8 @@
 package io.github.nomisrev.kafka
 
-import io.kotest.assertions.fail
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlin.test.assertTrue
 
 inline fun <A, B> Flow<A>.mapIndexed(
   crossinline transform: suspend (index: Int, value: A) -> B,
@@ -16,13 +13,17 @@ inline fun <A, B> Flow<A>.mapIndexed(
   }
 }
 
-suspend fun CoroutineScope.shouldCancel(block: suspend () -> Unit): CancellationException {
-  val cancel = CompletableDeferred<CancellationException>()
-  try {
+inline fun <reified A : Throwable> assertThrows(
+  message: String? = "Expected exception ${A::class.java}, but code didn't throw any exception.",
+  block: () -> Unit,
+): A {
+  val exception = try {
     block()
-    fail("Expected to be cancellable, but wasn't")
-  } catch (e: CancellationException) {
-    cancel.complete(e)
+    null
+  } catch (e: Throwable) {
+    e
   }
-  return cancel.await()
+    ?: throw AssertionError(message)
+  assertTrue(exception is A, "Expected exception of ${A::class.java} but found ${exception.javaClass.name}")
+  return exception
 }

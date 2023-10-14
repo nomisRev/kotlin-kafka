@@ -1,3 +1,4 @@
+import com.bnorm.power.PowerAssertGradleExtension
 import kotlinx.knit.KnitPluginExtension
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
@@ -9,6 +10,7 @@ plugins {
   alias(libs.plugins.spotless)
   alias(libs.plugins.knit)
   alias(libs.plugins.publish)
+  alias(libs.plugins.power.assert)
 }
 
 repositories {
@@ -24,9 +26,13 @@ dependencies {
   api(libs.kafka.clients)
   implementation(libs.slf4j.api)
 
-  testImplementation(libs.bundles.kotest)
+  testImplementation(kotlin("test"))
   testImplementation(libs.testcontainers.kafka)
   testImplementation(libs.slf4j.simple)
+}
+
+configure<PowerAssertGradleExtension> {
+  functions = listOf("kotlin.test.assertEquals")
 }
 
 configure<KnitPluginExtension> {
