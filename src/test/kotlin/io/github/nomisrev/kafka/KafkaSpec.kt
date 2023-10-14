@@ -13,12 +13,18 @@ import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import io.kotest.assertions.assertSoftly
 import io.kotest.assertions.async.shouldTimeout
+import io.kotest.assertions.fail
+import io.kotest.assertions.failure
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.apache.kafka.clients.admin.Admin
 import org.apache.kafka.clients.admin.AdminClientConfig
 import org.apache.kafka.clients.admin.NewTopic
@@ -79,7 +85,7 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
 
   private fun adminProperties(): Properties = Properties().apply {
     put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, container.bootstrapServers)
-    put(AdminClientConfig.CLIENT_ID_CONFIG, "test-kafka-admin-client")
+    put(AdminClientConfig.CLIENT_ID_CONFIG, "test-kafka-admin-client-${UUID.randomUUID()}")
     put(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, "10000")
     put(AdminClientConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG, "10000")
   }
@@ -117,7 +123,6 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
 
   val producer = KafkaProducer<String, String>(publisherSettings().properties())
   val publisher = autoClose(KafkaPublisher(publisherSettings()) { producer })
-
   private fun nextTopicName(): String =
     "topic-${UUID.randomUUID()}"
 
@@ -125,13 +130,15 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
     topicConfig: Map<String, String> = emptyMap(),
     partitions: Int = 4,
     replicationFactor: Short = 1,
-    action: suspend Admin.(NewTopic) -> A,
+    action: suspend (NewTopic) -> A,
   ): A {
     val topic = NewTopic(nextTopicName(), partitions, replicationFactor).configs(topicConfig)
     return admin {
       createTopic(topic)
       try {
-        action(topic)
+        coroutineScope {
+          action(topic)
+        }
       } finally {
         topic.shouldBeEmpty()
         deleteTopic(topic.name())
@@ -168,8 +175,43 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
       }
     }
 
+  suspend fun NewTopic.shouldBeEmpty() {
+    val res = withTimeoutOrNull(100) {
+      KafkaReceiver(receiverSetting())
+        .receive(name())
+        .take(1)
+        .toList()
+    }
+    if (res != null) fail("Expected test to timeout, but found $res")
+  }
+
+  suspend infix fun NewTopic.shouldHaveRecord(records: ProducerRecord<String, String>) {
+    assertSoftly {
+      KafkaReceiver(receiverSetting())
+        .receive(name())
+        .map {
+          it.apply { offset.acknowledge() }
+        }.take(1)
+        .map { it.value() }
+        .toList() shouldBe listOf(records.value())
+      shouldBeEmpty()
+    }
+  }
+
+  suspend infix fun NewTopic.shouldHaveRecords(records: Iterable<ProducerRecord<String, String>>) {
+    KafkaReceiver(receiverSetting())
+      .receive(name())
+      .map { record ->
+        record
+          .also { record.offset.acknowledge() }
+      }
+      .take(records.toList().size)
+      .toList()
+      .groupBy({ it.partition() }) { it.value() } shouldBe records.groupBy({ it.partition() }) { it.value() }
+  }
+
   @JvmName("shouldHaveAllRecords")
-  suspend fun NewTopic.shouldHaveRecords(
+  suspend infix fun NewTopic.shouldHaveRecords(
     records: Iterable<Iterable<ProducerRecord<String, String>>>
   ) {
     val expected =
@@ -184,55 +226,6 @@ abstract class KafkaSpec(body: KafkaSpec.() -> Unit = {}) : StringSpec() {
       .groupBy({ it.partition() }) { it.value() }
       .mapValues { it.value.toSet() } shouldBe expected
   }
-
-  suspend fun NewTopic.shouldHaveRecords(records: Iterable<ProducerRecord<String, String>>) {
-    KafkaReceiver(receiverSetting())
-      .receive(name())
-      .map { record ->
-        record
-          .also { record.offset.acknowledge() }
-      }
-      .take(records.toList().size)
-      .toList()
-      .groupBy({ it.partition() }) { it.value() } shouldBe records.groupBy({ it.partition() }) { it.value() }
-  }
-
-  suspend fun NewTopic.shouldBeEmpty() {
-    shouldTimeout(100.milliseconds) {
-      KafkaReceiver(receiverSetting())
-        .receive(name())
-        .take(1)
-        .toList()
-    }
-  }
-
-  suspend fun NewTopic.shouldHaveRecord(records: ProducerRecord<String, String>) {
-    assertSoftly {
-      KafkaReceiver(receiverSetting())
-        .receive(name())
-        .map {
-          it.apply { offset.acknowledge() }
-        }.take(1)
-        .map { it.value() }
-        .toList() shouldBe listOf(records.value())
-      shouldBeEmpty()
-    }
-  }
-
-  suspend fun topicWithSingleMessage(topic: NewTopic, record: ProducerRecord<String, String>) =
-    KafkaReceiver(receiverSetting())
-      .receive(topic.name())
-      .map {
-        it.apply { offset.acknowledge() }
-      }.first().value() shouldBe record.value()
-
-  suspend fun topicShouldBeEmpty(topic: NewTopic) =
-    shouldTimeout(1.seconds) {
-      KafkaReceiver(receiverSetting())
-        .receive(topic.name())
-        .take(1)
-        .toList()
-    }
 
   fun stubProducer(failOnNumber: Int? = null): suspend () -> Producer<String, String> = suspend {
     object : Producer<String, String> {
