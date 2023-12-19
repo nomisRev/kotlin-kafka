@@ -1,15 +1,15 @@
 [versions]
 kotest = "5.8.0"
-kafka = "3.6.0"
+kafka = "3.6.1"
 kotlin = "1.9.21"
 kotlinx-coroutines = "1.7.3"
 dokka = "1.9.10"
-knit = "0.4.0"
+knit = "0.5.0"
 kover = "0.7.5"
 testcontainers-kafka = "1.19.3"
 slf4j = "2.0.9"
 spotless="6.23.3"
-publish="0.25.3"
+publish="0.26.0"
 
 [libraries]
 kotest-assertions = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
