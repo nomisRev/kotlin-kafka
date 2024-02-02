@@ -25,7 +25,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-java@v3
+      - uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: 11
@@ -36,7 +36,7 @@ jobs:
 
       - name: Upload reports
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: 'reports-${{ matrix.os }}'
           path: '**/build/reports/**'
