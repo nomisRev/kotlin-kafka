@@ -86,6 +86,8 @@ abstract class KafkaSpec {
         pollTimeout = consumerPollingTimeout
       )
 
+    lateinit var producer: KafkaProducer<String, String>
+
     val publisherSettings = PublisherSettings(
       bootstrapServers = kafka.bootstrapServers,
       keySerializer = StringSerializer(),
@@ -93,13 +95,15 @@ abstract class KafkaSpec {
       properties = Properties().apply {
         put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 10000.toString())
         put(ProducerConfig.RETRY_BACKOFF_MS_CONFIG, 1000.toString())
+      },
+      createProducer = { settings ->
+        KafkaProducer<String, String>(settings.properties())
+          .also { producer = it }
       }
     )
 
-    val producer = KafkaProducer<String, String>(publisherSettings.properties())
-
     @JvmStatic
-    val publisher = KafkaPublisher(publisherSettings) { producer }
+    val publisher = KafkaPublisher(publisherSettings)
   }
 
   private fun adminProperties(): Properties = Properties().apply {
@@ -226,6 +230,7 @@ abstract class KafkaSpec {
       KafkaReceiver(receiverSetting)
         .receive(name())
         .map { record ->
+          println(record.value())
           record
             .also { record.offset.acknowledge() }
         }
@@ -260,61 +265,62 @@ abstract class KafkaSpec {
 
   //</editor-fold>
   //<editor-fold desc="Description">
-  fun stubProducer(failOnNumber: Int? = null): suspend () -> Producer<String, String> = suspend {
-    object : Producer<String, String> {
-      override fun close() {}
+  fun stubProducer(failOnNumber: Int? = null): suspend (PublisherSettings<String, String>) -> Producer<String, String> =
+    {
+      object : Producer<String, String> {
+        override fun close() {}
 
-      override fun close(timeout: Duration?) {}
+        override fun close(timeout: Duration?) {}
 
-      override fun initTransactions() =
-        producer.initTransactions()
+        override fun initTransactions() =
+          producer.initTransactions()
 
-      override fun beginTransaction() =
-        producer.beginTransaction()
+        override fun beginTransaction() =
+          producer.beginTransaction()
 
-      @Suppress("DEPRECATION")
-      @Deprecated("Deprecated in Java")
-      override fun sendOffsetsToTransaction(
-        offsets: MutableMap<TopicPartition, OffsetAndMetadata>?,
-        consumerGroupId: String?
-      ) = producer.sendOffsetsToTransaction(offsets, consumerGroupId)
+        @Suppress("DEPRECATION")
+        @Deprecated("Deprecated in Java")
+        override fun sendOffsetsToTransaction(
+          offsets: MutableMap<TopicPartition, OffsetAndMetadata>?,
+          consumerGroupId: String?
+        ) = producer.sendOffsetsToTransaction(offsets, consumerGroupId)
 
-      override fun sendOffsetsToTransaction(
-        offsets: MutableMap<TopicPartition, OffsetAndMetadata>?,
-        groupMetadata: ConsumerGroupMetadata?
-      ) = producer.sendOffsetsToTransaction(offsets, groupMetadata)
+        override fun sendOffsetsToTransaction(
+          offsets: MutableMap<TopicPartition, OffsetAndMetadata>?,
+          groupMetadata: ConsumerGroupMetadata?
+        ) = producer.sendOffsetsToTransaction(offsets, groupMetadata)
 
-      override fun commitTransaction() =
-        producer.commitTransaction()
+        override fun commitTransaction() =
+          producer.commitTransaction()
 
-      override fun abortTransaction() =
-        producer.abortTransaction()
+        override fun abortTransaction() =
+          producer.abortTransaction()
 
-      override fun flush() =
-        producer.flush()
+        override fun flush() =
+          producer.flush()
 
-      override fun partitionsFor(topic: String?): MutableList<PartitionInfo> =
-        producer.partitionsFor(topic)
+        override fun partitionsFor(topic: String?): MutableList<PartitionInfo> =
+          producer.partitionsFor(topic)
 
-      override fun metrics(): MutableMap<MetricName, out Metric> =
-        producer.metrics()
+        override fun metrics(): MutableMap<MetricName, out Metric> =
+          producer.metrics()
 
-      override fun send(record: ProducerRecord<String, String>, callback: Callback): Future<RecordMetadata> =
-        if (failOnNumber != null && record.key() == failOnNumber.toString()) {
-          Executors.newScheduledThreadPool(1).schedule(
-            {
-              callback.onCompletion(null, boom)
-            },
-            50,
-            TimeUnit.MILLISECONDS
-          )
+        override fun send(record: ProducerRecord<String, String>, callback: Callback): Future<RecordMetadata> =
+          if (failOnNumber != null && record.key() == failOnNumber.toString()) {
+            Executors.newScheduledThreadPool(1).schedule(
+              {
+                callback.onCompletion(null, boom)
+              },
+              50,
+              TimeUnit.MILLISECONDS
+            )
 
-          CompletableFuture.supplyAsync { throw AssertionError("Should never be called") }
-        } else producer.send(record, callback)
+            CompletableFuture.supplyAsync { throw AssertionError("Should never be called") }
+          } else producer.send(record, callback)
 
-      override fun send(record: ProducerRecord<String, String>): Future<RecordMetadata> =
-        producer.send(record)
+        override fun send(record: ProducerRecord<String, String>): Future<RecordMetadata> =
+          producer.send(record)
+      }
     }
-  }
   //</editor-fold>
 }

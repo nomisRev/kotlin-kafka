@@ -1,5 +1,6 @@
 package io.github.nomisRev.kafka.publisher
 
+import io.github.nomisRev.kafka.KafkaProducer
 import io.github.nomisRev.kafka.publisher.DefaultKafkaPublisher.Companion.log
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CopyableThrowable
@@ -18,6 +19,8 @@ import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
@@ -38,13 +41,49 @@ import kotlin.time.toJavaDuration
 /**
  * Constructing a [KafkaPublisher] requires [PublisherSettings].
  * Optionally you can provide a different way to how the [Producer] is created.
+ *
+ * <!--- INCLUDE
+ * import arrow.continuations.SuspendApp
+ * import io.github.nomisRev.kafka.imap
+ * import io.github.nomisRev.kafka.publisher.KafkaPublisher
+ * import io.github.nomisRev.kafka.publisher.PublisherSettings
+ * import org.apache.kafka.clients.producer.ProducerRecord
+ * import org.apache.kafka.common.Metric
+ * import org.apache.kafka.common.MetricName
+ * import org.apache.kafka.common.serialization.IntegerSerializer
+ * import org.apache.kafka.common.serialization.StringSerializer
+ * @JvmInline value class Key(val index: Int)
+ * @JvmInline value class Message(val content: String)
+ * -->
+ * ```kotlin
+ * fun main() = SuspendApp {
+ *   val settings = PublisherSettings(
+ *     Kafka.container.bootstrapServers,
+ *     IntegerSerializer().imap { key: Key -> key.index },
+ *     StringSerializer().imap { msg: Message -> msg.content },
+ *   )
+ *
+ *   KafkaPublisher(settings).use { publisher ->
+ *     // ... use the publisher
+ *     val m: Map<MetricName, Metric> = publisher.metrics()
+ *
+ *     publisher.publishScope {
+ *       // send record without awaiting acknowledgement
+ *       offer(ProducerRecord("example-topic", Key(1), Message("msg-1")))
+ *
+ *       // send record and suspends until acknowledged
+ *       publish(ProducerRecord("example-topic", Key(2), Message("msg-2")))
+ *     }
+ *   }
+ * }
+ * ```
+ * <!--- KNIT example-publisher-01.kt -->
  */
 fun <Key, Value> KafkaPublisher(
   settings: PublisherSettings<Key, Value>,
-  configureProducer: suspend () -> Producer<Key, Value> =
-    { KafkaProducer(settings.properties(), settings.keySerializer, settings.valueSerializer) }
+  createProducer: (suspend (PublisherSettings<Key, Value>) -> Producer<Key, Value>)? = null
 ): KafkaPublisher<Key, Value> =
-  DefaultKafkaPublisher(settings, configureProducer)
+  DefaultKafkaPublisher(settings, createProducer)
 
 /**
  * A [KafkaPublisher] wraps an [Producer], so needs to be closed by [AutoCloseable].
@@ -95,12 +134,11 @@ interface KafkaPublisher<Key, Value> : AutoCloseable {
 
   /** @see KafkaProducer.metrics */
   suspend fun metrics(): Map<MetricName, Metric>
-
 }
 
 private class DefaultKafkaPublisher<Key, Value>(
   val settings: PublisherSettings<Key, Value>,
-  createProducer: suspend () -> Producer<Key, Value>
+  createProducer: (suspend (PublisherSettings<Key, Value>) -> Producer<Key, Value>)?
 ) : KafkaPublisher<Key, Value> {
 
   val producerId = "reactor-kafka-sender-${System.identityHashCode(this)}"
@@ -113,7 +151,8 @@ private class DefaultKafkaPublisher<Key, Value>(
 
   @OptIn(DelicateCoroutinesApi::class)
   val producer = GlobalScope.async(producerContext) {
-    createProducer().apply {
+    val create = createProducer ?: settings.createProducer
+    create(settings).apply {
       settings.producerListener.producerAdded(producerId, this)
       if (settings.isTransactional()) {
         log.info("Initializing transactions for producer {}", settings.transactionalId())
@@ -157,13 +196,13 @@ private class DefaultKafkaPublisher<Key, Value>(
 
   override fun close() = runBlocking {
     listOf(
+      runCatching { settings.producerListener.producerRemoved(producerId, producer.await()) },
       runCatching {
         producer.await().close(
           if (settings.closeTimeout.isInfinite()) Duration.ofMillis(Long.MAX_VALUE)
           else settings.closeTimeout.toJavaDuration()
         )
       },
-      runCatching { settings.producerListener.producerRemoved(producerId, producer.await()) },
       runCatching { producerContext.close() }
     ).throwIfErrors()
   }
