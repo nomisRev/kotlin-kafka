@@ -13,6 +13,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
@@ -33,13 +34,35 @@ import kotlin.time.toJavaDuration
  * produce will send message to Kafka, and stream [Result] of [RecordMetadata] back to the user.
  * It will not stop sending messages if any error occurs,
  * you can throw it in the collector if you want the stream to stop. Otherwise, use [produceOrThrow].
+ *
  * Any encountered errors will be sent to the collector as [Result.failure],
  * and they will also be rethrown if the Flow completes without handling them (e.g. using `Flow.catch`).
+ * Check Kafka's [Callback] documentation for more information on when and which errors are thrown, and which are recoverable.
  *
  * It'll wait acknowledgements from Kafka in **a different coroutine**, or asynchronously.
  *
  * This means we don't have to wait for the acknowledgement before sending the next message,
  * resulting in maximum throughput but still guarantees that the message was sent to Kafka.
+ *
+ * ```kotlin
+ * suspend fun publish messages(bootStrapServers: String, topic: String) {
+ *  val publisherSettings = PublisherSettings(
+ *    bootstrapServers = bootStrapServers,
+ *    keySerializer = StringSerializer(),
+ *    valueSerializer = StringSerializer()
+ *  )
+ *  (0..10_000).asFlow()
+ *    .onEach { delay(10.milliseconds) }
+ *    .map { index ->
+ *      ProducerRecord<String, String>(topic.name(), index % 4, "$index", "Message $index")
+ *    }.produce(publisherSettings)
+ *    .collect { metadata: Result<RecordMetadata> ->
+ *      metadata
+ *       .onSuccess { println("partition: ${it.partition()}, offset: ${it.offset}") }
+ *       .onFailure { println("Failed to send: $it") }
+ *    }
+ *
+ * ```
  *
  * @param onPublisherRecordDropped a callback to handle dropped records, by default it uses the one from [PublisherSettings].
  *                 This only occurs when a fatal error occurred, and Flow transitions to COMPLETE.
@@ -255,4 +278,3 @@ private fun Throwable?.add(other: Throwable?): Throwable? =
   this?.apply {
     other?.let { addSuppressed(it) }
   } ?: other
-
