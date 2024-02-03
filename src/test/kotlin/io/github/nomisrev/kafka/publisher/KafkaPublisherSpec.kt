@@ -295,16 +295,12 @@ class KafkaPublisherSpec : KafkaSpec() {
       }
     }
 
-    println("Going to stop")
     kafka.pause()
 
     delay(2000)
 
-    println("Going to start")
     kafka.unpause()
-    println("Started")
 
     topic.assertHasRecords(records)
-    println("asserted records")
   }
 }

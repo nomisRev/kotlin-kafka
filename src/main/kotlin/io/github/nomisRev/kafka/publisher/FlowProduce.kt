@@ -1,5 +1,6 @@
 package io.github.nomisRev.kafka.publisher
 
+import io.github.nomisRev.kafka.internal.runInterruptibleAtomic
 import io.github.nomisRev.kafka.publisher.ProducerFlowState.ACTIVE
 import io.github.nomisRev.kafka.publisher.ProducerFlowState.COMPLETE
 import io.github.nomisRev.kafka.publisher.ProducerFlowState.DONE_COLLECTING
@@ -7,6 +8,7 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExecutorCoroutineDispatcher
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.awaitClose
@@ -17,6 +19,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import org.apache.kafka.clients.producer.Callback
@@ -26,10 +29,10 @@ import org.apache.kafka.clients.producer.RecordMetadata
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.time.Duration
-import java.util.concurrent.CancellationException
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.toJavaDuration
 
 /**
@@ -152,8 +155,7 @@ private fun <Key, Value> Flow<ProducerRecord<Key, Value>>.produceImpl(
    * In case of any errors, the FlowCollector will see non-null Throwable.
    */
   fun doneToComplete() {
-    println("doneToComplete: ${state.get()}")
-    if (state.compareAndSet(DONE_COLLECTING, COMPLETE)) {
+    if (inflight.get() == 0 && state.compareAndSet(DONE_COLLECTING, COMPLETE)) {
       close(delayedThrowable.getAll(null))
     }
   }
@@ -163,11 +165,8 @@ private fun <Key, Value> Flow<ProducerRecord<Key, Value>>.produceImpl(
    * and in-case all inflight records are already acknowledged then we also transition to COMPLETE.
    */
   fun activeToDoneOrCompleteIfAlreadyDone() {
-    println("activeToDoneOrCompleteIfAlreadyDone: ${state.get()} - ${inflight.get()}")
     if (state.compareAndSet(ACTIVE, DONE_COLLECTING)) {
-      if (inflight.get() == 0) {
         doneToComplete()
-      }
     }
   }
 
@@ -181,25 +180,30 @@ private fun <Key, Value> Flow<ProducerRecord<Key, Value>>.produceImpl(
     log.trace("Sender failed with exception", e)
     state.getAndSet(COMPLETE)
     val alreadyClosed = !close(e)
-    if (alreadyClosed) {
-      e?.let { handler?.handleException(ctx, e) }
+    if (alreadyClosed && e != null) {
+      handler?.handleException(ctx, e)
     }
   }
 
   fun delayError(exception: Throwable) {
-    if(exception is CancellationException) return
+    if (exception is CancellationException) return
     delayedThrowable.getAndUpdate { current ->
       if (current == null) listOf(exception) else current + exception
     }
   }
 
+  fun logTransaction(record: ProducerRecord<Key, Value>, state: String) =
+    if (settings.isTransactional()) {
+      log.trace(
+        "Transactional send completed for producer {} in state {} inflight {}: {}",
+        settings.transactionalId(),
+        state,
+        inflight,
+        record
+      )
+    } else Unit
+
   catch { exception ->
-    println("""
-      produceImpl.catch: $exception
-      state: ${state.get()}
-      stopOnError: $stopOnError
-      settings.isFatal(exception): ${settings.isFatal(exception)}
-    """.trimIndent())
     when {
       exception is CancellationException -> Unit
       stopOnError || settings.isFatal(exception) -> complete(exception)
@@ -211,70 +215,43 @@ private fun <Key, Value> Flow<ProducerRecord<Key, Value>>.produceImpl(
       return@collect dropped(log, record)
     }
 
-    inflight.incrementAndGet()
-    if (settings.isTransactional()) {
-      log.trace(
-        "Transactional send initiated for producer {} in state {} inflight {}: {}",
-        settings.transactionalId(),
-        state,
-        inflight,
-        record
-      )
-    }
+    logTransaction(record, "initiated")
 
     val callback = Callback { metadata, exception ->
-      if (settings.isTransactional()) {
-        log.trace(
-          "Transactional send completed for producer {} in state {} inflight {}: {}",
-          settings.transactionalId(),
-          state,
-          inflight,
-          record
-        )
-      }
-
-      /*
-       * A fatal error occurred from a parallel record.
-       * Recorded was send, so not dropped.
-       */
-      if (state.get() === COMPLETE) {
-        return@Callback
-      }
-
-      if (exception != null) {
-        log.trace("Sender failed: ", exception)
-        if (stopOnError || settings.isFatal(exception)) {
-          return@Callback complete(null)
-        } else {
-          delayError(exception)
-          trySendBlocking(Result.failure(exception))
-            // If Channel is already closed, this exception was already seen before
-            .onFailure { close(it) }
-        }
-      } else {
-        trySendBlocking(Result.success(metadata))
-          // If Channel is already closed, this exception was already seen before
-          .onFailure { close(it) }
-      }
+      logTransaction(record, "completed")
       inflight.decrementAndGet()
-      doneToComplete()
+      when {
+        state.get() === COMPLETE || isClosedForSend ->
+          complete(IllegalStateException("state.get() === COMPLETE || isClosedForSend: bug in FlowProduce. Contact maintainers."))
+        exception != null -> {
+          log.trace("Sender failed: ", exception)
+          when {
+            exception is CancellationException -> Unit
+            stopOnError || settings.isFatal(exception) -> complete(null)
+            else -> {
+              delayError(exception)
+              trySendBlocking(Result.failure(exception)).getOrThrow()
+              doneToComplete()
+            }
+          }
+        }
+
+        else -> {
+          trySendBlocking(Result.success(metadata)).getOrThrow()
+          doneToComplete()
+        }
+      }
     }
 
     try {
-      async(producerContext, start = CoroutineStart.ATOMIC) {
-        runInterruptible {
-
-        }
-      }
-//      runInterruptible(producerContext) {
-        println("produceImpl.send $record")
+      runInterruptibleAtomic(producerContext) {
+        inflight.incrementAndGet()
         producer.send(record, callback)
-//      }
+      }
     } catch (e: Exception) {
       callback.onCompletion(null, e)
     }
   }
-  println("ProduceImpl.collect done")
   activeToDoneOrCompleteIfAlreadyDone()
   awaitClose {
     listOf(

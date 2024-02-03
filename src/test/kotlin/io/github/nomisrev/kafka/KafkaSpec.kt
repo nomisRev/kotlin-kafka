@@ -11,11 +11,14 @@ import io.github.nomisRev.kafka.publisher.PublisherSettings
 import io.github.nomisRev.kafka.receiver.AutoOffsetReset
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.apache.kafka.clients.admin.Admin
 import org.apache.kafka.clients.admin.AdminClientConfig
@@ -42,6 +45,8 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.AbstractCoroutineContextElement
+import kotlin.coroutines.CoroutineContext
 import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.seconds
 
@@ -86,8 +91,6 @@ abstract class KafkaSpec {
         pollTimeout = consumerPollingTimeout
       )
 
-    lateinit var producer: KafkaProducer<String, String>
-
     val publisherSettings = PublisherSettings(
       bootstrapServers = kafka.bootstrapServers,
       keySerializer = StringSerializer(),
@@ -95,10 +98,6 @@ abstract class KafkaSpec {
       properties = Properties().apply {
         put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 10000.toString())
         put(ProducerConfig.RETRY_BACKOFF_MS_CONFIG, 1000.toString())
-      },
-      createProducer = { settings ->
-        KafkaProducer<String, String>(settings.properties())
-          .also { producer = it }
       }
     )
 
@@ -153,14 +152,12 @@ abstract class KafkaSpec {
     partitions: Int = 4,
     replicationFactor: Short = 1,
     test: suspend TopicTestScope.(NewTopic) -> Unit
-  ): Unit = runBlocking {
+  ): Unit = runTest(timeout = 30.seconds) {
     val topic = NewTopic(nextTopicName(), partitions, replicationFactor).configs(topicConfig)
     admin {
       createTopic(topic)
       try {
-        withTimeoutOrNull(40.seconds) {
-          TopicTestScope(topic, this).test(topic)
-        } ?: throw AssertionError("Timed out after 40 seconds...")
+        TopicTestScope(topic, this@runTest).test(topic)
       } finally {
         topic.shouldBeEmpty()
         deleteTopic(topic.name())
@@ -230,7 +227,6 @@ abstract class KafkaSpec {
       KafkaReceiver(receiverSetting)
         .receive(name())
         .map { record ->
-          println(record.value())
           record
             .also { record.offset.acknowledge() }
         }
@@ -267,6 +263,7 @@ abstract class KafkaSpec {
   //<editor-fold desc="Description">
   fun stubProducer(failOnNumber: Int? = null): suspend (PublisherSettings<String, String>) -> Producer<String, String> =
     {
+      val producer = it.createProducer(it)
       object : Producer<String, String> {
         override fun close() {}
 

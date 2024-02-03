@@ -29,6 +29,7 @@ dependencies {
   testImplementation(kotlin("test"))
   testImplementation(libs.testcontainers.kafka)
   testImplementation(libs.slf4j.simple)
+  testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
 }
 
 configure<PowerAssertGradleExtension> {

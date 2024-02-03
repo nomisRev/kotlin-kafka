@@ -3,7 +3,6 @@ package io.github.nomisrev.kafka.publisher
 import io.github.nomisRev.kafka.publisher.produce
 import io.github.nomisrev.kafka.KafkaSpec
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.asFlow
@@ -12,16 +11,15 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.yield
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
 class FlowProduceSpec : KafkaSpec() {
   @Test
   fun `All offered messages are received`() = withTopic {
-    val count = 3
+    val count = 10
     val records = (0..count)
       .asFlow()
       .map { createProducerRecord(it) }
@@ -37,53 +35,49 @@ class FlowProduceSpec : KafkaSpec() {
 
   @Test
   fun `Failure does not stop producing messages`() = withTopic {
-    val count = 10
-    val error = RuntimeException("boom")
-    val records =
-      (0..4).map { createProducerRecord(it) }
-        .asFlow()
-        .append { throw error }
-        .append { emitAll((6..count).map { createProducerRecord(it) }) }
+    var count = 0
+    val records = (0..10).map { createProducerRecord(it) }
+    val flow = records
+      .asFlow()
+      .flowOn(Dispatchers.IO)
+      .append { throw boom }
 
     val e = runCatching {
-      records
+      flow
         .produce(publisherSettings)
         .flowOn(Dispatchers.Default)
+        .onEach { count++ }
         .collect()
     }.exceptionOrNull()
-    assertEquals(e?.message, error.message)
 
-    topic.assertHasRecords((0..4).map { createProducerRecord(it) })
+    assertEquals(records.size, count)
+    assertEquals("Boom!", e?.message)
+    topic.assertHasRecords(records)
   }
 
   @Test
   fun `Can handle exception from produce`() = withTopic {
-    val count = 10
-    val error = RuntimeException("boom")
-    val records =
-      flow {
-        (0..count).forEach { emit(createProducerRecord(it)) }
-        throw error
-      }.flowOn(Dispatchers.IO)
+    val records = (0..10)
+      .map { createProducerRecord(it) }
 
-    val e = runCatching {
-      records
-        .produce(publisherSettings)
-        .catch { e -> if (e.message == error.message) Unit else throw e }
-        .flowOn(Dispatchers.Default)
-        .collect()
-    }.exceptionOrNull()
-    assertEquals(e, null)
+    val flow = records
+      .asFlow()
+      .flowOn(Dispatchers.IO)
+      .append { throw boom }
 
-    topic.assertHasRecords((0..count).map { createProducerRecord(it) })
+    val count = flow
+      .catch { }
+      .produce(publisherSettings)
+      .flowOn(Dispatchers.Default)
+      .toList()
+
+    assertEquals(records.size, count.size)
+    topic.assertHasRecords(records)
   }
 }
 
-fun <A> Flow<A>.append(block: suspend FlowCollector<A>.() -> Unit): Flow<A> =
+private fun <A> Flow<A>.append(block: suspend FlowCollector<A>.() -> Unit): Flow<A> =
   flow {
-    this@append.collect { emit(it) }
+    collect { emit(it) }
     block()
   }
-
-suspend fun <A> FlowCollector<A>.emitAll(iterable: Iterable<A>): Unit =
-  iterable.forEach { emit(it) }

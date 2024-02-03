@@ -6,6 +6,7 @@ import io.github.nomisrev.kafka.KafkaSpec
 import io.github.nomisrev.kafka.assertThrows
 import io.github.nomisrev.kafka.mapIndexed
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectIndexed
@@ -23,6 +24,7 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
+@ExperimentalCoroutinesApi
 class KafakReceiverSpec : KafkaSpec() {
 
   val count = 1000
@@ -182,7 +184,7 @@ class KafakReceiverSpec : KafkaSpec() {
   }
 
   @Test
-  fun `receiveAutoAck`() = withTopic {
+  fun receiveAutoAck() = withTopic {
     publishToKafka(topic, produced)
     val receiver = KafkaReceiver(receiverSetting)
 
