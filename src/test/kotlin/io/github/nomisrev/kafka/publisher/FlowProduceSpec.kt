@@ -5,6 +5,7 @@ import io.github.nomisRev.kafka.publisher.produceOrThrow
 import io.github.nomisrev.kafka.KafkaSpec
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.asFlow
@@ -12,20 +13,19 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.toList
 import org.apache.kafka.clients.producer.RecordMetadata
 import org.junit.jupiter.api.Test
+import kotlin.test.Ignore
 import kotlin.test.assertEquals
 
 class FlowProduceSpec : KafkaSpec() {
   @Test
   fun `produce - All offered messages are received`() = withTopic {
-    val count = 10
-    val records = (0..count)
+    val count = 10_000
+    val records = produce(count)
       .asFlow()
-      .map { createProducerRecord(it) }
       .flowOn(Dispatchers.IO)
 
     records
@@ -39,7 +39,7 @@ class FlowProduceSpec : KafkaSpec() {
   @Test
   fun `produce - Failure does not stop previous send messages`() = withTopic {
     var count = 0
-    val records = (0..10).map { createProducerRecord(it) }
+    val records = produce(10)
     val flow = records
       .asFlow()
       .flowOn(Dispatchers.IO)
@@ -60,8 +60,8 @@ class FlowProduceSpec : KafkaSpec() {
 
   @Test
   fun `produce - Can handle exception from upstream`() = withTopic {
-    val records = producerRecords(0..4)
-    val records2 = producerRecords(5..10)
+    val records = produce(0..4)
+    val records2 = produce(5..10)
     val allRecords = records + records2
 
     val flow = records
@@ -82,8 +82,7 @@ class FlowProduceSpec : KafkaSpec() {
   @Test
   fun `produce - Can handle exception from producer`() = withTopic {
     val buffer = mutableListOf<Result<RecordMetadata>>()
-    val records = (0..10)
-      .map { createProducerRecord(it) }
+    val records = produce(10)
 
     val flow = records
       .asFlow()
@@ -106,8 +105,7 @@ class FlowProduceSpec : KafkaSpec() {
   @Test
   fun `produce - Can catch exception from producer`() = withTopic {
     val error = CompletableDeferred<Throwable>()
-    val records = (0..10)
-      .map { createProducerRecord(it) }
+    val records = produce(10)
 
     val flow = records
       .asFlow()
@@ -125,10 +123,8 @@ class FlowProduceSpec : KafkaSpec() {
 
   @Test
   fun `produceOrThrow - All offered messages are received`() = withTopic {
-    val count = 10
-    val records = (0..count)
+    val records = produce(10)
       .asFlow()
-      .map { createProducerRecord(it) }
       .flowOn(Dispatchers.IO)
 
     records
@@ -141,7 +137,7 @@ class FlowProduceSpec : KafkaSpec() {
 
   @Test
   fun `produceOrThrow - Failure does not stop previous send messages`() = withTopic {
-    val records = (0..10).map { createProducerRecord(it) }
+    val records = produce(10)
     val flow = records
       .asFlow()
       .flowOn(Dispatchers.IO)
@@ -161,8 +157,7 @@ class FlowProduceSpec : KafkaSpec() {
   @Test
   fun `produceOrThrow - Can catch exception from producer`() = withTopic {
     val error = CompletableDeferred<Throwable>()
-    val records = (0..10)
-      .map { createProducerRecord(it) }
+    val records = produce(10)
 
     val flow = records
       .asFlow()
@@ -176,6 +171,23 @@ class FlowProduceSpec : KafkaSpec() {
 
     assertEquals(Boom, error.await())
     topic.assertHasRecords(records.toMutableList().apply { removeAt(5) })
+  }
+
+  @Test
+  @Ignore
+  fun stressSlow() = withTopic {
+    val records = produce(10)
+
+    val flow = records.asFlow()
+      .onEach { delay(25_000) }
+      .flowOn(Dispatchers.IO)
+
+    flow
+      .produce(publisherSettings())
+      .flowOn(Dispatchers.Default)
+      .collect()
+
+    topic.assertHasRecords(records)
   }
 }
 

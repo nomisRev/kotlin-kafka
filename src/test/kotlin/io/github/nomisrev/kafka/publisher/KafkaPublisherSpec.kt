@@ -13,7 +13,6 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.apache.kafka.clients.producer.ProducerConfig
-import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.errors.ProducerFencedException
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -22,10 +21,7 @@ class KafkaPublisherSpec : KafkaSpec() {
 
   @Test
   fun `All offered messages are received`() = withTopic {
-    val count = 3
-    val records = (0..count).map {
-      createProducerRecord(it)
-    }
+    val records = produce(10_000)
     publishScope {
       offer(records)
     }
@@ -35,10 +31,7 @@ class KafkaPublisherSpec : KafkaSpec() {
 
   @Test
   fun `Can receive all messages that were published on the right partitions`() = withTopic {
-    val count = 3
-    val records = (0..count).map {
-      createProducerRecord(it)
-    }
+    val records = produce(3)
     publishScope {
       publish(records)
     }
@@ -99,9 +92,7 @@ class KafkaPublisherSpec : KafkaSpec() {
 
   @Test
   fun `An async failure is rethrow at the end`() = withTopic {
-    val count = 3
-    val records: List<ProducerRecord<String, String>> = (0..count)
-      .map(::createProducerRecord)
+    val records = produce(3)
 
     val exception = assertThrows<RuntimeException> {
       publishScope {
@@ -171,8 +162,7 @@ class KafkaPublisherSpec : KafkaSpec() {
 
   @Test
   fun `A failure in a transaction aborts the transaction`() = withTopic {
-    val count = 3
-    val records = (0..count).map(::createProducerRecord)
+    val records = produce(3)
     val settings = publisherSettings(Acks.All) {
       put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "A failure in a transaction aborts")
       put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true")
@@ -194,8 +184,7 @@ class KafkaPublisherSpec : KafkaSpec() {
 
   @Test
   fun `An async failure in a transaction aborts the transaction`() = withTopic {
-    val count = 3
-    val records = (0..count).map(::createProducerRecord)
+    val records = produce(3)
     val settings = publisherSettings(Acks.All) {
       put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "An async failure in a transaction aborts")
       put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true")
@@ -250,7 +239,7 @@ class KafkaPublisherSpec : KafkaSpec() {
       put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "Only one KafkaProducer can have transactional.id")
       put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true")
     }
-    val records1 = (0..4).map(::createProducerRecord)
+    val records1 = produce(0..4)
     val publisher1 = KafkaPublisher(settings)
     publisher1.publishScope {
       transaction {
@@ -258,7 +247,7 @@ class KafkaPublisherSpec : KafkaSpec() {
       }
     }
 
-    val records2 = (5..9).map(::createProducerRecord)
+    val records2 = produce(5..9)
     val publisher2 = KafkaPublisher(settings)
     publisher2.publishScope {
       transaction {
@@ -267,7 +256,7 @@ class KafkaPublisherSpec : KafkaSpec() {
     }
 
     // publisher1 was previous transactional.id, will result in fatal ProducerFencedException
-    val records3 = (10..14).map(::createProducerRecord)
+    val records3 = produce(10..14)
     assertThrows<ProducerFencedException> {
       publisher1.publishScope {
         transaction {
@@ -282,7 +271,7 @@ class KafkaPublisherSpec : KafkaSpec() {
 
   @Test
   fun `idempotent publisher`() = withTopic {
-    val records = (0..10).map(::createProducerRecord)
+    val records = produce(10)
     launch(start = UNDISPATCHED) {
       KafkaPublisher(publisherSettings {
 //          put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true")
@@ -298,11 +287,8 @@ class KafkaPublisherSpec : KafkaSpec() {
     }
 
     kafka.pause()
-
     delay(2000)
-
     kafka.unpause()
-
     topic.assertHasRecords(records)
   }
 }

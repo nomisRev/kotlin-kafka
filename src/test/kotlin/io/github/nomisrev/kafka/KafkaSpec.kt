@@ -13,6 +13,7 @@ import io.github.nomisRev.kafka.receiver.AutoOffsetReset
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.count
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
@@ -46,6 +47,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
+import kotlin.time.Duration.Companion.INFINITE
 import kotlin.time.Duration.Companion.seconds
 
 
@@ -150,7 +152,10 @@ abstract class KafkaSpec {
     val topic: NewTopic,
     scope: CoroutineScope
   ) : CoroutineScope by scope {
-    fun producerRecords(range: IntRange): List<ProducerRecord<String, String>> =
+    fun produce(count: Int): List<ProducerRecord<String, String>> =
+      produce(0 until count)
+
+    fun produce(range: IntRange): List<ProducerRecord<String, String>> =
       range.map { createProducerRecord(it) }
 
     fun createProducerRecord(index: Int, partitions: Int = 4): ProducerRecord<String, String> {
@@ -164,7 +169,7 @@ abstract class KafkaSpec {
     partitions: Int = 4,
     replicationFactor: Short = 1,
     test: suspend TopicTestScope.(NewTopic) -> Unit
-  ): Unit = runTest(timeout = 30.seconds) {
+  ): Unit = runTest(timeout = INFINITE) {
     val topic = NewTopic(nextTopicName(), partitions, replicationFactor).configs(topicConfig)
     admin {
       createTopic(topic)
@@ -232,6 +237,18 @@ abstract class KafkaSpec {
         .map { it.value() }
         .toList(),
       listOf(records.value())
+    )
+    shouldBeEmpty()
+  }
+
+  suspend infix fun NewTopic.assertHasRecordCount(records: Int) {
+    assertEquals(
+      KafkaReceiver()
+        .receive(name())
+        .map { record -> record.offset.acknowledge() }
+        .take(records)
+        .count(),
+      records
     )
     shouldBeEmpty()
   }

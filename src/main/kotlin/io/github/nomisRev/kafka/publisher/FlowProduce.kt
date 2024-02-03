@@ -7,10 +7,12 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.ExecutorCoroutineDispatcher
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flow
@@ -140,7 +142,7 @@ private fun <Key, Value> Flow<ProducerRecord<Key, Value>>.produceImpl(
   stopOnError: Boolean,
   onPublisherRecordDropped: (suspend (Logger, ProducerRecord<Key, Value>) -> Unit)?,
   createProducer: (suspend (PublisherSettings<Key, Value>) -> Producer<Key, Value>)?
-): Flow<Result<RecordMetadata>> = channelFlow {
+): Flow<Result<RecordMetadata>> = channelFlow<Result<RecordMetadata>> {
   val producerId = "reactor-kafka-sender-${System.identityHashCode(this)}"
   val inFlight = AtomicInteger(0)
   val delayedThrowable = AtomicReference<List<Throwable>>(emptyList())
@@ -265,7 +267,7 @@ private fun <Key, Value> Flow<ProducerRecord<Key, Value>>.produceImpl(
       runCatching { producerContext.close() }
     ).throwIfErrors()
   }
-}
+}.buffer(capacity = Channel.UNLIMITED)
 
 private fun Iterable<Result<Unit>>.throwIfErrors() {
   fold<Result<Unit>, Throwable?>(null) { acc, result ->
