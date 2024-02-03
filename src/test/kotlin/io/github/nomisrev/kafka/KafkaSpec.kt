@@ -11,14 +11,11 @@ import io.github.nomisRev.kafka.publisher.PublisherSettings
 import io.github.nomisRev.kafka.receiver.AutoOffsetReset
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
-import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.apache.kafka.clients.admin.Admin
 import org.apache.kafka.clients.admin.AdminClientConfig
@@ -45,8 +42,6 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
-import kotlin.coroutines.AbstractCoroutineContextElement
-import kotlin.coroutines.CoroutineContext
 import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.seconds
 
@@ -141,6 +136,9 @@ abstract class KafkaSpec {
     val topic: NewTopic,
     scope: CoroutineScope
   ) : CoroutineScope by scope {
+    fun producerRecords(range: IntRange): List<ProducerRecord<String, String>> =
+      range.map { createProducerRecord(it) }
+
     fun createProducerRecord(index: Int, partitions: Int = 4): ProducerRecord<String, String> {
       val partition: Int = index % partitions
       return ProducerRecord<String, String>(topic.name(), partition, "$index", "Message $index")
@@ -263,7 +261,7 @@ abstract class KafkaSpec {
   //<editor-fold desc="Description">
   fun stubProducer(failOnNumber: Int? = null): suspend (PublisherSettings<String, String>) -> Producer<String, String> =
     {
-      val producer = it.createProducer(it)
+      val producer = KafkaProducer(it.properties(), it.keySerializer, it.valueSerializer)
       object : Producer<String, String> {
         override fun close() {}
 

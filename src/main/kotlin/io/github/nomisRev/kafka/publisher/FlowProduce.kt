@@ -1,25 +1,19 @@
 package io.github.nomisRev.kafka.publisher
 
-import io.github.nomisRev.kafka.internal.runInterruptibleAtomic
 import io.github.nomisRev.kafka.publisher.ProducerFlowState.ACTIVE
 import io.github.nomisRev.kafka.publisher.ProducerFlowState.COMPLETE
 import io.github.nomisRev.kafka.publisher.ProducerFlowState.DONE_COLLECTING
 import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.ExecutorCoroutineDispatcher
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.channels.onFailure
 import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import org.apache.kafka.clients.producer.Callback
@@ -118,6 +112,7 @@ private enum class ProducerFlowState { ACTIVE, DONE_COLLECTING, COMPLETE }
  *                  +---------------------------------------------------+
  * ```
  */
+@OptIn(DelicateCoroutinesApi::class)
 private fun <Key, Value> Flow<ProducerRecord<Key, Value>>.produceImpl(
   settings: PublisherSettings<Key, Value>,
   stopOnError: Boolean,
@@ -125,6 +120,12 @@ private fun <Key, Value> Flow<ProducerRecord<Key, Value>>.produceImpl(
   createProducer: (suspend (PublisherSettings<Key, Value>) -> Producer<Key, Value>)?
 ): Flow<Result<RecordMetadata>> = channelFlow {
   val producerId = "reactor-kafka-sender-${System.identityHashCode(this)}"
+  val inFlight = AtomicInteger(0)
+  val delayedThrowable = AtomicReference<List<Throwable>>(emptyList())
+  val state = AtomicReference(ACTIVE)
+  val context = currentCoroutineContext()
+  val handler = context[CoroutineExceptionHandler]
+
   val producerContext: ExecutorCoroutineDispatcher =
     Executors.newScheduledThreadPool(1) { runnable ->
       Thread(runnable, producerId).apply {
@@ -143,46 +144,30 @@ private fun <Key, Value> Flow<ProducerRecord<Key, Value>>.produceImpl(
     }
   }
 
-  val inflight = AtomicInteger(0)
-  val delayedThrowable = AtomicReference<List<Throwable>?>(null)
-  val state = AtomicReference(ACTIVE)
-  val ctx = currentCoroutineContext()
-  val handler = ctx[CoroutineExceptionHandler]
-
-  /*
-   * **If** in DONE State we transition to COMPLETE.
-   * We close the channelFlow so that the FlowCollector can complete.
-   * In case of any errors, the FlowCollector will see non-null Throwable.
-   */
-  fun doneToComplete() {
-    if (inflight.get() == 0 && state.compareAndSet(DONE_COLLECTING, COMPLETE)) {
-      close(delayedThrowable.getAll(null))
-    }
-  }
-
-  /*
-   * **If** in ACTIVE State then we transition to DONE_COLLECTING the provided records,
-   * and in-case all inflight records are already acknowledged then we also transition to COMPLETE.
-   */
-  fun activeToDoneOrCompleteIfAlreadyDone() {
-    if (state.compareAndSet(ACTIVE, DONE_COLLECTING)) {
-        doneToComplete()
-    }
-  }
-
-  /*
-   * Set COMPLETE State, and close the channelFlow so that the FlowCollector can complete.
-   * If the channelFlow was already closed, we send the error to the `CoroutineExceptionHandler`,
-   * which is null is set to the default logging CoroutineExceptionHandler.
-   */
-  fun complete(errorOrNull: Throwable?) {
-    val e = delayedThrowable.getAll(errorOrNull)
-    log.trace("Sender failed with exception", e)
-    state.getAndSet(COMPLETE)
-    val alreadyClosed = !close(e)
+  /* Close the channelFlow, or send the error to the `CoroutineExceptionHandler` if already closed. */
+  fun closeChannel(causeOrNull: Throwable?) {
+    val e = delayedThrowable.get()?.fold(causeOrNull, Throwable?::add)
+    val alreadyClosed = !this@channelFlow.close(e)
     if (alreadyClosed && e != null) {
-      handler?.handleException(ctx, e)
+      handler?.handleException(context, e)
     }
+  }
+
+  /* **If** in DONE State we transition to COMPLETE.
+   * We close the channelFlow so that the FlowCollector can complete.
+   * In case of any errors, the FlowCollector will see non-null Throwable.*/
+  fun attemptDoneToComplete() {
+    if (inFlight.get() == 0 && state.compareAndSet(DONE_COLLECTING, COMPLETE)) {
+      closeChannel(null)
+    }
+  }
+
+  /* Set COMPLETE State, and close the channelFlow so that the FlowCollector can complete.
+   * If the channelFlow was already closed, we send the error to the `CoroutineExceptionHandler`,
+   * which is null is set to the default logging CoroutineExceptionHandler. */
+  fun complete(causeOrNull: Throwable) {
+    state.getAndSet(COMPLETE)
+    closeChannel(causeOrNull)
   }
 
   fun delayError(exception: Throwable) {
@@ -192,67 +177,60 @@ private fun <Key, Value> Flow<ProducerRecord<Key, Value>>.produceImpl(
     }
   }
 
-  fun logTransaction(record: ProducerRecord<Key, Value>, state: String) =
-    if (settings.isTransactional()) {
-      log.trace(
-        "Transactional send completed for producer {} in state {} inflight {}: {}",
-        settings.transactionalId(),
-        state,
-        inflight,
-        record
-      )
-    } else Unit
-
-  catch { exception ->
+  fun checkException(exception: Throwable, orElse: () -> Unit = {}) {
     when {
       exception is CancellationException -> Unit
       stopOnError || settings.isFatal(exception) -> complete(exception)
-      else -> delayError(exception)
-    }
-  }.collect { record: ProducerRecord<Key, Value> ->
-    if (state.get() == COMPLETE) {
-      val dropped = onPublisherRecordDropped ?: settings.onPublisherRecordDropped
-      return@collect dropped(log, record)
-    }
-
-    logTransaction(record, "initiated")
-
-    val callback = Callback { metadata, exception ->
-      logTransaction(record, "completed")
-      inflight.decrementAndGet()
-      when {
-        state.get() === COMPLETE || isClosedForSend ->
-          complete(IllegalStateException("state.get() === COMPLETE || isClosedForSend: bug in FlowProduce. Contact maintainers."))
-        exception != null -> {
-          log.trace("Sender failed: ", exception)
-          when {
-            exception is CancellationException -> Unit
-            stopOnError || settings.isFatal(exception) -> complete(null)
-            else -> {
-              delayError(exception)
-              trySendBlocking(Result.failure(exception)).getOrThrow()
-              doneToComplete()
-            }
-          }
-        }
-
-        else -> {
-          trySendBlocking(Result.success(metadata)).getOrThrow()
-          doneToComplete()
-        }
+      else -> {
+        delayError(exception)
+        orElse()
       }
-    }
-
-    try {
-      runInterruptibleAtomic(producerContext) {
-        inflight.incrementAndGet()
-        producer.send(record, callback)
-      }
-    } catch (e: Exception) {
-      callback.onCompletion(null, e)
     }
   }
-  activeToDoneOrCompleteIfAlreadyDone()
+
+  val callback = Callback { metadata, exception ->
+    inFlight.decrementAndGet()
+    when {
+      // Dropping RecordMetadata, should we add listener?
+      state.get() === COMPLETE && stopOnError -> Unit
+      state.get() === COMPLETE || isClosedForSend ->
+        complete(IllegalStateException("state.get() === COMPLETE || isClosedForSend: bug in FlowProduce. Contact maintainers."))
+
+      exception != null -> {
+        log.trace("Sender failed: ", exception)
+        checkException(exception) {
+          trySendBlocking(Result.failure(exception)).getOrThrow()
+          attemptDoneToComplete()
+        }
+      }
+
+      else -> {
+        trySendBlocking(Result.success(metadata)).getOrThrow()
+        attemptDoneToComplete()
+      }
+    }
+  }
+
+  catch { exception -> checkException(exception) }
+    .collect { record: ProducerRecord<Key, Value> ->
+      if (state.get() == COMPLETE) {
+        val dropped = onPublisherRecordDropped ?: settings.onPublisherRecordDropped
+        dropped(log, record)
+      }
+      try {
+        runInterruptible(producerContext) {
+          inFlight.incrementAndGet()
+          producer.send(record, callback)
+        }
+      } catch (e: Exception) {
+        callback.onCompletion(null, e)
+      }
+    }
+
+  /* **If** in DONE State we transition to COMPLETE.
+   * We close the channelFlow so that the FlowCollector can complete.
+   * In case of any errors, the FlowCollector will see non-null Throwable. */
+  if (state.compareAndSet(ACTIVE, DONE_COLLECTING)) attemptDoneToComplete()
   awaitClose {
     listOf(
       runCatching { settings.producerListener.producerRemoved(producerId, producer) },
@@ -278,7 +256,3 @@ private fun Throwable?.add(other: Throwable?): Throwable? =
     other?.let { addSuppressed(it) }
   } ?: other
 
-private fun AtomicReference<List<Throwable>?>.getAll(other: Throwable?): Throwable? =
-  get()?.fold(other) { acc, result ->
-    acc.add(result)
-  }
