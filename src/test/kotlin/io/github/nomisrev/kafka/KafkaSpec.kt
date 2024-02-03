@@ -8,6 +8,7 @@ import io.github.nomisRev.kafka.describeTopic
 import io.github.nomisRev.kafka.publisher.Acks
 import io.github.nomisRev.kafka.publisher.KafkaPublisher
 import io.github.nomisRev.kafka.publisher.PublisherSettings
+import io.github.nomisRev.kafka.publisher.TransactionalScope
 import io.github.nomisRev.kafka.receiver.AutoOffsetReset
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
@@ -35,6 +36,8 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.TestInstance
 import java.time.Duration
 import java.util.Properties
 import java.util.UUID
@@ -46,6 +49,7 @@ import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.seconds
 
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class KafkaSpec {
 
   companion object {
@@ -53,9 +57,15 @@ abstract class KafkaSpec {
     private val transactionTimeoutInterval = 1.seconds
 
     @AfterAll
+    @JvmStatic
     fun destroy() {
-      publisher.close()
       kafka.stop()
+    }
+    
+    @BeforeAll
+    @JvmStatic
+    fun setup() {
+      kafka.start()
     }
 
     @JvmStatic
@@ -73,10 +83,12 @@ abstract class KafkaSpec {
         withEnv("KAFKA_AUTHORIZER_CLASS_NAME", "kafka.security.authorizer.AclAuthorizer")
         withEnv("KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND", "true")
         withReuse(true)
-        start()
       }
-
-    val receiverSetting: ReceiverSettings<String, String> =
+    
+    fun KafkaReceiver(): KafkaReceiver<String, String> =
+      KafkaReceiver(receiverSetting())
+    
+    fun receiverSetting(): ReceiverSettings<String, String> =
       ReceiverSettings(
         bootstrapServers = kafka.bootstrapServers,
         keyDeserializer = StringDeserializer(),
@@ -86,7 +98,7 @@ abstract class KafkaSpec {
         pollTimeout = consumerPollingTimeout
       )
 
-    val publisherSettings = PublisherSettings(
+    fun publisherSettings() = PublisherSettings(
       bootstrapServers = kafka.bootstrapServers,
       keySerializer = StringSerializer(),
       valueSerializer = StringSerializer(),
@@ -96,8 +108,8 @@ abstract class KafkaSpec {
       }
     )
 
-    @JvmStatic
-    val publisher = KafkaPublisher(publisherSettings)
+    suspend fun <A> publishScope(block: suspend TransactionalScope<String, String>.() -> A): A =
+      KafkaPublisher(publisherSettings()).use { it.publishScope(block) }
   }
 
   private fun adminProperties(): Properties = Properties().apply {
@@ -116,8 +128,9 @@ abstract class KafkaSpec {
   fun publisherSettings(
     acknowledgments: Acks = Acks.One,
     properties: Properties.() -> Unit
-  ): PublisherSettings<String, String> =
-    publisherSettings.copy(
+  ): PublisherSettings<String, String> {
+    val publisherSettings = publisherSettings()
+    return publisherSettings().copy(
       acknowledgments = acknowledgments,
       properties = Properties().apply {
         properties()
@@ -127,6 +140,7 @@ abstract class KafkaSpec {
         put(ProducerConfig.ACKS_CONFIG, acknowledgments.value)
       }
     )
+  }
 
   //<editor-fold desc="utilities">
   private fun nextTopicName(): String =
@@ -163,7 +177,9 @@ abstract class KafkaSpec {
     }
   }
 
-  object boom : RuntimeException("Boom!")
+  object Boom : RuntimeException("Boom!") {
+    private fun readResolve(): Any = Boom
+  }
 
   @JvmName("publishPairsToKafka")
   suspend fun publishToKafka(
@@ -175,7 +191,7 @@ abstract class KafkaSpec {
     })
 
   suspend fun publishToKafka(messages: Iterable<ProducerRecord<String, String>>): Unit =
-    publisher.publishScope {
+    publishScope {
       offer(messages)
     }
   //</editor-fold>
@@ -198,7 +214,7 @@ abstract class KafkaSpec {
 
   suspend fun NewTopic.shouldBeEmpty() {
     val res = withTimeoutOrNull(100) {
-      KafkaReceiver(receiverSetting)
+      KafkaReceiver()
         .receive(name())
         .take(1)
         .toList()
@@ -208,7 +224,7 @@ abstract class KafkaSpec {
 
   suspend infix fun NewTopic.assertHasRecord(records: ProducerRecord<String, String>) {
     assertEquals(
-      KafkaReceiver(receiverSetting)
+      KafkaReceiver()
         .receive(name())
         .map {
           it.apply { offset.acknowledge() }
@@ -222,7 +238,7 @@ abstract class KafkaSpec {
 
   suspend infix fun NewTopic.assertHasRecords(records: Iterable<ProducerRecord<String, String>>) {
     assertEquals(
-      KafkaReceiver(receiverSetting)
+      KafkaReceiver()
         .receive(name())
         .map { record ->
           record
@@ -243,7 +259,7 @@ abstract class KafkaSpec {
     val expected =
       records.flatten().groupBy({ it.partition() }) { it.value() }.mapValues { it.value.toSet() }
     assertEquals(
-      KafkaReceiver(receiverSetting)
+      KafkaReceiver()
         .receive(name())
         .map { record ->
           record.also { record.offset.acknowledge() }
@@ -273,12 +289,11 @@ abstract class KafkaSpec {
         override fun beginTransaction() =
           producer.beginTransaction()
 
-        @Suppress("DEPRECATION")
-        @Deprecated("Deprecated in Java")
+        @Suppress("OVERRIDE_DEPRECATION")
         override fun sendOffsetsToTransaction(
           offsets: MutableMap<TopicPartition, OffsetAndMetadata>?,
           consumerGroupId: String?
-        ) = producer.sendOffsetsToTransaction(offsets, consumerGroupId)
+        ) = producer.sendOffsetsToTransaction(offsets, ConsumerGroupMetadata(consumerGroupId))
 
         override fun sendOffsetsToTransaction(
           offsets: MutableMap<TopicPartition, OffsetAndMetadata>?,
@@ -304,7 +319,7 @@ abstract class KafkaSpec {
           if (failOnNumber != null && record.key() == failOnNumber.toString()) {
             Executors.newScheduledThreadPool(1).schedule(
               {
-                callback.onCompletion(null, boom)
+                callback.onCompletion(null, Boom)
               },
               50,
               TimeUnit.MILLISECONDS

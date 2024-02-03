@@ -39,27 +39,6 @@ public fun <A, B> Flow<ProducerRecord<A, B>>.produce(
 ): Flow<RecordMetadata> =
   produceOrThrow(settings.toPublisherSettings())
 
-/**
- * Sends a record to a Kafka topic in a suspending way.
- *
- * <!--- INCLUDE
- * import arrow.continuations.SuspendApp
- * import io.github.nomisRev.kafka.sendAwait
- * import org.apache.kafka.clients.producer.KafkaProducer
- * import org.apache.kafka.clients.producer.ProducerRecord
- * import org.apache.kafka.common.serialization.StringSerializer
- * import java.util.Properties
- * -->
- * ```kotlin
- * fun main() = SuspendApp {
- *   KafkaProducer(Properties(), StringSerializer(), StringSerializer()).use { producer ->
- *     producer.sendAwait(ProducerRecord("topic-name", "message #1"))
- *     producer.sendAwait(ProducerRecord("topic-name", "message #2"))
- *   }
- * }
- * ```
- * <!--- KNIT example-producer-01.kt -->
- */
 @Deprecated(
   """
     Use KafkaPublisher, and the Publisher DSL instead.
@@ -83,7 +62,6 @@ public suspend fun <A, B> KafkaProducer<A, B>.sendAwait(
 /**
  * KafkaKafkaProducer for [K] - [V] which takes
  */
-@Suppress("FunctionName")
 public fun <K, V> KafkaProducer(setting: ProducerSettings<K, V>): KafkaProducer<K, V> =
   KafkaProducer(setting.properties(), setting.keyDeserializer, setting.valueDeserializer)
 

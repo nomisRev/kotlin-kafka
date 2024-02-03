@@ -61,7 +61,6 @@ import kotlin.time.toJavaDuration
  *       .onSuccess { println("partition: ${it.partition()}, offset: ${it.offset}") }
  *       .onFailure { println("Failed to send: $it") }
  *    }
- *
  * ```
  *
  * @param onPublisherRecordDropped a callback to handle dropped records, by default it uses the one from [PublisherSettings].

@@ -26,7 +26,7 @@ class KafkaPublisherSpec : KafkaSpec() {
     val records = (0..count).map {
       createProducerRecord(it)
     }
-    publisher.publishScope {
+    publishScope {
       offer(records)
     }
 
@@ -39,7 +39,7 @@ class KafkaPublisherSpec : KafkaSpec() {
     val records = (0..count).map {
       createProducerRecord(it)
     }
-    publisher.publishScope {
+    publishScope {
       publish(records)
     }
 
@@ -51,13 +51,13 @@ class KafkaPublisherSpec : KafkaSpec() {
     val record = createProducerRecord(0)
 
     val exception = assertThrows<RuntimeException> {
-      publisher.publishScope<Unit> {
+      publishScope<Unit> {
         offer(record)
-        throw boom
+        throw Boom
       }
     }
 
-    assertEquals(exception, boom)
+    assertEquals(exception, Boom)
     topic.assertHasRecord(record)
   }
 
@@ -65,7 +65,7 @@ class KafkaPublisherSpec : KafkaSpec() {
   fun `A failure in a produce block with a concurrent launch cancels the launch, rethrows the error`() = withTopic {
     val cancelSignal = CompletableDeferred<CancellationException>()
     val exception = assertThrows<RuntimeException> {
-      publisher.publishScope<Unit> {
+      publishScope<Unit> {
         launch(start = UNDISPATCHED) {
           try {
             awaitCancellation()
@@ -74,11 +74,11 @@ class KafkaPublisherSpec : KafkaSpec() {
             throw e
           }
         }
-        throw boom
+        throw Boom
       }
     }
 
-    assertEquals(exception, boom)
+    assertEquals(exception, Boom)
     cancelSignal.await()
   }
 
@@ -87,12 +87,14 @@ class KafkaPublisherSpec : KafkaSpec() {
     val record = createProducerRecord(0)
 
     val exception = assertThrows<RuntimeException> {
-      KafkaPublisher(publisherSettings, stubProducer(failOnNumber = 0)).publishScope {
-        offer(record)
+      KafkaPublisher(publisherSettings(), stubProducer(failOnNumber = 0)).use {
+        it.publishScope {
+          offer(record)
+        }
       }
     }
 
-    assertEquals(exception, boom)
+    assertEquals(exception, Boom)
   }
 
   @Test
@@ -102,13 +104,13 @@ class KafkaPublisherSpec : KafkaSpec() {
       .map(::createProducerRecord)
 
     val exception = assertThrows<RuntimeException> {
-      publisher.publishScope {
+      publishScope {
         publish(records)
-        launch { throw boom }
+        launch { throw Boom }
       }
     }
 
-    assertEquals(exception, boom)
+    assertEquals(exception, Boom)
     topic.assertHasRecords(records)
   }
 
@@ -117,7 +119,7 @@ class KafkaPublisherSpec : KafkaSpec() {
     val record0 = createProducerRecord(0)
     val record1 = createProducerRecord(1)
 
-    KafkaPublisher(publisherSettings, stubProducer(failOnNumber = 0)).use {
+    KafkaPublisher(publisherSettings(), stubProducer(failOnNumber = 0)).use {
       it.publishScope {
         publishCatching(record0)
         offer(record1)
@@ -135,7 +137,7 @@ class KafkaPublisherSpec : KafkaSpec() {
         (base..base + count).map(::createProducerRecord)
       }
 
-    publisher.publishScope {
+    publishScope {
       listOf(
         async { offer(records[0]) },
         async { offer(records[1]) },
@@ -180,13 +182,13 @@ class KafkaPublisherSpec : KafkaSpec() {
         it.publishScope<Unit> {
           transaction {
             publish(records)
-            throw boom
+            throw Boom
           }
         }
       }
     }
 
-    assertEquals(exception, boom)
+    assertEquals(exception, Boom)
     topic.shouldBeEmpty()
   }
 
@@ -203,13 +205,13 @@ class KafkaPublisherSpec : KafkaSpec() {
         it.publishScope {
           transaction {
             offer(records)
-            launch { throw boom }
+            launch { throw Boom }
           }
         }
       }
     }
 
-    assertEquals(exception, boom)
+    assertEquals(exception, Boom)
     topic.shouldBeEmpty()
   }
 
@@ -287,8 +289,8 @@ class KafkaPublisherSpec : KafkaSpec() {
         put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "20000")
       }).use {
         it.publishScope {
-          records.forEach {
-            offer(it)
+          records.forEach { r ->
+            offer(r)
             delay(100)
           }
         }

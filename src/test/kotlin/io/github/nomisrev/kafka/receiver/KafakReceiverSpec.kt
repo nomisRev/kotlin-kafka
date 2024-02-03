@@ -41,7 +41,7 @@ class KafakReceiverSpec : KafkaSpec() {
   fun `All produced records are received`() = withTopic {
     publishToKafka(topic, produced)
     assertEquals(
-      KafkaReceiver(receiverSetting)
+      KafkaReceiver()
         .receive(topic.name())
         .map { record ->
           yield()
@@ -64,7 +64,7 @@ class KafakReceiverSpec : KafkaSpec() {
 
     publishToKafka(producerRecords)
 
-    KafkaReceiver(receiverSetting)
+    KafkaReceiver()
       .receive(topic.name())
       .take(count)
       .onEach { it.offset.acknowledge() }
@@ -81,7 +81,7 @@ class KafakReceiverSpec : KafkaSpec() {
   fun `Should receive all records when subscribing several consumers`() = withTopic {
     publishToKafka(topic, produced)
     val consumer =
-      KafkaReceiver(receiverSetting)
+      KafkaReceiver()
         .receive(topic.name())
         .map {
           yield()
@@ -101,7 +101,7 @@ class KafakReceiverSpec : KafkaSpec() {
   fun `All acknowledged messages are committed on flow completion`() = withTopic {
     publishToKafka(topic, produced)
     val receiver = KafkaReceiver(
-      receiverSetting.copy(
+      receiverSetting().copy(
         commitStrategy = CommitStrategy.BySize(2 * count)
       )
     )
@@ -121,7 +121,7 @@ class KafakReceiverSpec : KafkaSpec() {
   fun `All acknowledged messages are committed on flow failure`() = withTopic {
     publishToKafka(topic, produced)
     val receiver = KafkaReceiver(
-      receiverSetting.copy(
+      receiverSetting().copy(
         commitStrategy = CommitStrategy.BySize(2 * count)
       )
     )
@@ -131,12 +131,12 @@ class KafakReceiverSpec : KafkaSpec() {
           if (index == lastIndex) {
             value.offset.acknowledge()
             assertEquals(receiver.committedCount(topic.name()), 0)
-            throw boom
+            throw Boom
           } else value.offset.acknowledge()
         }
     }
 
-    assertEquals(exception, boom)
+    assertEquals(exception, Boom)
     assertEquals(receiver.committedCount(topic.name()), count.toLong())
   }
 
@@ -145,7 +145,7 @@ class KafakReceiverSpec : KafkaSpec() {
     val scope = this
     publishToKafka(topic, produced)
     val receiver = KafkaReceiver(
-      receiverSetting.copy(
+      receiverSetting().copy(
         commitStrategy = CommitStrategy.BySize(2 * count)
       )
     )
@@ -169,7 +169,7 @@ class KafakReceiverSpec : KafkaSpec() {
   fun `Manual commit also commits all acknowledged offsets`() = withTopic {
     publishToKafka(topic, produced)
     val receiver = KafkaReceiver(
-      receiverSetting.copy(
+      receiverSetting().copy(
         commitStrategy = CommitStrategy.BySize(2 * count)
       )
     )
@@ -186,7 +186,7 @@ class KafakReceiverSpec : KafkaSpec() {
   @Test
   fun receiveAutoAck() = withTopic {
     publishToKafka(topic, produced)
-    val receiver = KafkaReceiver(receiverSetting)
+    val receiver = KafkaReceiver()
 
     receiver.receiveAutoAck(topic.name())
       .flatMapConcat { it }
@@ -199,7 +199,7 @@ class KafakReceiverSpec : KafkaSpec() {
   @Test
   fun `receiveAutoAck does not receive same records`() = withTopic {
     publishToKafka(topic, produced)
-    val receiver = KafkaReceiver(receiverSetting)
+    val receiver = KafkaReceiver()
 
     receiver.receiveAutoAck(topic.name())
       .flatMapConcat { it }

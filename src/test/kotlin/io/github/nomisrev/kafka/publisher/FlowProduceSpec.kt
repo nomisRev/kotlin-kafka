@@ -29,7 +29,7 @@ class FlowProduceSpec : KafkaSpec() {
       .flowOn(Dispatchers.IO)
 
     records
-      .produce(publisherSettings)
+      .produce(publisherSettings())
       .flowOn(Dispatchers.Default)
       .collect()
 
@@ -43,18 +43,18 @@ class FlowProduceSpec : KafkaSpec() {
     val flow = records
       .asFlow()
       .flowOn(Dispatchers.IO)
-      .append { throw boom }
+      .append { throw Boom }
 
     val e = runCatching {
       flow
-        .produce(publisherSettings)
+        .produce(publisherSettings())
         .flowOn(Dispatchers.Default)
         .onEach { count++ }
         .collect()
     }.exceptionOrNull()
 
     assertEquals(records.size, count)
-    assertEquals(boom, e)
+    assertEquals(Boom, e)
     topic.assertHasRecords(records)
   }
 
@@ -67,11 +67,11 @@ class FlowProduceSpec : KafkaSpec() {
     val flow = records
       .asFlow()
       .flowOn(Dispatchers.IO)
-      .append { throw boom }
+      .append { throw Boom }
       .catch { emitAll(records2) }
 
     val count = flow
-      .produce(publisherSettings)
+      .produce(publisherSettings())
       .flowOn(Dispatchers.Default)
       .toList()
 
@@ -91,7 +91,7 @@ class FlowProduceSpec : KafkaSpec() {
 
     val result = runCatching {
       flow
-        .produce(publisherSettings.copy(createProducer = stubProducer(failOnNumber = 5)))
+        .produce(publisherSettings().copy(createProducer = stubProducer(failOnNumber = 5)))
         .flowOn(Dispatchers.Default)
         .onEach { buffer.add(it) }
         .collect()
@@ -99,7 +99,7 @@ class FlowProduceSpec : KafkaSpec() {
 
     assertEquals(records.size, buffer.size)
     assertEquals(buffer.count { it.isFailure }, 1)
-    assertEquals(result.exceptionOrNull(), boom)
+    assertEquals(result.exceptionOrNull(), Boom)
     topic.assertHasRecords(records.toMutableList().apply { removeAt(5) })
   }
 
@@ -114,12 +114,12 @@ class FlowProduceSpec : KafkaSpec() {
       .flowOn(Dispatchers.IO)
 
     flow
-      .produce(publisherSettings.copy(createProducer = stubProducer(failOnNumber = 5)))
+      .produce(publisherSettings().copy(createProducer = stubProducer(failOnNumber = 5)))
       .catch { require(error.complete(it)) { "Only 1 error expected." } }
       .flowOn(Dispatchers.Default)
       .toList()
 
-    assertEquals(boom, error.await())
+    assertEquals(Boom, error.await())
     topic.assertHasRecords(records.toMutableList().apply { removeAt(5) })
   }
 
@@ -132,7 +132,7 @@ class FlowProduceSpec : KafkaSpec() {
       .flowOn(Dispatchers.IO)
 
     records
-      .produceOrThrow(publisherSettings)
+      .produceOrThrow(publisherSettings())
       .flowOn(Dispatchers.Default)
       .collect()
 
@@ -145,16 +145,16 @@ class FlowProduceSpec : KafkaSpec() {
     val flow = records
       .asFlow()
       .flowOn(Dispatchers.IO)
-      .append { throw boom }
+      .append { throw Boom }
 
     val result = runCatching {
       flow
-        .produceOrThrow(publisherSettings)
+        .produceOrThrow(publisherSettings())
         .flowOn(Dispatchers.Default)
         .collect()
     }
 
-    assertEquals(boom, result.exceptionOrNull())
+    assertEquals(Boom, result.exceptionOrNull())
     topic.assertHasRecords(records)
   }
 
@@ -169,12 +169,12 @@ class FlowProduceSpec : KafkaSpec() {
       .flowOn(Dispatchers.IO)
 
     flow
-      .produceOrThrow(publisherSettings.copy(createProducer = stubProducer(failOnNumber = 5)))
+      .produceOrThrow(publisherSettings().copy(createProducer = stubProducer(failOnNumber = 5)))
       .catch { require(error.complete(it)) { "Only 1 error expected." } }
       .flowOn(Dispatchers.Default)
       .toList()
 
-    assertEquals(true, error.isCompleted)
+    assertEquals(Boom, error.await())
     topic.assertHasRecords(records.toMutableList().apply { removeAt(5) })
   }
 }
