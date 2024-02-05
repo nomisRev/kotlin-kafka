@@ -91,7 +91,7 @@ public fun <K, V> kafkaProducer(
   "Use io.github.nomisRev.kafka.publisher.Acks instead",
   ReplaceWith("this", "io.github.nomisRev.kafka.publisher.Acks")
 )
-typealias Acks =
+public typealias Acks =
   io.github.nomisRev.kafka.publisher.Acks
 
 @Deprecated("""
@@ -122,7 +122,7 @@ public data class ProducerSettings<K, V>(
       other?.let { putAll(other) }
     }
 
-  fun toPublisherSettings(): PublisherSettings<K, V> =
+  public fun toPublisherSettings(): PublisherSettings<K, V> =
     PublisherSettings(
       bootstrapServers,
       keyDeserializer,

@@ -46,6 +46,10 @@ configure<JavaPluginExtension> {
   }
 }
 
+kotlin {
+  explicitApi()
+}
+
 tasks {
   withType<DokkaTask>().configureEach {
     outputDirectory.set(rootDir.resolve("docs"))

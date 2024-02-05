@@ -1,5 +1,6 @@
 package io.github.nomisRev.kafka.receiver.internals
 
+import io.github.nomisRev.kafka.receiver.CommitStrategy
 import io.github.nomisRev.kafka.receiver.Offset
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import io.github.nomisRev.kafka.receiver.internals.AckMode.ATMOST_ONCE
@@ -19,6 +20,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart.LAZY
 import kotlinx.coroutines.CoroutineStart.UNDISPATCHED
 import kotlinx.coroutines.Dispatchers.Default
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
@@ -32,6 +34,8 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.handleCoroutineException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.selects.onTimeout
+import kotlinx.coroutines.selects.whileSelect
 import kotlinx.coroutines.withContext
 import org.apache.kafka.clients.consumer.*
 import org.apache.kafka.common.TopicPartition
@@ -72,22 +76,8 @@ internal class EventLoop<K, V>(
   private val channel = Channel<ConsumerRecords<K, V>>()
   private val pollTimeout = settings.pollTimeout.toJavaDuration()
   private val pausedPartitionsByUser: MutableSet<TopicPartition> = HashSet()
-  private val reachedMaxCommitBatchSize = Channel<Unit>(Channel.RENDEZVOUS)
+  private val commitBatchSignal = Channel<Unit>(Channel.RENDEZVOUS)
   private val utmostOnceOffsets = UtmostOnceOffsets()
-
-  /* Takes care of scheduling our commits to Kafka.
-   * It will schedule a commit after `reachedMaxCommitBatchSize` channel signals it has reach the batch size,
-   * or when it times out after the given `commitInterval`.
-   * This way it optimises sending commits to Kafka in an optimised way.
-   * Either every `Duration` or `x` elements, whichever comes first. */
-  private val commitManager = scope.launch(context = Default, start = LAZY) {
-    offsetCommitWorker(
-      ackMode = ackMode,
-      strategy = settings.commitStrategy,
-      commitSignal = reachedMaxCommitBatchSize,
-      commit = ::scheduleCommitIfRequired
-    )
-  }
 
   internal fun receive(): Flow<ConsumerRecords<K, V>> =
     channel.consumeAsFlow()
@@ -96,7 +86,7 @@ internal class EventLoop<K, V>(
         withContext(scope.coroutineContext) { poll() }
         commitManager.start()
       }.onCompletion {
-        reachedMaxCommitBatchSize.close()
+        commitBatchSignal.close()
         withContext(scope.coroutineContext) {
           commitManager.cancelAndJoin()
           consumer.wakeup()
@@ -485,7 +475,7 @@ internal class EventLoop<K, V>(
       TopicPartition(record.topic(), record.partition()),
       record.offset(),
       settings.commitStrategy.size(),
-      reachedMaxCommitBatchSize
+      commitBatchSignal
     )
 
   private inner class CommitOffset(
@@ -525,6 +515,46 @@ internal class EventLoop<K, V>(
     val alreadyClosed = !channel.close(e)
     if (alreadyClosed) {
       handleCoroutineException(outerContext, e)
+    }
+  }
+
+  /**
+   * A suspend function that will schedule [commit] based on the [AckMode], [CommitStrategy] and [commitBatchSignal].
+   * Run in a parallel Job alongside the [EventLoop],
+   * this way we have a separate process managing, and scheduling the commits.
+   *
+   * KotlinX Coroutines exposes a powerful experimental API where we can listen to our [commitBatchSignal],
+   * while racing against a [onTimeout]. This allows for easily committing on whichever event arrives first.
+   */
+  @OptIn(ExperimentalCoroutinesApi::class)
+  private val commitManager = scope.launch(context = Default, start = LAZY) {
+    if (ackMode == MANUAL_ACK || ackMode == AUTO_ACK) {
+      whileSelect {
+        when (settings.commitStrategy) {
+          is CommitStrategy.BySizeOrTime -> {
+            commitBatchSignal.onReceiveCatching {
+              commit()
+              !it.isClosed
+            }
+            onTimeout(settings.commitStrategy.interval) {
+              commit()
+              true
+            }
+          }
+
+          is CommitStrategy.BySize ->
+            commitBatchSignal.onReceiveCatching {
+              commit()
+              !it.isClosed
+            }
+
+          is CommitStrategy.ByTime ->
+            onTimeout(settings.commitStrategy.interval) {
+              commit()
+              true
+            }
+        }
+      }
     }
   }
 }
