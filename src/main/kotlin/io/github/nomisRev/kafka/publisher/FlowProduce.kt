@@ -68,7 +68,7 @@ import kotlin.time.toJavaDuration
  *                 This only occurs when a fatal error occurred, and Flow transitions to COMPLETE.
  * @param createProducer a callback to create a producer, by default it uses the one from [PublisherSettings].
  */
-fun <Key, Value> Flow<ProducerRecord<Key, Value>>.produce(
+public fun <Key, Value> Flow<ProducerRecord<Key, Value>>.produce(
   settings: PublisherSettings<Key, Value>,
   onPublisherRecordDropped: (suspend (Logger, ProducerRecord<Key, Value>) -> Unit)? = null,
   createProducer: (suspend (PublisherSettings<Key, Value>) -> Producer<Key, Value>)? = null
@@ -88,7 +88,7 @@ fun <Key, Value> Flow<ProducerRecord<Key, Value>>.produce(
  * This means we don't have to wait for the acknowledgement before sending the next message,
  * resulting in maximum throughput but still guarantees that the message was sent to Kafka.
  */
-fun <Key, Value> Flow<ProducerRecord<Key, Value>>.produceOrThrow(
+public fun <Key, Value> Flow<ProducerRecord<Key, Value>>.produceOrThrow(
   settings: PublisherSettings<Key, Value>,
   onPublisherRecordDropped: (suspend (Logger, ProducerRecord<Key, Value>) -> Unit)? = null,
   createProducer: (suspend (PublisherSettings<Key, Value>) -> Producer<Key, Value>)? = null

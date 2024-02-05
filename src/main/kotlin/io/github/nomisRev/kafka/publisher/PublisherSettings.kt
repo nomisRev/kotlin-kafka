@@ -27,7 +27,7 @@ import kotlin.time.Duration
  * @param producerListener listener that is called whenever a [Producer] is added, and removed.
  * @see http://kafka.apache.org/documentation.html#producerconfigs
  */
-data class PublisherSettings<Key, Value>(
+public data class PublisherSettings<Key, Value>(
   val bootstrapServers: String,
   val keySerializer: Serializer<Key>,
   val valueSerializer: Serializer<Value>,
@@ -55,7 +55,7 @@ data class PublisherSettings<Key, Value>(
     putAll(properties)
   }
 
-  fun transactionalId(): String? =
+  public fun transactionalId(): String? =
     properties[ProducerConfig.TRANSACTIONAL_ID_CONFIG] as? String
 
   /**
@@ -64,24 +64,24 @@ data class PublisherSettings<Key, Value>(
    * [Producer.initTransactions] is invoked on the producer to initialize
    * transactions before any operations are performed on the publisher.
    */
-  fun isTransactional(): Boolean =
+  public fun isTransactional(): Boolean =
     !transactionalId().isNullOrBlank()
 
   /** Called whenever a [Producer] is added or removed. */
-  interface ProducerListener {
+  public interface ProducerListener {
     /**
      * A new producer was created.
      * @param id the producer id (factory name and client.id separated by a period).
      * @param producer the producer.
      */
-    fun producerAdded(id: String, producer: Producer<*, *>) {}
+    public fun producerAdded(id: String, producer: Producer<*, *>) {}
 
     /**
      * An existing producer was removed.
      * @param id the producer id (factory bean name and client.id separated by a period).
      * @param producer the producer.
      */
-    fun producerRemoved(id: String, producer: Producer<*, *>) {}
+    public fun producerRemoved(id: String, producer: Producer<*, *>) {}
   }
 }
 

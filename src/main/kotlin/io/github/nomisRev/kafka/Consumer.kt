@@ -191,7 +191,7 @@ public fun <K, V> List<ConsumerRecords<K, V>>.offsets(
     "io.github.nomisRev.kafka.receiver.KafkaReceiver"
   )
 )
-@OptIn(FlowPreview::class)
+@OptIn(ExperimentalCoroutinesApi::class)
 public fun <K, V> Flow<KafkaConsumer<K, V>>.subscribeTo(
   name: String,
   dispatcher: CoroutineDispatcher = IO,

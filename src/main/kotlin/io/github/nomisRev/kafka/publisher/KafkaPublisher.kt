@@ -64,6 +64,7 @@ import kotlin.time.toJavaDuration
  *   KafkaPublisher(settings).use { publisher ->
  *     // ... use the publisher
  *     val m: Map<MetricName, Metric> = publisher.metrics()
+ *     println(m)
  *
  *     publisher.publishScope {
  *       // send record without awaiting acknowledgement
@@ -77,7 +78,7 @@ import kotlin.time.toJavaDuration
  * ```
  * <!--- KNIT example-publisher-01.kt -->
  */
-fun <Key, Value> KafkaPublisher(
+public fun <Key, Value> KafkaPublisher(
   settings: PublisherSettings<Key, Value>,
   createProducer: (suspend (PublisherSettings<Key, Value>) -> Producer<Key, Value>)? = null
 ): KafkaPublisher<Key, Value> =
@@ -88,7 +89,7 @@ fun <Key, Value> KafkaPublisher(
  * It has 1 main method, [publishScope] which creates a [PublishScope],
  * and two suspending methods from the [Producer] [partitionsFor], and [metrics].
  */
-interface KafkaPublisher<Key, Value> : AutoCloseable {
+public interface KafkaPublisher<Key, Value> : AutoCloseable {
 
   /**
    * Create and run a [publishScope], which can [PublishScope.offer] and [PublishScope.publish] records to Kafka.
@@ -125,13 +126,13 @@ interface KafkaPublisher<Key, Value> : AutoCloseable {
    * }
    * ```
    */
-  suspend fun <A> publishScope(block: suspend TransactionalScope<Key, Value>.() -> A): A
+  public suspend fun <A> publishScope(block: suspend TransactionalScope<Key, Value>.() -> A): A
 
   /** @see KafkaProducer.partitionsFor */
-  suspend fun partitionsFor(topic: String): List<PartitionInfo>
+  public suspend fun partitionsFor(topic: String): List<PartitionInfo>
 
   /** @see KafkaProducer.metrics */
-  suspend fun metrics(): Map<MetricName, Metric>
+  public suspend fun metrics(): Map<MetricName, Metric>
 }
 
 private class DefaultKafkaPublisher<Key, Value>(

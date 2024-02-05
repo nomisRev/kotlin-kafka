@@ -14,7 +14,7 @@ import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.errors.ProducerFencedException
 
 @DslMarker
-annotation class PublisherDSL
+public annotation class PublisherDSL
 
 /**
  * The DSL, or receiver type, of [KafkaPublisher.publishScope] and [TransactionalScope.transaction].
@@ -24,7 +24,7 @@ annotation class PublisherDSL
  *  - [publish], this gives you less throughput, but waits on the delivery of the messages.
  */
 @PublisherDSL
-interface PublishScope<Key, Value> : CoroutineScope {
+public interface PublishScope<Key, Value> : CoroutineScope {
 
   /**
    * Offer the [record] to Kafka, and immediately return.
@@ -33,7 +33,7 @@ interface PublishScope<Key, Value> : CoroutineScope {
    *
    * @param record to be offered to kafka
    */
-  suspend fun offer(record: ProducerRecord<Key, Value>)
+  public suspend fun offer(record: ProducerRecord<Key, Value>)
 
   /**
    * Publisher a [record] to Kafka, and suspends until acknowledged by kafka.
@@ -44,31 +44,32 @@ interface PublishScope<Key, Value> : CoroutineScope {
    *
    * @param record to be delivered to kafka
    */
-  suspend fun publish(record: ProducerRecord<Key, Value>): RecordMetadata
+  public suspend fun publish(record: ProducerRecord<Key, Value>): RecordMetadata
 
   /**
    * Same as [offer], but for an [Iterable]] of [ProducerRecord].
    * @see offer
    */
-  suspend fun offer(records: Iterable<ProducerRecord<Key, Value>>) =
+  public suspend fun offer(records: Iterable<ProducerRecord<Key, Value>>) {
     records.map { offer(it) }
+  }
 
   /**
    * Same as [publish], but for an [Iterable]] of [ProducerRecord].
    * @see publish
    */
-  suspend fun publish(record: Iterable<ProducerRecord<Key, Value>>): List<RecordMetadata> = coroutineScope {
+  public suspend fun publish(record: Iterable<ProducerRecord<Key, Value>>): List<RecordMetadata> = coroutineScope {
     record.map { async { publish(it) } }.awaitAll()
   }
 
   /** Alias for `runCatching`, and `publish` except rethrows fatal exceptions */
-  suspend fun publishCatching(record: ProducerRecord<Key, Value>): Result<RecordMetadata>
+  public suspend fun publishCatching(record: ProducerRecord<Key, Value>): Result<RecordMetadata>
 
   /**
    * Catch first failure of [publish], except fatal exceptions.
    * Alias for `runCatching`, `publish`, and `awaitAll`, except rethrows fatal exceptions
    */
-  suspend fun publishCatching(record: Iterable<ProducerRecord<Key, Value>>): Result<List<RecordMetadata>>
+  public suspend fun publishCatching(record: Iterable<ProducerRecord<Key, Value>>): Result<List<RecordMetadata>>
 }
 
 /**
@@ -89,7 +90,7 @@ interface PublishScope<Key, Value> : CoroutineScope {
  * then it'll be rethrown from this block and the transaction will be aborted.
  */
 @PublisherDSL
-interface TransactionalScope<Key, Value> : PublishScope<Key, Value> {
+public interface TransactionalScope<Key, Value> : PublishScope<Key, Value> {
 
   /**
    * Create and run a [transaction], which can [PublishScope.offer] and [PublishScope.publish] records to Kafka.
@@ -115,5 +116,5 @@ interface TransactionalScope<Key, Value> : PublishScope<Key, Value> {
    * }
    * ```
    */
-  suspend fun <A> transaction(block: suspend PublishScope<Key, Value>.() -> A): A
+  public suspend fun <A> transaction(block: suspend PublishScope<Key, Value>.() -> A): A
 }
