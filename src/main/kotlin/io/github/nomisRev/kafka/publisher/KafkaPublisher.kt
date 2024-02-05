@@ -64,6 +64,7 @@ import kotlin.time.toJavaDuration
  *   KafkaPublisher(settings).use { publisher ->
  *     // ... use the publisher
  *     val m: Map<MetricName, Metric> = publisher.metrics()
+ *     println(m)
  *
  *     publisher.publishScope {
  *       // send record without awaiting acknowledgement

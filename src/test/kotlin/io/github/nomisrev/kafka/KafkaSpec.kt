@@ -47,7 +47,6 @@ import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
-import kotlin.time.Duration.Companion.INFINITE
 import kotlin.time.Duration.Companion.seconds
 
 
@@ -169,7 +168,7 @@ abstract class KafkaSpec {
     partitions: Int = 4,
     replicationFactor: Short = 1,
     test: suspend TopicTestScope.(NewTopic) -> Unit
-  ): Unit = runTest(timeout = INFINITE) {
+  ): Unit = runTest {
     val topic = NewTopic(nextTopicName(), partitions, replicationFactor).configs(topicConfig)
     admin {
       createTopic(topic)
