@@ -14,10 +14,10 @@ private val logger: Logger =
 
 // TODO Replaced @Synchronized with Mutex & Atomic depending on usages
 internal class CommittableBatch {
-  var outOfOrderCommits = false
-  val consumedOffsets: MutableMap<TopicPartition, Long> = HashMap()
-  val uncommitted: MutableMap<TopicPartition, MutableList<Long>> = HashMap()
-  val deferred: MutableMap<TopicPartition, MutableList<Long>> = HashMap()
+  private var outOfOrderCommits = false
+  private val consumedOffsets: MutableMap<TopicPartition, Long> = HashMap()
+  private val uncommitted: MutableMap<TopicPartition, MutableList<Long>> = HashMap()
+  private val deferred: MutableMap<TopicPartition, MutableList<Long>> = HashMap()
   
   private val latestOffsets: MutableMap<TopicPartition, Long> = HashMap()
   private var batchSize = 0

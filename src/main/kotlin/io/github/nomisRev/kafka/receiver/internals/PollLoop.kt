@@ -12,7 +12,6 @@ import java.time.Duration as JavaDuration
 import java.time.Duration.ofSeconds
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
@@ -21,6 +20,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.CoroutineStart.UNDISPATCHED
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.onClosed
@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.handleCoroutineException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apache.kafka.clients.consumer.*
@@ -45,7 +46,7 @@ import kotlin.time.Duration
  * Testing [ConsumerThread] for internal usage.
  * Will be removed before 1.0.0
  */
-private val DEBUG: Boolean = true
+private const val DEBUG: Boolean = true
 
 private fun checkConsumerThread(msg: String): Unit =
   if (DEBUG) require(
@@ -137,6 +138,7 @@ internal class CommittableOffset<K, V>(
   private val acknowledged = AtomicBoolean(false)
 
   // TODO should throw if called after Flow finished
+  //   Or, onCommitDropped (?)
   override suspend fun commit(): Unit =
     if (maybeUpdateOffset() > 0) suspendCoroutine { cont ->
       loop.commitBatch.addContinuation(cont)
@@ -144,6 +146,7 @@ internal class CommittableOffset<K, V>(
     } else Unit
 
   // TODO should throw if called after Flow finished
+  //    Or, onCommitDropped (?)
   override suspend fun acknowledge() {
     val uncommittedCount = maybeUpdateOffset().toLong()
     if (commitBatchSize in 1..uncommittedCount) {
@@ -151,7 +154,7 @@ internal class CommittableOffset<K, V>(
     }
   }
 
-  private suspend fun maybeUpdateOffset(): Int =
+  private /*suspend*/ fun maybeUpdateOffset(): Int =
     if (acknowledged.compareAndSet(false, true)) loop.commitBatch.updateOffset(topicPartition, offset)
     else loop.commitBatch.batchSize()
 
@@ -172,31 +175,27 @@ internal class EventLoop<K, V>(
   private val awaitingTransaction: AtomicBoolean,
   private val atmostOnceOffsets: AtmostOnceOffsets,
 ) {
-  /** Atomic state to check if we're poll'ing, or back-pressuring */
   private val isPolling = AtomicBoolean(true)
-
-  /** Atomic state to tracks if we've paused, or not. */
-  private val pausedByUs = AtomicBoolean(false)
-
-  /** Channel to which we send records */
-  val channel: Channel<ConsumerRecords<K, V>> = Channel()
-
-  /** Cached pollTimeout, converted from [kotlin.time.Duration] to [java.time.Duration] */
+  private val isPaused = AtomicBoolean(false)
+  val channel = Channel<ConsumerRecords<K, V>>()
   private val pollTimeout = settings.pollTimeout.toJavaDuration()
+  private val pausedPartitionsByUser: MutableSet<TopicPartition> = HashSet()
 
   /**
    * Subscribes to the given [topicNames],
    * and in case of failure we rethrow it through the [Channel] by closing with the caught exception.
    */
+  @OptIn(InternalCoroutinesApi::class)
   suspend fun subscribe(topicNames: Collection<String>): Unit =
     withContext(scope.coroutineContext) {
       try {
         consumer.subscribe(topicNames, RebalanceListener())
       } catch (e: Throwable) {
         logger.error("Subscribing to $topicNames failed", e)
-        val closed = channel.close(e)
-        if (!closed) throw IllegalStateException("Failed to close EventLoop.channel")
-          .apply { addSuppressed(e) }
+        val alreadyClosed = !channel.close(e)
+        if (alreadyClosed) {
+          handleCoroutineException(outerContext, e)
+        }
       }
     }
 
@@ -209,7 +208,7 @@ internal class EventLoop<K, V>(
   @ConsumerThread
   private fun pauseAndWakeupIfNeeded(): Boolean {
     checkConsumerThread("pauseAndWakeupIfNeeded")
-    val pausedNow = !pausedByUs.getAndSet(true)
+    val pausedNow = !isPaused.getAndSet(true)
     val shouldWakeUpConsumer = pausedNow && isPolling.get() && !isRetryingCommit.get()
     logger.debug("checkAndSetPausedByUs: already paused {}, shouldWakeUpConsumer {}", pausedNow, shouldWakeUpConsumer)
     if (shouldWakeUpConsumer) {
@@ -218,41 +217,39 @@ internal class EventLoop<K, V>(
     return pausedNow
   }
 
-  private val pausedByUser: MutableSet<TopicPartition> = HashSet()
-
   @ConsumerThread
   fun poll() {
     if (!isActive.get()) return
 
     try {
-      // Ensure that commits are not queued behind polls since number of poll events is chosen by reactor.
       runCommitIfRequired(false)
 
-      val pauseForDeferred =
+      val pauseForDeferredCommit =
         (settings.maxDeferredCommits > 0 && commitBatch.deferredCount() >= settings.maxDeferredCommits)
-      val shouldPoll: Boolean = if (pauseForDeferred || isRetryingCommit.get()) false else isPolling.get()
+
+      val shouldPoll = if (pauseForDeferredCommit || isRetryingCommit.get()) false else isPolling.get()
 
       if (shouldPoll) {
         if (!awaitingTransaction.get()) {
-          if (pausedByUs.getAndSet(false)) {
+          if (isPaused.getAndSet(false)) {
             val toResume: MutableSet<TopicPartition> = HashSet(consumer.assignment())
-            toResume.removeAll(pausedByUser)
-            pausedByUser.clear()
+            toResume.removeAll(pausedPartitionsByUser)
+            pausedPartitionsByUser.clear()
             consumer.resume(toResume)
             logger.debug("Resumed partitions: {}", toResume)
           }
         } else {
           if (pauseAndWakeupIfNeeded()) {
-            pausedByUser.addAll(consumer.paused())
+            pausedPartitionsByUser.addAll(consumer.paused())
             consumer.pause(consumer.assignment())
             logger.debug("Paused - awaiting transaction")
           }
         }
       } else if (pauseAndWakeupIfNeeded()) {
-        pausedByUser.addAll(consumer.paused())
+        pausedPartitionsByUser.addAll(consumer.paused())
         consumer.pause(consumer.assignment())
         when {
-          pauseForDeferred -> logger.debug("Paused - too many deferred commits")
+          pauseForDeferredCommit -> logger.debug("Paused - too many deferred commits")
           isRetryingCommit.get() -> logger.debug("Paused - commits are retrying")
           else -> logger.debug("Paused - back pressure")
         }
@@ -265,6 +262,8 @@ internal class EventLoop<K, V>(
         ConsumerRecords.empty()
       }
 
+      // Hello AI?
+      // How does poll() get scheduled if we're not polling?
       if (!records.isEmpty) {
         if (settings.maxDeferredCommits > 0) {
           commitBatch.addUncommitted(records)
@@ -289,7 +288,7 @@ internal class EventLoop<K, V>(
                */
               channel.send(records)
               channel.send(ConsumerRecords.empty())
-              if (pausedByUs.get()) {
+              if (isPaused.get()) {
                 consumer.wakeup()
               }
               isPolling.set(true)
@@ -309,21 +308,13 @@ internal class EventLoop<K, V>(
     override fun onPartitionsAssigned(partitions: MutableCollection<TopicPartition>) {
       checkConsumerThread("RebalanceListener.onPartitionsAssigned")
       logger.debug("onPartitionsAssigned {}", partitions)
-      var repausedAll = false
-      if (partitions.isNotEmpty() && pausedByUs.get()) {
+      val repausedAll = partitions.isNotEmpty() && isPaused.get()
+      if (repausedAll) {
         logger.debug("Rebalance during back pressure, re-pausing new assignments")
         consumer.pause(partitions)
-        repausedAll = true
       }
-      if (pausedByUser.isNotEmpty()) {
-        val toRepause = buildList {
-          //It is necessary to re-pause any user-paused partitions that are re-assigned after the rebalance.
-          //Also remove any revoked partitions that the user paused from the userPaused collection.
-          pausedByUser.forEach { tp ->
-            if (partitions.contains(tp)) add(tp)
-            else pausedByUser.remove(tp)
-          }
-        }
+      if (pausedPartitionsByUser.isNotEmpty()) {
+        val toRepause = partitionsToRepause(partitions)
         if (!repausedAll && toRepause.isNotEmpty()) {
           consumer.pause(toRepause)
         }
@@ -335,13 +326,25 @@ internal class EventLoop<K, V>(
       traceCommitted(partitions)
     }
 
+
     @ConsumerThread
-    override fun onPartitionsRevoked(partitions: MutableCollection<TopicPartition>) {
+    override fun onPartitionsRevoked(partitions: Collection<TopicPartition>) {
       checkConsumerThread("RebalanceListener.onPartitionsRevoked")
       logger.debug("onPartitionsRevoked {}", partitions)
       partitionsRevoked(partitions)
       commitBatch.onPartitionsRevoked(partitions)
     }
+
+    /**
+     * It is necessary to re-pause any user-paused partitions that are re-assigned after the rebalance.
+     * Also remove any revoked partitions that the user paused from the userPaused collection. */
+    private fun partitionsToRepause(partitions: Collection<TopicPartition>): List<TopicPartition> =
+      buildList {
+        pausedPartitionsByUser.forEach { tp ->
+          if (partitions.contains(tp)) add(tp)
+          else pausedPartitionsByUser.remove(tp)
+        }
+      }
   }
 
   @ConsumerThread
@@ -438,7 +441,7 @@ internal class EventLoop<K, V>(
    * so we immediately commit the message before sending it to the [Channel].
    * This is blocking, and invoke the relevant handlers in case of [commitSuccess] or [commitFailure].
    */
-  private fun commitSync(commitArgs: CommittableBatch.CommitArgs): Unit {
+  private fun commitSync(commitArgs: CommittableBatch.CommitArgs) {
     runCatching {
       logger.debug("Sync committing: {}", commitArgs.offsets)
       // TODO check if this should be runInterruptible ??
@@ -477,12 +480,12 @@ internal class EventLoop<K, V>(
     if (!isRetriableCommit(exception) && consecutiveCommitFailures.incrementAndGet() < settings.maxCommitAttempts) {
       logger.debug("Commit failed with exception $exception, zero retries remaining")
       schedulePollAfterRetrying()
-      val callbackEmitters: List<Continuation<Unit>>? = commitArgs.continuations
-      if (callbackEmitters.isNullOrEmpty()) channel.close(exception)
+      val continuations = commitArgs.continuations
+      if (continuations.isNullOrEmpty()) channel.close(exception)
       else {
         commitPending.set(false)
         commitBatch.restoreOffsets(commitArgs, false)
-        callbackEmitters.forEach { cont ->
+        continuations.forEach { cont ->
           cont.resumeWithException(exception)
         }
       }
@@ -535,14 +538,12 @@ internal class EventLoop<K, V>(
       /**
        * [AckMode.EXACTLY_ONCE] offsets are committed by a producer, consumer may be closed immediately.
        * For all other [AckMode] we need to commit all [ReceiverRecord] [Offset.acknowledge].
-       * Since we want to perform this in an optimal way
-       */
+       * Since we want to perform this in an optimal way. */
       if (ackMode != EXACTLY_ONCE) {
         runCommitIfRequired(forceCommit)
         /**
          * The SDK doesn't send commit requests, unless we also poll.
-         * So poll for 1 millis, until no more commitsInProgress.
-         */
+         * So poll for 1 millis, until no more commitsInProgress. */
         while (asyncCommitsInProgress.get() > 0 && closeEndTime - System.currentTimeMillis() > 0) {
           consumer.poll(JavaDuration.ofMillis(1))
         }
