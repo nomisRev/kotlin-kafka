@@ -1,4 +1,5 @@
 @file:JvmName("Consumer")
+@file:Suppress("DEPRECATION")
 
 package io.github.nomisRev.kafka
 

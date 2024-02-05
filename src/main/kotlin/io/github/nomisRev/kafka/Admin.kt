@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package io.github.nomisRev.kafka
 
 import java.util.Properties
@@ -59,7 +61,7 @@ public suspend fun Admin.createTopic(
 public suspend fun Admin.createTopic(
   topic: Iterable<NewTopic>,
   option: CreateTopicsOptions = CreateTopicsOptions(),
-): Unit {
+) {
   createTopics(topic.toList(), option).all().await()
 }
 
@@ -72,7 +74,7 @@ public suspend fun Admin.topicExists(
 public suspend fun Admin.deleteTopic(
   name: String,
   options: DeleteTopicsOptions = DeleteTopicsOptions(),
-): Unit {
+) {
   deleteTopics(listOf(name), options).all().await()
 }
 

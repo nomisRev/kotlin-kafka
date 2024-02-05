@@ -1,6 +1,6 @@
 package io.github.nomisRev.kafka.receiver
 
-import io.github.nomisRev.kafka.receiver.internals.PollLoop
+import io.github.nomisRev.kafka.receiver.internals.EventLoop
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -41,22 +41,22 @@ private class DefaultKafkaReceiver<K, V>(private val settings: ReceiverSettings<
 
   @OptIn(ExperimentalCoroutinesApi::class)
   override fun receive(topicNames: Collection<String>): Flow<ReceiverRecord<K, V>> =
-    scopedConsumer(settings.groupId) { scope, consumer ->
-      val loop = PollLoop(topicNames, settings, consumer, scope, currentCoroutineContext())
+    consumer(settings.groupId) { scope, consumer ->
+      val loop = EventLoop(topicNames, settings, consumer, scope, currentCoroutineContext())
       loop.receive()
         .flatMapConcat { records ->
           records.map { record ->
-            ReceiverRecord(record, loop.toCommittableOffset(record))
+            ReceiverRecord(record, loop.offsetFromRecord(record))
           }.asFlow()
         }
     }
 
   override fun receiveAutoAck(topicNames: Collection<String>): Flow<Flow<ConsumerRecord<K, V>>> =
-    scopedConsumer(settings.groupId) { scope, consumer ->
-      val loop = PollLoop(topicNames, settings, consumer, scope, currentCoroutineContext())
+    consumer(settings.groupId) { scope, consumer ->
+      val loop = EventLoop(topicNames, settings, consumer, scope, currentCoroutineContext())
       loop.receive().map { records ->
         records.asFlow()
-          .onCompletion { records.forEach { loop.toCommittableOffset(it).acknowledge() } }
+          .onCompletion { records.forEach { loop.offsetFromRecord(it).acknowledge() } }
       }
     }
 
@@ -81,7 +81,7 @@ private class DefaultKafkaReceiver<K, V>(private val settings: ReceiverSettings<
    * it gets lazily initialized when the [Flow] is collected and gets closed when the flow terminates.
    */
   @OptIn(ExperimentalCoroutinesApi::class)
-  private fun <A> scopedConsumer(
+  private fun <A> consumer(
     groupId: String,
     block: suspend (CoroutineScope, KafkaConsumer<K, V>) -> Flow<A>
   ): Flow<A> = flow {
