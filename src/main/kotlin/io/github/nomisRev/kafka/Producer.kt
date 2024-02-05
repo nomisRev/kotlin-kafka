@@ -59,49 +59,31 @@ public suspend fun <A, B> KafkaProducer<A, B>.sendAwait(
     }
   }
 
-/**
- * KafkaKafkaProducer for [K] - [V] which takes
- */
+@Deprecated("""
+  Use KafkaPublisher, and the Publisher DSL instead.
+  This will be removed in 1.0.0.
+""",
+  ReplaceWith(
+    "KafkaProducer(setting.properties(), setting.keyDeserializer, setting.valueDeserializer)",
+    "org.apache.kafka.clients.producer.KafkaProducer"
+  )
+)
 public fun <K, V> KafkaProducer(setting: ProducerSettings<K, V>): KafkaProducer<K, V> =
   KafkaProducer(setting.properties(), setting.keyDeserializer, setting.valueDeserializer)
 
-/**
- * Will automatically close, and flush when finished streaming.
- * The [Flow] will close when the [KafkaProducer] is consumed from the [Flow].
- *
- * This means that the [KafkaProducer] will not be closed for a synchronous running stream, but
- * when running the [Flow] is offloaded in a separate Coroutine it's prone to be collected, closed
- * and flushed. In the example below we construct a producer stream that produces 100 indexed
- * messages.
- *
- * ```kotlin
- * fun <Key, Value> KafkaProducer<Key, Value>.produce(topicName: String, count: Int): Flow<Unit> =
- *   (0..count).asFlow().map { sendAwait(ProducerRecord(topicName, "message #it")) }
- *
- * val producerStream = kafkaProducer(Properties(), StringSerializer(), StringSerializer())
- *   .flatMapConcat { producer -> producer.produce("topic-name", 100) }
- * ```
- *
- * Here the `KafkaProducer` will only get collected (and closed/flushed) when all 100 messages
- * were produced.
- *
- * **DO NOT** If instead we'd do something like the following, where we offload in a buffer then
- * the `KafkaProducer` gets collected into the buffer and thus closed/flushed.
- *
- * ```kotlin
- * kafkaProducer(Properties(), StringSerializer(), StringSerializer()).buffer(10)
- * ```
- */
+@Deprecated("""
+  Use KafkaPublisher, and the Publisher DSL instead.
+  This will be removed in 1.0.0.
+""",
+  ReplaceWith(
+    "KafkaProducer(setting.properties(), setting.keyDeserializer, setting.valueDeserializer).asFlow()",
+    "org.apache.kafka.clients.producer.KafkaProducer"
+  )
+)
 public fun <K, V> kafkaProducer(
   setting: ProducerSettings<K, V>,
 ): Flow<KafkaProducer<K, V>> = flow {
-  KafkaProducer(setting).use { producer ->
-    try {
-      emit(producer)
-    } finally {
-      producer.flush()
-    }
-  }
+  KafkaProducer(setting).asFlow()
 }
 
 @Deprecated(
@@ -111,13 +93,18 @@ public fun <K, V> kafkaProducer(
 typealias Acks =
   io.github.nomisRev.kafka.publisher.Acks
 
-/**
- * A type-safe constructor for [KafkaProducer] settings.
- * It forces you to specify the bootstrapServer, and serializers for [K] and [V].
- * These are the minimum requirements for constructing a valid [KafkaProducer].
- *
- * @see http://kafka.apache.org/documentation.html#producerconfigs
- */
+@Deprecated("""
+  This has moved package, and has been renamed to PublisherSettings.
+  The constructor has the same names, and thus matches the signature,
+  and can easily be replaced. By using the PublisherSettings instead.
+  
+  This will be removed in 1.0.0
+""",
+  ReplaceWith(
+    "PublisherSettings(bootstrapServers, keyDeserializer, valueDeserializer, acks, other)",
+    "io.github.nomisRev.kafka.publisher.PublisherSettings"
+  )
+)
 public data class ProducerSettings<K, V>(
   val bootstrapServers: String,
   val keyDeserializer: Serializer<K>,
