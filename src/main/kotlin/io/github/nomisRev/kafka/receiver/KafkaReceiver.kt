@@ -3,7 +3,6 @@ package io.github.nomisRev.kafka.receiver
 import io.github.nomisRev.kafka.receiver.internals.PollLoop
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import org.apache.kafka.clients.consumer.Consumer
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.slf4j.Logger
@@ -11,7 +10,6 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.concurrent.ThreadFactory
 import java.util.concurrent.atomic.AtomicLong
-import java.util.concurrent.atomic.AtomicReference
 
 // TODO Copied name from reactor-kafka,
 //  conflict with org.apache.kafka.clients.consumer.KafkaConsumer,
@@ -43,7 +41,7 @@ private class DefaultKafkaReceiver<K, V>(private val settings: ReceiverSettings<
 
   @OptIn(ExperimentalCoroutinesApi::class)
   override fun receive(topicNames: Collection<String>): Flow<ReceiverRecord<K, V>> =
-    scopedConsumer(settings.groupId) { scope, dispatcher, consumer ->
+    scopedConsumer(settings.groupId) { scope, consumer ->
       val loop = PollLoop(topicNames, settings, consumer, scope, currentCoroutineContext())
       loop.receive()
         .flatMapConcat { records ->
@@ -54,7 +52,7 @@ private class DefaultKafkaReceiver<K, V>(private val settings: ReceiverSettings<
     }
 
   override fun receiveAutoAck(topicNames: Collection<String>): Flow<Flow<ConsumerRecord<K, V>>> =
-    scopedConsumer(settings.groupId) { scope, dispatcher, consumer ->
+    scopedConsumer(settings.groupId) { scope, consumer ->
       val loop = PollLoop(topicNames, settings, consumer, scope, currentCoroutineContext())
       loop.receive().map { records ->
         records.asFlow()
@@ -83,9 +81,9 @@ private class DefaultKafkaReceiver<K, V>(private val settings: ReceiverSettings<
    * it gets lazily initialized when the [Flow] is collected and gets closed when the flow terminates.
    */
   @OptIn(ExperimentalCoroutinesApi::class)
-  fun <A> scopedConsumer(
+  private fun <A> scopedConsumer(
     groupId: String,
-    block: suspend (CoroutineScope, ExecutorCoroutineDispatcher, KafkaConsumer<K, V>) -> Flow<A>
+    block: suspend (CoroutineScope, KafkaConsumer<K, V>) -> Flow<A>
   ): Flow<A> = flow {
     kafkaConsumerDispatcher(groupId).use { dispatcher: ExecutorCoroutineDispatcher ->
       val job = Job()
@@ -93,7 +91,7 @@ private class DefaultKafkaReceiver<K, V>(private val settings: ReceiverSettings<
       try {
         withContext(dispatcher) {
           KafkaConsumer(settings.toProperties(), settings.keyDeserializer, settings.valueDeserializer)
-        }.use { emit(block(scope, dispatcher, it)) }
+        }.use { emit(block(scope, it)) }
       } finally {
         job.cancelAndJoin()
       }

@@ -8,14 +8,16 @@ import io.github.nomisRev.kafka.describeTopic
 import io.github.nomisRev.kafka.publisher.Acks
 import io.github.nomisRev.kafka.publisher.KafkaPublisher
 import io.github.nomisRev.kafka.publisher.PublisherSettings
+import io.github.nomisRev.kafka.publisher.TransactionalScope
 import io.github.nomisRev.kafka.receiver.AutoOffsetReset
 import io.github.nomisRev.kafka.receiver.KafkaReceiver
 import io.github.nomisRev.kafka.receiver.ReceiverSettings
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.count
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeoutOrNull
 import org.apache.kafka.clients.admin.Admin
 import org.apache.kafka.clients.admin.AdminClientConfig
@@ -35,6 +37,8 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.TestInstance
 import java.time.Duration
 import java.util.Properties
 import java.util.UUID
@@ -43,9 +47,11 @@ import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
+import kotlin.time.Duration.Companion.INFINITE
 import kotlin.time.Duration.Companion.seconds
 
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class KafkaSpec {
 
   companion object {
@@ -53,9 +59,15 @@ abstract class KafkaSpec {
     private val transactionTimeoutInterval = 1.seconds
 
     @AfterAll
+    @JvmStatic
     fun destroy() {
-      publisher.close()
       kafka.stop()
+    }
+    
+    @BeforeAll
+    @JvmStatic
+    fun setup() {
+      kafka.start()
     }
 
     @JvmStatic
@@ -73,10 +85,12 @@ abstract class KafkaSpec {
         withEnv("KAFKA_AUTHORIZER_CLASS_NAME", "kafka.security.authorizer.AclAuthorizer")
         withEnv("KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND", "true")
         withReuse(true)
-        start()
       }
-
-    val receiverSetting: ReceiverSettings<String, String> =
+    
+    fun KafkaReceiver(): KafkaReceiver<String, String> =
+      KafkaReceiver(receiverSetting())
+    
+    fun receiverSetting(): ReceiverSettings<String, String> =
       ReceiverSettings(
         bootstrapServers = kafka.bootstrapServers,
         keyDeserializer = StringDeserializer(),
@@ -86,7 +100,7 @@ abstract class KafkaSpec {
         pollTimeout = consumerPollingTimeout
       )
 
-    val publisherSettings = PublisherSettings(
+    fun publisherSettings() = PublisherSettings(
       bootstrapServers = kafka.bootstrapServers,
       keySerializer = StringSerializer(),
       valueSerializer = StringSerializer(),
@@ -96,10 +110,8 @@ abstract class KafkaSpec {
       }
     )
 
-    val producer = KafkaProducer<String, String>(publisherSettings.properties())
-
-    @JvmStatic
-    val publisher = KafkaPublisher(publisherSettings) { producer }
+    suspend fun <A> publishScope(block: suspend TransactionalScope<String, String>.() -> A): A =
+      KafkaPublisher(publisherSettings()).use { it.publishScope(block) }
   }
 
   private fun adminProperties(): Properties = Properties().apply {
@@ -118,8 +130,9 @@ abstract class KafkaSpec {
   fun publisherSettings(
     acknowledgments: Acks = Acks.One,
     properties: Properties.() -> Unit
-  ): PublisherSettings<String, String> =
-    publisherSettings.copy(
+  ): PublisherSettings<String, String> {
+    val publisherSettings = publisherSettings()
+    return publisherSettings().copy(
       acknowledgments = acknowledgments,
       properties = Properties().apply {
         properties()
@@ -129,6 +142,7 @@ abstract class KafkaSpec {
         put(ProducerConfig.ACKS_CONFIG, acknowledgments.value)
       }
     )
+  }
 
   //<editor-fold desc="utilities">
   private fun nextTopicName(): String =
@@ -138,6 +152,12 @@ abstract class KafkaSpec {
     val topic: NewTopic,
     scope: CoroutineScope
   ) : CoroutineScope by scope {
+    fun produce(count: Int): List<ProducerRecord<String, String>> =
+      produce(0 until count)
+
+    fun produce(range: IntRange): List<ProducerRecord<String, String>> =
+      range.map { createProducerRecord(it) }
+
     fun createProducerRecord(index: Int, partitions: Int = 4): ProducerRecord<String, String> {
       val partition: Int = index % partitions
       return ProducerRecord<String, String>(topic.name(), partition, "$index", "Message $index")
@@ -149,14 +169,12 @@ abstract class KafkaSpec {
     partitions: Int = 4,
     replicationFactor: Short = 1,
     test: suspend TopicTestScope.(NewTopic) -> Unit
-  ): Unit = runBlocking {
+  ): Unit = runTest(timeout = INFINITE) {
     val topic = NewTopic(nextTopicName(), partitions, replicationFactor).configs(topicConfig)
     admin {
       createTopic(topic)
       try {
-        withTimeoutOrNull(40.seconds) {
-          TopicTestScope(topic, this).test(topic)
-        } ?: throw AssertionError("Timed out after 40 seconds...")
+        TopicTestScope(topic, this@runTest).test(topic)
       } finally {
         topic.shouldBeEmpty()
         deleteTopic(topic.name())
@@ -164,7 +182,9 @@ abstract class KafkaSpec {
     }
   }
 
-  object boom : RuntimeException("Boom!")
+  object Boom : RuntimeException("Boom!") {
+    private fun readResolve(): Any = Boom
+  }
 
   @JvmName("publishPairsToKafka")
   suspend fun publishToKafka(
@@ -176,7 +196,7 @@ abstract class KafkaSpec {
     })
 
   suspend fun publishToKafka(messages: Iterable<ProducerRecord<String, String>>): Unit =
-    publisher.publishScope {
+    publishScope {
       offer(messages)
     }
   //</editor-fold>
@@ -199,7 +219,7 @@ abstract class KafkaSpec {
 
   suspend fun NewTopic.shouldBeEmpty() {
     val res = withTimeoutOrNull(100) {
-      KafkaReceiver(receiverSetting)
+      KafkaReceiver()
         .receive(name())
         .take(1)
         .toList()
@@ -209,7 +229,7 @@ abstract class KafkaSpec {
 
   suspend infix fun NewTopic.assertHasRecord(records: ProducerRecord<String, String>) {
     assertEquals(
-      KafkaReceiver(receiverSetting)
+      KafkaReceiver()
         .receive(name())
         .map {
           it.apply { offset.acknowledge() }
@@ -221,9 +241,21 @@ abstract class KafkaSpec {
     shouldBeEmpty()
   }
 
+  suspend infix fun NewTopic.assertHasRecordCount(records: Int) {
+    assertEquals(
+      KafkaReceiver()
+        .receive(name())
+        .map { record -> record.offset.acknowledge() }
+        .take(records)
+        .count(),
+      records
+    )
+    shouldBeEmpty()
+  }
+
   suspend infix fun NewTopic.assertHasRecords(records: Iterable<ProducerRecord<String, String>>) {
     assertEquals(
-      KafkaReceiver(receiverSetting)
+      KafkaReceiver()
         .receive(name())
         .map { record ->
           record
@@ -244,7 +276,7 @@ abstract class KafkaSpec {
     val expected =
       records.flatten().groupBy({ it.partition() }) { it.value() }.mapValues { it.value.toSet() }
     assertEquals(
-      KafkaReceiver(receiverSetting)
+      KafkaReceiver()
         .receive(name())
         .map { record ->
           record.also { record.offset.acknowledge() }
@@ -260,61 +292,62 @@ abstract class KafkaSpec {
 
   //</editor-fold>
   //<editor-fold desc="Description">
-  fun stubProducer(failOnNumber: Int? = null): suspend () -> Producer<String, String> = suspend {
-    object : Producer<String, String> {
-      override fun close() {}
+  fun stubProducer(failOnNumber: Int? = null): suspend (PublisherSettings<String, String>) -> Producer<String, String> =
+    {
+      val producer = KafkaProducer(it.properties(), it.keySerializer, it.valueSerializer)
+      object : Producer<String, String> {
+        override fun close() {}
 
-      override fun close(timeout: Duration?) {}
+        override fun close(timeout: Duration?) {}
 
-      override fun initTransactions() =
-        producer.initTransactions()
+        override fun initTransactions() =
+          producer.initTransactions()
 
-      override fun beginTransaction() =
-        producer.beginTransaction()
+        override fun beginTransaction() =
+          producer.beginTransaction()
 
-      @Suppress("DEPRECATION")
-      @Deprecated("Deprecated in Java")
-      override fun sendOffsetsToTransaction(
-        offsets: MutableMap<TopicPartition, OffsetAndMetadata>?,
-        consumerGroupId: String?
-      ) = producer.sendOffsetsToTransaction(offsets, consumerGroupId)
+        @Suppress("OVERRIDE_DEPRECATION")
+        override fun sendOffsetsToTransaction(
+          offsets: MutableMap<TopicPartition, OffsetAndMetadata>?,
+          consumerGroupId: String?
+        ) = producer.sendOffsetsToTransaction(offsets, ConsumerGroupMetadata(consumerGroupId))
 
-      override fun sendOffsetsToTransaction(
-        offsets: MutableMap<TopicPartition, OffsetAndMetadata>?,
-        groupMetadata: ConsumerGroupMetadata?
-      ) = producer.sendOffsetsToTransaction(offsets, groupMetadata)
+        override fun sendOffsetsToTransaction(
+          offsets: MutableMap<TopicPartition, OffsetAndMetadata>?,
+          groupMetadata: ConsumerGroupMetadata?
+        ) = producer.sendOffsetsToTransaction(offsets, groupMetadata)
 
-      override fun commitTransaction() =
-        producer.commitTransaction()
+        override fun commitTransaction() =
+          producer.commitTransaction()
 
-      override fun abortTransaction() =
-        producer.abortTransaction()
+        override fun abortTransaction() =
+          producer.abortTransaction()
 
-      override fun flush() =
-        producer.flush()
+        override fun flush() =
+          producer.flush()
 
-      override fun partitionsFor(topic: String?): MutableList<PartitionInfo> =
-        producer.partitionsFor(topic)
+        override fun partitionsFor(topic: String?): MutableList<PartitionInfo> =
+          producer.partitionsFor(topic)
 
-      override fun metrics(): MutableMap<MetricName, out Metric> =
-        producer.metrics()
+        override fun metrics(): MutableMap<MetricName, out Metric> =
+          producer.metrics()
 
-      override fun send(record: ProducerRecord<String, String>, callback: Callback): Future<RecordMetadata> =
-        if (failOnNumber != null && record.key() == failOnNumber.toString()) {
-          Executors.newScheduledThreadPool(1).schedule(
-            {
-              callback.onCompletion(null, boom)
-            },
-            50,
-            TimeUnit.MILLISECONDS
-          )
+        override fun send(record: ProducerRecord<String, String>, callback: Callback): Future<RecordMetadata> =
+          if (failOnNumber != null && record.key() == failOnNumber.toString()) {
+            Executors.newScheduledThreadPool(1).schedule(
+              {
+                callback.onCompletion(null, Boom)
+              },
+              50,
+              TimeUnit.MILLISECONDS
+            )
 
-          CompletableFuture.supplyAsync { throw AssertionError("Should never be called") }
-        } else producer.send(record, callback)
+            CompletableFuture.supplyAsync { throw AssertionError("Should never be called") }
+          } else producer.send(record, callback)
 
-      override fun send(record: ProducerRecord<String, String>): Future<RecordMetadata> =
-        producer.send(record)
+        override fun send(record: ProducerRecord<String, String>): Future<RecordMetadata> =
+          producer.send(record)
+      }
     }
-  }
   //</editor-fold>
 }

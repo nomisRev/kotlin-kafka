@@ -2,86 +2,50 @@
 
 package io.github.nomisRev.kafka
 
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import io.github.nomisRev.kafka.publisher.PublisherSettings
+import io.github.nomisRev.kafka.publisher.produceOrThrow
 import java.util.Properties
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.common.serialization.Serializer
 
-/**
- * Produces all [ProducerRecord] in this [Flow] with the provided [ProducerSettings].
- * A new [KafkaProducer] is creating from the [ProducerSettings] and,
- * all [ProducerRecord] are published *in-order* in a synchronous way.
- *
- * <!--- INCLUDE
- * import arrow.continuations.SuspendApp
- * import io.github.nomisRev.kafka.Acks
- * import io.github.nomisRev.kafka.ProducerSettings
- * import io.github.nomisRev.kafka.imap
- * import io.github.nomisRev.kafka.produce
- * import kotlinx.coroutines.flow.asFlow
- * import org.apache.kafka.clients.producer.ProducerRecord
- * import org.apache.kafka.common.serialization.IntegerSerializer
- * import org.apache.kafka.common.serialization.StringSerializer
- * @JvmInline value class Key(val index: Int)
- * @JvmInline value class Message(val content: String)
- * -->
- * ```kotlin
- * fun main() = SuspendApp {
- *   val settings: ProducerSettings<Key, Message> = ProducerSettings(
- *     Kafka.container.bootstrapServers,
- *     IntegerSerializer().imap { key: Key -> key.index },
- *     StringSerializer().imap { msg: Message -> msg.content },
- *     Acks.All
- *   )
- *   (1..10)
- *     .map { index -> ProducerRecord("example-topic", Key(index), Message("msg: $index")) }
- *     .asFlow()
- *     .produce(settings)
- *     .collect(::println)
- * }
- * ```
- * <!--- KNIT example-producer-01.kt -->
- */
-@OptIn(ExperimentalCoroutinesApi::class)
+
+@Deprecated(
+  """
+  Use KafkaPublisher, and produceOrThrow instead.
+  This will send records to Kafka without awaiting the acknowledgement,
+  and resulting in maximum throughput.
+  
+  If any error occurs, it will throw an exception and any subsequent records will not be sent.
+  You can use `Flow.catch` to handle any errors, to prevent the flow from being cancelled.
+  Or, use [Flow.produce] to send records, and receive `Result<Throwable>` instead of using `Flow.catch`.
+  
+  This will be removed in 1.0.0.
+""",
+  ReplaceWith(
+    "produceOrThrow(settings.toPublisherSettings())",
+    "io.github.nomisRev.kafka.publisher.produceOrThrow"
+  )
+)
 public fun <A, B> Flow<ProducerRecord<A, B>>.produce(
   settings: ProducerSettings<A, B>,
 ): Flow<RecordMetadata> =
-  kafkaProducer(settings).flatMapConcat { producer ->
-    this@produce.map { record -> producer.sendAwait(record) }
-  }
+  produceOrThrow(settings.toPublisherSettings())
 
-/**
- * Sends a record to a Kafka topic in a suspending way.
- *
- * <!--- INCLUDE
- * import arrow.continuations.SuspendApp
- * import io.github.nomisRev.kafka.sendAwait
- * import org.apache.kafka.clients.producer.KafkaProducer
- * import org.apache.kafka.clients.producer.ProducerRecord
- * import org.apache.kafka.common.serialization.StringSerializer
- * import java.util.Properties
- * -->
- * ```kotlin
- * fun main() = SuspendApp {
- *   KafkaProducer(Properties(), StringSerializer(), StringSerializer()).use { producer ->
- *     producer.sendAwait(ProducerRecord("topic-name", "message #1"))
- *     producer.sendAwait(ProducerRecord("topic-name", "message #2"))
- *   }
- * }
- * ```
- * <!--- KNIT example-producer-02.kt -->
- */
+@Deprecated(
+  """
+    Use KafkaPublisher, and the Publisher DSL instead.
+    sendAwait is a slow, since it awaits an acknowledgement from Kafka.
+    Resulting in a lower throughput. This will be removed in 1.0.0.
+  """
+)
 public suspend fun <A, B> KafkaProducer<A, B>.sendAwait(
   record: ProducerRecord<A, B>,
 ): RecordMetadata =
@@ -95,50 +59,31 @@ public suspend fun <A, B> KafkaProducer<A, B>.sendAwait(
     }
   }
 
-/**
- * KafkaKafkaProducer for [K] - [V] which takes
- */
-@Suppress("FunctionName")
+@Deprecated("""
+  Use KafkaPublisher, and the Publisher DSL instead.
+  This will be removed in 1.0.0.
+""",
+  ReplaceWith(
+    "KafkaProducer(setting.properties(), setting.keyDeserializer, setting.valueDeserializer)",
+    "org.apache.kafka.clients.producer.KafkaProducer"
+  )
+)
 public fun <K, V> KafkaProducer(setting: ProducerSettings<K, V>): KafkaProducer<K, V> =
   KafkaProducer(setting.properties(), setting.keyDeserializer, setting.valueDeserializer)
 
-/**
- * Will automatically close, and flush when finished streaming.
- * The [Flow] will close when the [KafkaProducer] is consumed from the [Flow].
- *
- * This means that the [KafkaProducer] will not be closed for a synchronous running stream, but
- * when running the [Flow] is offloaded in a separate Coroutine it's prone to be collected, closed
- * and flushed. In the example below we construct a producer stream that produces 100 indexed
- * messages.
- *
- * ```kotlin
- * fun <Key, Value> KafkaProducer<Key, Value>.produce(topicName: String, count: Int): Flow<Unit> =
- *   (0..count).asFlow().map { sendAwait(ProducerRecord(topicName, "message #it")) }
- *
- * val producerStream = kafkaProducer(Properties(), StringSerializer(), StringSerializer())
- *   .flatMapConcat { producer -> producer.produce("topic-name", 100) }
- * ```
- *
- * Here the `KafkaProducer` will only get collected (and closed/flushed) when all 100 messages
- * were produced.
- *
- * **DO NOT** If instead we'd do something like the following, where we offload in a buffer then
- * the `KafkaProducer` gets collected into the buffer and thus closed/flushed.
- *
- * ```kotlin
- * kafkaProducer(Properties(), StringSerializer(), StringSerializer()).buffer(10)
- * ```
- */
+@Deprecated("""
+  Use KafkaPublisher, and the Publisher DSL instead.
+  This will be removed in 1.0.0.
+""",
+  ReplaceWith(
+    "KafkaProducer(setting.properties(), setting.keyDeserializer, setting.valueDeserializer).asFlow()",
+    "org.apache.kafka.clients.producer.KafkaProducer"
+  )
+)
 public fun <K, V> kafkaProducer(
   setting: ProducerSettings<K, V>,
 ): Flow<KafkaProducer<K, V>> = flow {
-  KafkaProducer(setting).use { producer ->
-    try {
-      emit(producer)
-    } finally {
-      producer.flush()
-    }
-  }
+  KafkaProducer(setting).asFlow()
 }
 
 @Deprecated(
@@ -148,13 +93,18 @@ public fun <K, V> kafkaProducer(
 typealias Acks =
   io.github.nomisRev.kafka.publisher.Acks
 
-/**
- * A type-safe constructor for [KafkaProducer] settings.
- * It forces you to specify the bootstrapServer, and serializers for [K] and [V].
- * These are the minimum requirements for constructing a valid [KafkaProducer].
- *
- * @see http://kafka.apache.org/documentation.html#producerconfigs
- */
+@Deprecated("""
+  This has moved package, and has been renamed to PublisherSettings.
+  The constructor has the same names, and thus matches the signature,
+  and can easily be replaced. By using the PublisherSettings instead.
+  
+  This will be removed in 1.0.0
+""",
+  ReplaceWith(
+    "PublisherSettings(bootstrapServers, keyDeserializer, valueDeserializer, acks, other)",
+    "io.github.nomisRev.kafka.publisher.PublisherSettings"
+  )
+)
 public data class ProducerSettings<K, V>(
   val bootstrapServers: String,
   val keyDeserializer: Serializer<K>,
@@ -170,6 +120,15 @@ public data class ProducerSettings<K, V>(
       put(ProducerConfig.ACKS_CONFIG, acks.value)
       other?.let { putAll(other) }
     }
+
+  fun toPublisherSettings(): PublisherSettings<K, V> =
+    PublisherSettings(
+      bootstrapServers,
+      keyDeserializer,
+      valueDeserializer,
+      acks,
+      properties = other ?: Properties()
+    )
 }
 
 public operator fun <K, V> ProducerRecord<K, V>.component1(): K = key()

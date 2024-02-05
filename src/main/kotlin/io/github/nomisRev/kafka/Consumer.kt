@@ -75,7 +75,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.toJavaDuration
 
 @Deprecated(
-  "Use KafkaReceiver instead. This function will be removed in 0.4.0",
+  "Use KafkaReceiver instead. This function will be removed in 1.0.0",
   ReplaceWith(
     "KafkaReceiver(settings.toReceiverSettings())",
     "io.github.nomisRev.kafka.receiver.KafkaReceiver"
@@ -84,38 +84,8 @@ import kotlin.time.toJavaDuration
 public fun <K, V> KafkaConsumer(settings: ConsumerSettings<K, V>): KafkaConsumer<K, V> =
   KafkaConsumer(settings.properties(), settings.keyDeserializer, settings.valueDeserializer)
 
-/**
- * <!--- INCLUDE
- * import arrow.continuations.SuspendApp
- * import io.github.nomisRev.kafka.ConsumerSettings
- * import io.github.nomisRev.kafka.kafkaConsumer
- * import io.github.nomisRev.kafka.map
- * import io.github.nomisRev.kafka.subscribeTo
- * import java.util.UUID
- * import kotlinx.coroutines.flow.map
- * import org.apache.kafka.common.serialization.IntegerDeserializer
- * import org.apache.kafka.common.serialization.StringDeserializer
- * @JvmInline value class Key(val index: Int)
- * @JvmInline value class Message(val content: String)
- * -->
- * ```kotlin
- * fun main() = SuspendApp {
- *   val settings: ConsumerSettings<Key, Message> = ConsumerSettings(
- *     Kafka.container.bootstrapServers,
- *     IntegerDeserializer().map(::Key),
- *     StringDeserializer().map(::Message),
- *     groupId = UUID.randomUUID().toString()
- *   )
- *   kafkaConsumer(settings)
- *     .subscribeTo("example-topic")
- *     .map { record -> record.value() }
- *     .collect { msg: Message -> println(msg) }
- * }
- * ```
- * <!--- KNIT example-consumer-01.kt -->
- */
 @Deprecated(
-  "Use KafkaReceiver#receive instead. This function will be removed in 0.4.0",
+  "Use KafkaReceiver#receive instead. This function will be removed in 1.0.0",
   ReplaceWith(
     "KafkaReceiver(settings.toReceiverSettings()).receive()",
     "io.github.nomisRev.kafka.receiver.KafkaReceiver"
@@ -214,7 +184,7 @@ public fun <K, V> List<ConsumerRecords<K, V>>.offsets(
 }
 
 @Deprecated(
-  "Use KafkaReceiver#receive instead. This function will be removed in 0.4.0",
+  "Use KafkaReceiver#receive instead. This function will be removed in 1.0.0",
   ReplaceWith(
     "KafkaReceiver(settings.toReceiverSettings()).receive()",
     "io.github.nomisRev.kafka.receiver.KafkaReceiver"
@@ -231,7 +201,7 @@ public fun <K, V> Flow<KafkaConsumer<K, V>>.subscribeTo(
 }
 
 @Deprecated(
-  "Use KafkaReceiver#receive instead. This function will be removed in 0.4.0",
+  "Use KafkaReceiver#receive instead. This function will be removed in 1.0.0",
   ReplaceWith(
     "KafkaReceiver(settings.toReceiverSettings()).receive()",
     "io.github.nomisRev.kafka.receiver.KafkaReceiver"
@@ -355,7 +325,7 @@ public data class ConsumerSettings<K, V>(
       groupId,
       properties = properties()
     )
-  
+
   public fun properties(): Properties = Properties().apply {
     properties?.let { putAll(it) }
     put(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)

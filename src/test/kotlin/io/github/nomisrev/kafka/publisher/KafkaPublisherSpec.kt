@@ -13,7 +13,6 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.apache.kafka.clients.producer.ProducerConfig
-import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.errors.ProducerFencedException
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -22,11 +21,8 @@ class KafkaPublisherSpec : KafkaSpec() {
 
   @Test
   fun `All offered messages are received`() = withTopic {
-    val count = 3
-    val records = (0..count).map {
-      createProducerRecord(it)
-    }
-    publisher.publishScope {
+    val records = produce(10_000)
+    publishScope {
       offer(records)
     }
 
@@ -35,11 +31,8 @@ class KafkaPublisherSpec : KafkaSpec() {
 
   @Test
   fun `Can receive all messages that were published on the right partitions`() = withTopic {
-    val count = 3
-    val records = (0..count).map {
-      createProducerRecord(it)
-    }
-    publisher.publishScope {
+    val records = produce(3)
+    publishScope {
       publish(records)
     }
 
@@ -51,13 +44,13 @@ class KafkaPublisherSpec : KafkaSpec() {
     val record = createProducerRecord(0)
 
     val exception = assertThrows<RuntimeException> {
-      publisher.publishScope<Unit> {
+      publishScope<Unit> {
         offer(record)
-        throw boom
+        throw Boom
       }
     }
 
-    assertEquals(exception, boom)
+    assertEquals(exception, Boom)
     topic.assertHasRecord(record)
   }
 
@@ -65,7 +58,7 @@ class KafkaPublisherSpec : KafkaSpec() {
   fun `A failure in a produce block with a concurrent launch cancels the launch, rethrows the error`() = withTopic {
     val cancelSignal = CompletableDeferred<CancellationException>()
     val exception = assertThrows<RuntimeException> {
-      publisher.publishScope<Unit> {
+      publishScope<Unit> {
         launch(start = UNDISPATCHED) {
           try {
             awaitCancellation()
@@ -74,11 +67,11 @@ class KafkaPublisherSpec : KafkaSpec() {
             throw e
           }
         }
-        throw boom
+        throw Boom
       }
     }
 
-    assertEquals(exception, boom)
+    assertEquals(exception, Boom)
     cancelSignal.await()
   }
 
@@ -87,28 +80,28 @@ class KafkaPublisherSpec : KafkaSpec() {
     val record = createProducerRecord(0)
 
     val exception = assertThrows<RuntimeException> {
-      KafkaPublisher(publisherSettings, stubProducer(failOnNumber = 0)).publishScope {
-        offer(record)
+      KafkaPublisher(publisherSettings(), stubProducer(failOnNumber = 0)).use {
+        it.publishScope {
+          offer(record)
+        }
       }
     }
 
-    assertEquals(exception, boom)
+    assertEquals(exception, Boom)
   }
 
   @Test
   fun `An async failure is rethrow at the end`() = withTopic {
-    val count = 3
-    val records: List<ProducerRecord<String, String>> = (0..count)
-      .map(::createProducerRecord)
+    val records = produce(3)
 
     val exception = assertThrows<RuntimeException> {
-      publisher.publishScope {
+      publishScope {
         publish(records)
-        launch { throw boom }
+        launch { throw Boom }
       }
     }
 
-    assertEquals(exception, boom)
+    assertEquals(exception, Boom)
     topic.assertHasRecords(records)
   }
 
@@ -117,7 +110,7 @@ class KafkaPublisherSpec : KafkaSpec() {
     val record0 = createProducerRecord(0)
     val record1 = createProducerRecord(1)
 
-    KafkaPublisher(publisherSettings, stubProducer(failOnNumber = 0)).use {
+    KafkaPublisher(publisherSettings(), stubProducer(failOnNumber = 0)).use {
       it.publishScope {
         publishCatching(record0)
         offer(record1)
@@ -135,7 +128,7 @@ class KafkaPublisherSpec : KafkaSpec() {
         (base..base + count).map(::createProducerRecord)
       }
 
-    publisher.publishScope {
+    publishScope {
       listOf(
         async { offer(records[0]) },
         async { offer(records[1]) },
@@ -169,8 +162,7 @@ class KafkaPublisherSpec : KafkaSpec() {
 
   @Test
   fun `A failure in a transaction aborts the transaction`() = withTopic {
-    val count = 3
-    val records = (0..count).map(::createProducerRecord)
+    val records = produce(3)
     val settings = publisherSettings(Acks.All) {
       put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "A failure in a transaction aborts")
       put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true")
@@ -180,20 +172,19 @@ class KafkaPublisherSpec : KafkaSpec() {
         it.publishScope<Unit> {
           transaction {
             publish(records)
-            throw boom
+            throw Boom
           }
         }
       }
     }
 
-    assertEquals(exception, boom)
+    assertEquals(exception, Boom)
     topic.shouldBeEmpty()
   }
 
   @Test
   fun `An async failure in a transaction aborts the transaction`() = withTopic {
-    val count = 3
-    val records = (0..count).map(::createProducerRecord)
+    val records = produce(3)
     val settings = publisherSettings(Acks.All) {
       put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "An async failure in a transaction aborts")
       put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true")
@@ -203,13 +194,13 @@ class KafkaPublisherSpec : KafkaSpec() {
         it.publishScope {
           transaction {
             offer(records)
-            launch { throw boom }
+            launch { throw Boom }
           }
         }
       }
     }
 
-    assertEquals(exception, boom)
+    assertEquals(exception, Boom)
     topic.shouldBeEmpty()
   }
 
@@ -248,7 +239,7 @@ class KafkaPublisherSpec : KafkaSpec() {
       put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "Only one KafkaProducer can have transactional.id")
       put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true")
     }
-    val records1 = (0..4).map(::createProducerRecord)
+    val records1 = produce(0..4)
     val publisher1 = KafkaPublisher(settings)
     publisher1.publishScope {
       transaction {
@@ -256,7 +247,7 @@ class KafkaPublisherSpec : KafkaSpec() {
       }
     }
 
-    val records2 = (5..9).map(::createProducerRecord)
+    val records2 = produce(5..9)
     val publisher2 = KafkaPublisher(settings)
     publisher2.publishScope {
       transaction {
@@ -265,7 +256,7 @@ class KafkaPublisherSpec : KafkaSpec() {
     }
 
     // publisher1 was previous transactional.id, will result in fatal ProducerFencedException
-    val records3 = (10..14).map(::createProducerRecord)
+    val records3 = produce(10..14)
     assertThrows<ProducerFencedException> {
       publisher1.publishScope {
         transaction {
@@ -280,31 +271,24 @@ class KafkaPublisherSpec : KafkaSpec() {
 
   @Test
   fun `idempotent publisher`() = withTopic {
-    val records = (0..10).map(::createProducerRecord)
+    val records = produce(10)
     launch(start = UNDISPATCHED) {
       KafkaPublisher(publisherSettings {
 //          put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true")
         put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "20000")
       }).use {
         it.publishScope {
-          records.forEach {
-            offer(it)
+          records.forEach { r ->
+            offer(r)
             delay(100)
           }
         }
       }
     }
 
-    println("Going to stop")
     kafka.pause()
-
     delay(2000)
-
-    println("Going to start")
     kafka.unpause()
-    println("Started")
-
     topic.assertHasRecords(records)
-    println("asserted records")
   }
 }
