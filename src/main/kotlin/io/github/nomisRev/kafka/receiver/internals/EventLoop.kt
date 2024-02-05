@@ -527,30 +527,30 @@ internal class EventLoop<K, V>(
    * while racing against a [onTimeout]. This allows for easily committing on whichever event arrives first.
    */
   @OptIn(ExperimentalCoroutinesApi::class)
-  private val commitManager = scope.launch(context = Default, start = LAZY) {
+  private val commitManager = scope.launch(start = LAZY) {
     if (ackMode == MANUAL_ACK || ackMode == AUTO_ACK) {
       whileSelect {
         when (settings.commitStrategy) {
           is CommitStrategy.BySizeOrTime -> {
             commitBatchSignal.onReceiveCatching {
-              commit()
+              scheduleCommitIfRequired()
               !it.isClosed
             }
             onTimeout(settings.commitStrategy.interval) {
-              commit()
+              scheduleCommitIfRequired()
               true
             }
           }
 
           is CommitStrategy.BySize ->
             commitBatchSignal.onReceiveCatching {
-              commit()
+              scheduleCommitIfRequired()
               !it.isClosed
             }
 
           is CommitStrategy.ByTime ->
             onTimeout(settings.commitStrategy.interval) {
-              commit()
+              scheduleCommitIfRequired()
               true
             }
         }

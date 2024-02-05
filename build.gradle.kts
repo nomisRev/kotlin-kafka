@@ -1,7 +1,13 @@
 import com.bnorm.power.PowerAssertGradleExtension
 import kotlinx.knit.KnitPluginExtension
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat.*
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED
+import org.gradle.api.tasks.testing.logging.TestLogEvent.PASSED
+import org.gradle.api.tasks.testing.logging.TestLogEvent.SKIPPED
+import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_ERROR
+import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_OUT
 import org.jetbrains.dokka.gradle.DokkaTask
 
 plugins {
@@ -75,14 +81,8 @@ tasks {
   withType<Test>().configureEach {
     useJUnitPlatform()
     testLogging {
-      exceptionFormat = TestExceptionFormat.FULL
-      events = setOf(
-        TestLogEvent.PASSED,
-        TestLogEvent.SKIPPED,
-        TestLogEvent.FAILED,
-        TestLogEvent.STANDARD_OUT,
-        TestLogEvent.STANDARD_ERROR
-      )
+      exceptionFormat = FULL
+      events = setOf(SKIPPED, FAILED, STANDARD_ERROR)
     }
   }
 }
