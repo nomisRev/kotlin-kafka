@@ -9,6 +9,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent.SKIPPED
 import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_ERROR
 import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_OUT
 import org.jetbrains.dokka.gradle.DokkaTask
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
 
 plugins {
   alias(libs.plugins.kotlin.jvm)
@@ -54,6 +55,10 @@ configure<JavaPluginExtension> {
 
 kotlin {
   explicitApi()
+  compilerOptions {
+    languageVersion.set(KOTLIN_2_0)
+    apiVersion.set(KOTLIN_2_0)
+  }
 }
 
 tasks {
