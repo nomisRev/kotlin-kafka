@@ -1,5 +1,4 @@
-@file:JvmMultifileClass @file:JvmName("PublisherScope.kt")
-
+//@file:JvmName("PublisherScope")
 package io.github.nomisRev.kafka.publisher
 
 import kotlinx.coroutines.CoroutineScope
