@@ -23,7 +23,7 @@ jobs:
 
       - uses: gradle/gradle-build-action@v2
         with:
-          arguments: build --scan --full-stacktrace
+          arguments: build --scan --full-stacktrace -PstressTest=100
 
       - name: Bundle the build report
         if: failure()

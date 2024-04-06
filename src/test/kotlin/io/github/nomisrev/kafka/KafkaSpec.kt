@@ -50,6 +50,8 @@ import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.seconds
 
+private val testIterations: Int =
+  System.getProperties().getProperty("io.github.nomisrev.kafka.TEST_ITERATIONS")?.toIntOrNull() ?: 1
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class KafkaSpec {
@@ -63,7 +65,7 @@ abstract class KafkaSpec {
     fun destroy() {
       kafka.stop()
     }
-    
+
     @BeforeAll
     @JvmStatic
     fun setup() {
@@ -86,10 +88,10 @@ abstract class KafkaSpec {
         withEnv("KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND", "true")
         withReuse(true)
       }
-    
+
     fun KafkaReceiver(): KafkaReceiver<String, String> =
       KafkaReceiver(receiverSetting())
-    
+
     fun receiverSetting(): ReceiverSettings<String, String> =
       ReceiverSettings(
         bootstrapServers = kafka.bootstrapServers,
@@ -169,15 +171,17 @@ abstract class KafkaSpec {
     partitions: Int = 4,
     replicationFactor: Short = 1,
     test: suspend TopicTestScope.(NewTopic) -> Unit
-  ): Unit = runTest {
-    val topic = NewTopic(nextTopicName(), partitions, replicationFactor).configs(topicConfig)
-    admin {
-      createTopic(topic)
-      try {
-        TopicTestScope(topic, this@runTest).test(topic)
-      } finally {
-        topic.shouldBeEmpty()
-        deleteTopic(topic.name())
+  ): Unit = repeat(testIterations) {
+    runTest {
+      val topic = NewTopic(nextTopicName(), partitions, replicationFactor).configs(topicConfig)
+      admin {
+        createTopic(topic)
+        try {
+          TopicTestScope(topic, this@runTest).test(topic)
+        } finally {
+          topic.shouldBeEmpty()
+          deleteTopic(topic.name())
+        }
       }
     }
   }
@@ -298,6 +302,7 @@ abstract class KafkaSpec {
       object : Producer<String, String> {
         override fun clientInstanceId(p0: Duration?): Uuid =
           producer.clientInstanceId(p0)
+
         override fun close() {}
 
         override fun close(timeout: Duration?) {}
