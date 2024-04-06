@@ -34,6 +34,7 @@ import org.apache.kafka.common.Metric
 import org.apache.kafka.common.MetricName
 import org.apache.kafka.common.PartitionInfo
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.Uuid
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.junit.jupiter.api.AfterAll
@@ -295,6 +296,8 @@ abstract class KafkaSpec {
     {
       val producer = KafkaProducer(it.properties(), it.keySerializer, it.valueSerializer)
       object : Producer<String, String> {
+        override fun clientInstanceId(p0: Duration?): Uuid =
+          producer.clientInstanceId(p0)
         override fun close() {}
 
         override fun close(timeout: Duration?) {}
