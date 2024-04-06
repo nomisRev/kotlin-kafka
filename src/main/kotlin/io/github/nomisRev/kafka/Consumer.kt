@@ -64,7 +64,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecords
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.clients.consumer.RangeAssignor
-import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener
 import org.apache.kafka.common.metrics.Sensor
 import org.apache.kafka.common.serialization.Deserializer
 import org.apache.kafka.common.TopicPartition
@@ -195,7 +194,7 @@ public fun <K, V> List<ConsumerRecords<K, V>>.offsets(
 public fun <K, V> Flow<KafkaConsumer<K, V>>.subscribeTo(
   name: String,
   dispatcher: CoroutineDispatcher = IO,
-  listener: ConsumerRebalanceListener = NoOpConsumerRebalanceListener(),
+  listener: ConsumerRebalanceListener = NoOpConsumerRebalanceListener,
   timeout: kotlin.time.Duration = 500.milliseconds,
 ): Flow<ConsumerRecord<K, V>> = flatMapConcat { consumer ->
   consumer.subscribeTo(name, dispatcher, listener, timeout)
@@ -212,7 +211,7 @@ public fun <K, V> Flow<KafkaConsumer<K, V>>.subscribeTo(
 public fun <K, V> KafkaConsumer<K, V>.subscribeTo(
   name: String,
   dispatcher: CoroutineDispatcher = IO,
-  listener: ConsumerRebalanceListener = NoOpConsumerRebalanceListener(),
+  listener: ConsumerRebalanceListener = NoOpConsumerRebalanceListener,
   timeout: kotlin.time.Duration = 500.milliseconds,
 ): Flow<ConsumerRecord<K, V>> = flow {
   subscribe(listOf(name), listener)
@@ -364,4 +363,9 @@ public data class ConsumerSettings<K, V>(
     put(MAX_POLL_INTERVAL_MS_CONFIG, maxPollInterval.toMillis().toInt())
     put(EXCLUDE_INTERNAL_TOPICS_CONFIG, excludeInternalTopics)
   }
+}
+
+private object NoOpConsumerRebalanceListener : ConsumerRebalanceListener {
+  override fun onPartitionsRevoked(partitions: MutableCollection<TopicPartition>?) {}
+  override fun onPartitionsAssigned(partitions: MutableCollection<TopicPartition>?) {}
 }
