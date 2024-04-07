@@ -9,7 +9,7 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 120
 
     steps:
       - uses: actions/checkout@v4
@@ -23,7 +23,7 @@ jobs:
 
       - uses: gradle/gradle-build-action@v2
         with:
-          arguments: build --scan --full-stacktrace
+          arguments: build --scan --full-stacktrace -PstressTest=100
 
       - name: Bundle the build report
         if: failure()

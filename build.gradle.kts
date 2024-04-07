@@ -80,6 +80,10 @@ tasks {
 
   withType<Test>().configureEach {
     useJUnitPlatform()
+    maxParallelForks = (2 * Runtime.getRuntime().availableProcessors())
+    if (project.hasProperty("stressTest")) {
+      systemProperty("io.github.nomisrev.kafka.TEST_ITERATIONS", project.properties["stressTest"] ?: 100)
+    }
     testLogging {
       exceptionFormat = FULL
       events = setOf(SKIPPED, FAILED, STANDARD_ERROR)
