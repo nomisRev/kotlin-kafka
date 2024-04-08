@@ -31,7 +31,7 @@ public data class PublisherSettings<Key, Value>(
   val bootstrapServers: String,
   val keySerializer: Serializer<Key>,
   val valueSerializer: Serializer<Value>,
-  val acknowledgments: Acks = Acks.One,
+  val acknowledgments: Acks = Acks.All,
   val closeTimeout: Duration = Duration.INFINITE,
   val isFatal: (t: Throwable) -> Boolean =
     { it is AuthenticationException || it is ProducerFencedException },
