@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>produce</title>
+    <link href="../../images/logo-icon.svg" rel="icon" type="image/svg">
+    <script>var pathToRoot = "../../";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async="async"></script>
+<script type="text/javascript" src="../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../styles/style.css" rel="Stylesheet">
+<link href="../../styles/main.css" rel="Stylesheet">
+<link href="../../styles/prism.css" rel="Stylesheet">
+<link href="../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../styles/font-jb-sans-auto.css" rel="Stylesheet">
+<script type="text/javascript" src="../../scripts/clipboard.js" async="async"></script>
+<script type="text/javascript" src="../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../scripts/symbol-parameters-wrapper_deferred.js" defer="defer"></script>
+</head>
+<body>
+    <div class="root">
+<nav class="navigation" id="navigation-wrapper">
+    <div class="navigation--inner">
+        <div class="navigation-title">
+            <button class="menu-toggle" id="menu-toggle" type="button">toggle menu</button>
+            <div class="library-name">
+                    <a class="library-name--link" href="../../index.html">
+                            kotlin-kafka
+                    </a>
+            </div>
+            <div class="library-version">
+0.4.0            </div>
+        </div>
+        <div class="filter-section" id="filter-section">
+                <button class="platform-tag platform-selector jvm-like" data-active="" data-filter=":dokkaHtml/main">jvm</button>
+        </div>
+    </div>
+    <div class="navigation-controls">
+        <button class="navigation-controls--btn navigation-controls--theme" id="theme-toggle-button" type="button">switch theme</button>
+        <div class="navigation-controls--btn navigation-controls--search" id="searchBar" role="button">search in API</div>
+    </div>
+</nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="sidebar--inner" id="sideMenu"></div>
+            </div>
+            <div id="main">
+<div class="main-content" data-page-type="member" id="content" pageIds="kotlin-kafka::io.github.nomisRev.kafka.publisher//produce/kotlinx.coroutines.flow.Flow[org.apache.kafka.clients.producer.ProducerRecord[TypeParam(bounds=[kotlin.Any?]),TypeParam(bounds=[kotlin.Any?])]]#io.github.nomisRev.kafka.publisher.PublisherSettings[TypeParam(bounds=[kotlin.Any?]),TypeParam(bounds=[kotlin.Any?])]#kotlin.coroutines.SuspendFunction2[org.slf4j.Logger,org.apache.kafka.clients.producer.ProducerRecord[TypeParam(bounds=[kotlin.Any?]),TypeParam(bounds=[kotlin.Any?])],kotlin.Unit]?#kotlin.coroutines.SuspendFunction1[io.github.nomisRev.kafka.publisher.PublisherSettings[TypeParam(bounds=[kotlin.Any?]),TypeParam(bounds=[kotlin.Any?])],org.apache.kafka.clients.producer.Producer[TypeParam(bounds=[kotlin.Any?]),TypeParam(bounds=[kotlin.Any?])]]?/PointingToDeclaration//769193423">
+  <div class="breadcrumbs"><a href="../../index.html">kotlin-kafka</a><span class="delimiter">/</span><a href="index.html">io.github.nomisRev.kafka.publisher</a><span class="delimiter">/</span><span class="current">produce</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>produce</span></span></h1>
+  </div>
+  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="produce.html">Key</a><span class="token punctuation">, </span><a href="produce.html">Value</a><span class="token operator">&gt; </span><span data-unresolved-link="kotlinx.coroutines.flow/Flow///PointingToDeclaration/">Flow</span><span class="token operator">&lt;</span><span data-unresolved-link="org.apache.kafka.clients.producer/ProducerRecord///PointingToDeclaration/">ProducerRecord</span><span class="token operator">&lt;</span><a href="produce.html">Key</a><span class="token punctuation">, </span><a href="produce.html">Value</a><span class="token operator">&gt;</span><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="produce.html"><span class="token function">produce</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">settings<span class="token operator">: </span><a href="-publisher-settings/index.html">PublisherSettings</a><span class="token operator">&lt;</span><a href="produce.html">Key</a><span class="token punctuation">, </span><a href="produce.html">Value</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">onPublisherRecordDropped<span class="token operator">: </span><span class="token keyword">suspend </span><span class="token punctuation">(</span><span data-unresolved-link="org.slf4j/Logger///PointingToDeclaration/">Logger</span><span class="token punctuation">, </span><span data-unresolved-link="org.apache.kafka.clients.producer/ProducerRecord///PointingToDeclaration/">ProducerRecord</span><span class="token operator">&lt;</span><a href="produce.html">Key</a><span class="token punctuation">, </span><a href="produce.html">Value</a><span class="token operator">&gt;</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">createProducer<span class="token operator">: </span><span class="token keyword">suspend </span><span class="token punctuation">(</span><a href="-publisher-settings/index.html">PublisherSettings</a><span class="token operator">&lt;</span><a href="produce.html">Key</a><span class="token punctuation">, </span><a href="produce.html">Value</a><span class="token operator">&gt;</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><span data-unresolved-link="org.apache.kafka.clients.producer/Producer///PointingToDeclaration/">Producer</span><span class="token operator">&lt;</span><a href="produce.html">Key</a><span class="token punctuation">, </span><a href="produce.html">Value</a><span class="token operator">&gt;</span><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span><span class="token operator">: </span><span data-unresolved-link="kotlinx.coroutines.flow/Flow///PointingToDeclaration/">Flow</span><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-result/index.html">Result</a><span class="token operator">&lt;</span><span data-unresolved-link="org.apache.kafka.clients.producer/RecordMetadata///PointingToDeclaration/">RecordMetadata</span><span class="token operator">&gt;</span><span class="token operator">&gt;</span><span class="clearfix"><span class="floating-right">(<a href="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/io/github/nomisRev/kafka/publisher/FlowProduce.kt#L71">source</a>)</span></span></div><p class="paragraph">produce will send message to Kafka, and stream <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-result/index.html">Result</a> of <span data-unresolved-link="org.apache.kafka.clients.producer/RecordMetadata///PointingToDeclaration/">RecordMetadata</span> back to the user. It will not stop sending messages if any error occurs, you can throw it in the collector if you want the stream to stop. Otherwise, use <a href="produce-or-throw.html">produceOrThrow</a>.</p><p class="paragraph">Any encountered errors will be sent to the collector as <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-result/failure.html">Result.failure</a>, and they will also be rethrown if the Flow completes without handling them (e.g. using <code class="lang-kotlin">Flow.catch</code>). Check Kafka's <span data-unresolved-link="org.apache.kafka.clients.producer/Callback///PointingToDeclaration/">Callback</span> documentation for more information on when and which errors are thrown, and which are recoverable.</p><p class="paragraph">It'll wait acknowledgements from Kafka in <strong>a different coroutine</strong>, or asynchronously.</p><p class="paragraph">This means we don't have to wait for the acknowledgement before sending the next message, resulting in maximum throughput but still guarantees that the message was sent to Kafka.</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">suspend fun publish messages(bootStrapServers: String, topic: String) {<br> val publisherSettings = PublisherSettings(<br>   bootstrapServers = bootStrapServers,<br>   keySerializer = StringSerializer(),<br>   valueSerializer = StringSerializer()<br> )<br> (0..10_000).asFlow()<br>   .onEach { delay(10.milliseconds) }<br>   .map { index -&gt;<br>     ProducerRecord&lt;String, String&gt;(topic.name(), index % 4, &quot;$index&quot;, &quot;Message $index&quot;)<br>   }.produce(publisherSettings)<br>   .collect { metadata: Result&lt;RecordMetadata&gt; -&gt;<br>     metadata<br>      .onSuccess { println(&quot;partition: ${it.partition()}, offset: ${it.offset}&quot;) }<br>      .onFailure { println(&quot;Failed to send: $it&quot;) }<br>   }</code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><h4 class="">Parameters</h4><div class="table"><div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span>on</span><wbr></wbr><span>Publisher</span><wbr></wbr><span>Record</span><wbr></wbr><span><span>Dropped</span></span></u></div></span></div><div><div class="title"><p class="paragraph">a callback to handle dropped records, by default it uses the one from <a href="-publisher-settings/index.html">PublisherSettings</a>.     This only occurs when a fatal error occurred, and Flow transitions to COMPLETE.</p></div></div></div></div><div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span>create</span><wbr></wbr><span><span>Producer</span></span></u></div></span></div><div><div class="title"><p class="paragraph">a callback to create a producer, by default it uses the one from <a href="-publisher-settings/index.html">PublisherSettings</a>.</p></div></div></div></div></div></div></div>
+</div>
+      <div class="footer">
+        <span class="go-to-top-icon"><a href="#content" id="go-to-top-link"></a></span><span>© 2024 Copyright</span><span
+                class="pull-right"><span>Generated by </span><a
+                href="https://github.com/Kotlin/dokka"><span>dokka</span><span class="padded-icon"></span></a></span>
+      </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>TransactionalScope</title>
+    <link href="../../../images/logo-icon.svg" rel="icon" type="image/svg">
+    <script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../styles/font-jb-sans-auto.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/clipboard.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/symbol-parameters-wrapper_deferred.js" defer="defer"></script>
+</head>
+<body>
+    <div class="root">
+<nav class="navigation" id="navigation-wrapper">
+    <div class="navigation--inner">
+        <div class="navigation-title">
+            <button class="menu-toggle" id="menu-toggle" type="button">toggle menu</button>
+            <div class="library-name">
+                    <a class="library-name--link" href="../../../index.html">
+                            kotlin-kafka
+                    </a>
+            </div>
+            <div class="library-version">
+0.4.0            </div>
+        </div>
+        <div class="filter-section" id="filter-section">
+                <button class="platform-tag platform-selector jvm-like" data-active="" data-filter=":dokkaHtml/main">jvm</button>
+        </div>
+    </div>
+    <div class="navigation-controls">
+        <button class="navigation-controls--btn navigation-controls--theme" id="theme-toggle-button" type="button">switch theme</button>
+        <div class="navigation-controls--btn navigation-controls--search" id="searchBar" role="button">search in API</div>
+    </div>
+</nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="sidebar--inner" id="sideMenu"></div>
+            </div>
+            <div id="main">
+<div class="main-content" data-page-type="classlike" id="content" pageIds="kotlin-kafka::io.github.nomisRev.kafka.publisher/TransactionalScope///PointingToDeclaration//769193423">
+  <div class="breadcrumbs"><a href="../../../index.html">kotlin-kafka</a><span class="delimiter">/</span><a href="../index.html">io.github.nomisRev.kafka.publisher</a><span class="delimiter">/</span><span class="current">TransactionalScope</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Transactional</span><wbr></wbr><span><span>Scope</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="index.html">TransactionalScope</a><span class="token operator">&lt;</span><a href="index.html">Key</a><span class="token punctuation">, </span><a href="index.html">Value</a><span class="token operator">&gt;</span> : <a href="../-publish-scope/index.html">PublishScope</a><span class="token operator">&lt;</span><a href="index.html">Key</a><span class="token punctuation">, </span><a href="index.html">Value</a><span class="token operator">&gt; </span><span class="clearfix"><span class="floating-right">(<a href="https://github.com/nomisRev/kotlin-kafka/tree/main/src/main/kotlin/io/github/nomisRev/kafka/publisher/PublisherScope.kt#L93">source</a>)</span></span></div><p class="paragraph">The DSL, or receiver type, of <a href="../-kafka-publisher/publish-scope.html">KafkaPublisher.publishScope</a>, it allows for publisher configured with <span data-unresolved-link="org.apache.kafka.clients.producer/ProducerConfig/TRANSACTIONAL_ID_CONFIG/#/PointingToDeclaration/">ProducerConfig.TRANSACTIONAL_ID_CONFIG</span>, and <span data-unresolved-link="org.apache.kafka.clients.producer/ProducerConfig/ENABLE_IDEMPOTENCE_CONFIG/#/PointingToDeclaration/">ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG</span> set to <code class="lang-kotlin">true</code> to work transitionally. Only one publisher with the same <span data-unresolved-link="org.apache.kafka.clients.producer/ProducerConfig/TRANSACTIONAL_ID_CONFIG/#/PointingToDeclaration/">ProducerConfig.TRANSACTIONAL_ID_CONFIG</span> can run at a given time. An expired producer, still works but will throw <span data-unresolved-link="org.apache.kafka.common.errors/ProducerFencedException///PointingToDeclaration/">ProducerFencedException</span> if attempt to make a transaction again.</p><p class="paragraph">In addition to <a href="../-publish-scope/index.html">PublishScope</a> 2 main methods, a <a href="index.html">TransactionalScope</a> also has the <a href="transaction.html">transaction</a> method.</p><p class="paragraph">It creates a <strong>new</strong> nested <a href="../-publish-scope/index.html">PublishScope</a>, and runs the lambda with the new scope as receiver.</p><p class="paragraph">If the lambda succeeds, and the children of <span data-unresolved-link="kotlinx.coroutines/Job///PointingToDeclaration/">Job</span> have completed, it automatically commits the <a href="transaction.html">transaction</a>.</p><p class="paragraph">In case the lambda fails, or any children of this <span data-unresolved-link="kotlinx.coroutines/Job///PointingToDeclaration/">Job</span> fail, then it'll be rethrown from this block and the transaction will be aborted.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="PROPERTY">
+        <h2 class="">Properties</h2>
+        <div class="table"><a data-name="-1654120400%2FProperties%2F769193423" anchor-label="coroutineContext" id="-1654120400%2FProperties%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-1654120400%2FProperties%2F769193423"><span>coroutine</span><wbr></wbr><span><span>Context</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1654120400%2FProperties%2F769193423"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">val </span><a href="index.html#-1654120400%2FProperties%2F769193423">coroutineContext</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.coroutines/-coroutine-context/index.html">CoroutineContext</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="">Functions</h2>
+        <div class="table"><a data-name="221031496%2FFunctions%2F769193423" anchor-label="offer" id="221031496%2FFunctions%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-publish-scope/offer.html"><span><span>offer</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="221031496%2FFunctions%2F769193423"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">suspend </span><span class="token keyword">fun </span><a href="../-publish-scope/offer.html"><span class="token function">offer</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">records<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-iterable/index.html">Iterable</a><span class="token operator">&lt;</span><span data-unresolved-link="org.apache.kafka.clients.producer/ProducerRecord///PointingToDeclaration/">ProducerRecord</span><span class="token operator">&lt;</span><a href="index.html">Key</a><span class="token punctuation">, </span><a href="index.html">Value</a><span class="token operator">&gt;</span><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Same as <a href="../-publish-scope/offer.html">offer</a>, but for an <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-iterable/index.html">Iterable</a>] of <span data-unresolved-link="org.apache.kafka.clients.producer/ProducerRecord///PointingToDeclaration/">ProducerRecord</span>.</p></div><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">suspend </span><span class="token keyword">fun </span><a href="../-publish-scope/offer.html"><span class="token function">offer</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">record<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.clients.producer/ProducerRecord///PointingToDeclaration/">ProducerRecord</span><span class="token operator">&lt;</span><a href="index.html">Key</a><span class="token punctuation">, </span><a href="index.html">Value</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Offer the <a href="../-publish-scope/offer.html">record</a> to Kafka, and immediately return. This methods should be prepared for highest throughput, if the <a href="../-publish-scope/offer.html">offer</a> fails it will cancel the <span data-unresolved-link="kotlinx.coroutines/CoroutineScope///PointingToDeclaration/">CoroutineScope</span>&<a href="../-publish-scope/index.html">PublishScope</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1627106194%2FFunctions%2F769193423" anchor-label="publish" id="-1627106194%2FFunctions%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-publish-scope/publish.html"><span><span>publish</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1627106194%2FFunctions%2F769193423"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">suspend </span><span class="token keyword">fun </span><a href="../-publish-scope/publish.html"><span class="token function">publish</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">record<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-iterable/index.html">Iterable</a><span class="token operator">&lt;</span><span data-unresolved-link="org.apache.kafka.clients.producer/ProducerRecord///PointingToDeclaration/">ProducerRecord</span><span class="token operator">&lt;</span><a href="index.html">Key</a><span class="token punctuation">, </span><a href="index.html">Value</a><span class="token operator">&gt;</span><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><span data-unresolved-link="org.apache.kafka.clients.producer/RecordMetadata///PointingToDeclaration/">RecordMetadata</span><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Same as <a href="../-publish-scope/publish.html">publish</a>, but for an <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-iterable/index.html">Iterable</a>] of <span data-unresolved-link="org.apache.kafka.clients.producer/ProducerRecord///PointingToDeclaration/">ProducerRecord</span>.</p></div><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">suspend </span><span class="token keyword">fun </span><a href="../-publish-scope/publish.html"><span class="token function">publish</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">record<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.clients.producer/ProducerRecord///PointingToDeclaration/">ProducerRecord</span><span class="token operator">&lt;</span><a href="index.html">Key</a><span class="token punctuation">, </span><a href="index.html">Value</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.clients.producer/RecordMetadata///PointingToDeclaration/">RecordMetadata</span></div><div class="brief "><p class="paragraph">Publisher a <a href="../-publish-scope/publish.html">record</a> to Kafka, and suspends until acknowledged by kafka. This way of sending records to kafka results in a lower throughput.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-171587908%2FFunctions%2F769193423" anchor-label="publishCatching" id="-171587908%2FFunctions%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-publish-scope/publish-catching.html"><span>publish</span><wbr></wbr><span><span>Catching</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-171587908%2FFunctions%2F769193423"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">suspend </span><span class="token keyword">fun </span><a href="../-publish-scope/publish-catching.html"><span class="token function">publishCatching</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">record<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-iterable/index.html">Iterable</a><span class="token operator">&lt;</span><span data-unresolved-link="org.apache.kafka.clients.producer/ProducerRecord///PointingToDeclaration/">ProducerRecord</span><span class="token operator">&lt;</span><a href="index.html">Key</a><span class="token punctuation">, </span><a href="index.html">Value</a><span class="token operator">&gt;</span><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-result/index.html">Result</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><span data-unresolved-link="org.apache.kafka.clients.producer/RecordMetadata///PointingToDeclaration/">RecordMetadata</span><span class="token operator">&gt;</span><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Catch first failure of <a href="../-publish-scope/publish.html">publish</a>, except fatal exceptions. Alias for <code class="lang-kotlin">runCatching</code>, <code class="lang-kotlin">publish</code>, and <code class="lang-kotlin">awaitAll</code>, except rethrows fatal exceptions</p></div><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">suspend </span><span class="token keyword">fun </span><a href="../-publish-scope/publish-catching.html"><span class="token function">publishCatching</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">record<span class="token operator">: </span><span data-unresolved-link="org.apache.kafka.clients.producer/ProducerRecord///PointingToDeclaration/">ProducerRecord</span><span class="token operator">&lt;</span><a href="index.html">Key</a><span class="token punctuation">, </span><a href="index.html">Value</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-result/index.html">Result</a><span class="token operator">&lt;</span><span data-unresolved-link="org.apache.kafka.clients.producer/RecordMetadata///PointingToDeclaration/">RecordMetadata</span><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Alias for <code class="lang-kotlin">runCatching</code>, and <code class="lang-kotlin">publish</code> except rethrows fatal exceptions</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1310593340%2FFunctions%2F769193423" anchor-label="transaction" id="1310593340%2FFunctions%2F769193423" data-filterable-set=":dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":dokkaHtml/main" data-filterable-set=":dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="transaction.html"><span><span>transaction</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1310593340%2FFunctions%2F769193423"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">suspend </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="transaction.html">A</a><span class="token operator">&gt; </span><a href="transaction.html"><span class="token function">transaction</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">block<span class="token operator">: </span><span class="token keyword">suspend </span><a href="../-publish-scope/index.html">PublishScope</a><span class="token operator">&lt;</span><a href="index.html">Key</a><span class="token punctuation">, </span><a href="index.html">Value</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="transaction.html">A</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="transaction.html">A</a></div><div class="brief "><p class="paragraph">Create and run a <a href="transaction.html">transaction</a>, which can <a href="../-publish-scope/offer.html">PublishScope.offer</a> and <a href="../-publish-scope/publish.html">PublishScope.publish</a> records to Kafka. It awaits all inflight offers to finish, when successfully it commits the transaction and returns. In case of failure</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      <div class="footer">
+        <span class="go-to-top-icon"><a href="#content" id="go-to-top-link"></a></span><span>© 2024 Copyright</span><span
+                class="pull-right"><span>Generated by </span><a
+                href="https://github.com/Kotlin/dokka"><span>dokka</span><span class="padded-icon"></span></a></span>
+      </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
