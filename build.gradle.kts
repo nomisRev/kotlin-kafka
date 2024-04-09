@@ -1,4 +1,3 @@
-import com.bnorm.power.PowerAssertGradleExtension
 import kotlinx.knit.KnitPluginExtension
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat.*
 import org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED
@@ -9,11 +8,11 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
 
 plugins {
   alias(libs.plugins.kotlin.jvm)
+  alias(libs.plugins.kotlin.assert)
   alias(libs.plugins.dokka)
   alias(libs.plugins.spotless)
   alias(libs.plugins.knit)
   alias(libs.plugins.publish)
-  alias(libs.plugins.power.assert)
 }
 
 repositories {
@@ -35,9 +34,14 @@ dependencies {
   testImplementation(libs.kotlinx.coroutines.test)
 }
 
-configure<PowerAssertGradleExtension> {
+@Suppress("OPT_IN_USAGE")
+powerAssert {
   functions = listOf("kotlin.test.assertEquals")
 }
+
+//configure<PowerAssertGradleExtension> {
+//  functions = listOf("kotlin.test.assertEquals")
+//}
 
 configure<KnitPluginExtension> {
   siteRoot = "https://nomisrev.github.io/kotlin-kafka/"
