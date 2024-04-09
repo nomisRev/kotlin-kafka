@@ -30,7 +30,7 @@ jobs:
           distribution: 'zulu'
           java-version: 11
 
-      - uses: gradle/gradle-build-action@v2
+      - uses: gradle/gradle-build-action@v3
         with:
           arguments: assemble -Pversion=${{ inputs.version }}
 
@@ -42,6 +42,6 @@ jobs:
           path: '**/build/reports/**'
 
       - name: Publish final version
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/gradle-build-action@v3
         with:
           arguments: -Pversion=${{ inputs.version }} publishAllPublicationsToMavenCentralRepository
