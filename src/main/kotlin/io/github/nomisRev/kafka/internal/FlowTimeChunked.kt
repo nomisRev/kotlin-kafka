@@ -10,8 +10,9 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.getOrElse
 import kotlinx.coroutines.channels.produce
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.internal.scopedFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.selects.whileSelect
 import kotlinx.coroutines.selects.onTimeout
 import kotlin.time.Duration
@@ -45,30 +46,32 @@ public fun <T> Flow<T>.chunked(
 ): Flow<List<T>> {
   require(size > 0) { "Cannot create chunks smaller than 0 but found $size" }
   require(!duration.isNegative() && duration != Duration.ZERO) { "Chunk duration should be positive non-zero duration" }
-  return scopedFlow { downstream ->
-    val emitNowAndMaybeContinue = Channel<Boolean>(capacity = Channel.RENDEZVOUS)
-    val elements = produce(capacity = size) {
-      collect { element ->
-        val hasCapacity = channel.trySend(element).isSuccess
-        if (!hasCapacity) {
-          emitNowAndMaybeContinue.send(true)
-          channel.send(element)
+  return flow {
+    coroutineScope {
+      val emitNowAndMaybeContinue = Channel<Boolean>(capacity = Channel.RENDEZVOUS)
+      val elements = produce(capacity = size) {
+        collect { element ->
+          val hasCapacity = channel.trySend(element).isSuccess
+          if (!hasCapacity) {
+            emitNowAndMaybeContinue.send(true)
+            channel.send(element)
+          }
         }
-      }
-      emitNowAndMaybeContinue.send(false)
-    }
-
-    whileSelect {
-      emitNowAndMaybeContinue.onReceive { shouldContinue ->
-        val chunk = elements.drain(maxElements = size)
-        if (chunk.isNotEmpty()) downstream.emit(chunk)
-        shouldContinue
+        emitNowAndMaybeContinue.send(false)
       }
 
-      onTimeout(duration) {
-        val chunk: List<T> = elements.drain(maxElements = size)
-        if (chunk.isNotEmpty()) downstream.emit(chunk)
-        true
+      whileSelect {
+        emitNowAndMaybeContinue.onReceive { shouldContinue ->
+          val chunk = elements.drain(maxElements = size)
+          if (chunk.isNotEmpty()) emit(chunk)
+          shouldContinue
+        }
+
+        onTimeout(duration) {
+          val chunk: List<T> = elements.drain(maxElements = size)
+          if (chunk.isNotEmpty()) emit(chunk)
+          true
+        }
       }
     }
   }

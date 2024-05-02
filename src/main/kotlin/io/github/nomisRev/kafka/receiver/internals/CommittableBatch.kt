@@ -93,7 +93,7 @@ internal class CommittableBatch {
   fun getAndClearOffsets(): CommitArgs {
     val offsetMap: MutableMap<TopicPartition, OffsetAndMetadata> = HashMap()
     if (outOfOrderCommits) {
-      deferred.forEach { (tp: TopicPartition, offsets: List<Long>) ->
+      deferred.forEach { (tp: TopicPartition, offsets: MutableList<Long>) ->
         if (offsets.size > 0) {
           offsets.sort()
           val uncomittedThisPart: MutableList<Long> = uncommitted[tp]!!
