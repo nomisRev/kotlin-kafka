@@ -1,13 +1,7 @@
 import com.bnorm.power.PowerAssertGradleExtension
 import kotlinx.knit.KnitPluginExtension
-import org.gradle.api.tasks.testing.logging.TestExceptionFormat
-import org.gradle.api.tasks.testing.logging.TestExceptionFormat.*
-import org.gradle.api.tasks.testing.logging.TestLogEvent
-import org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED
-import org.gradle.api.tasks.testing.logging.TestLogEvent.PASSED
-import org.gradle.api.tasks.testing.logging.TestLogEvent.SKIPPED
-import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_ERROR
-import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_OUT
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+import org.gradle.api.tasks.testing.logging.TestLogEvent.*
 import org.jetbrains.dokka.gradle.DokkaTask
 
 plugins {
@@ -17,10 +11,12 @@ plugins {
   alias(libs.plugins.knit)
   alias(libs.plugins.publish)
   alias(libs.plugins.power.assert)
+  idea
 }
 
 repositories {
   mavenCentral()
+  maven("https://oss.sonatype.org/content/repositories/snapshots")
 }
 
 group = "io.github.nomisrev"
@@ -34,8 +30,15 @@ dependencies {
 
   testImplementation(kotlin("test"))
   testImplementation(libs.testcontainers.kafka)
-  testImplementation(libs.slf4j.simple)
   testImplementation(libs.kotlinx.coroutines.test)
+  testImplementation(libs.jackson.kotlin)
+  testImplementation(libs.jackson.databind)
+  testImplementation(libs.kotest.framework.api)
+  testImplementation(libs.kotest.runner.junit5)
+  testImplementation(libs.kotest.property)
+  testImplementation(libs.stove.testing)
+  testImplementation(libs.stove.testing.kafka)
+  testImplementation(libs.logback.classic)
 }
 
 configure<PowerAssertGradleExtension> {
@@ -52,9 +55,33 @@ configure<JavaPluginExtension> {
   }
 }
 
+sourceSets {
+  @Suppress("LocalVariableName", "ktlint:standard:property-naming")
+  val `test-e2e` by creating {
+    compileClasspath += sourceSets.main.get().output
+    runtimeClasspath += sourceSets.main.get().output
+  }
+
+  val testE2eImplementation by configurations.getting {
+    extendsFrom(configurations.testImplementation.get())
+  }
+  configurations["testE2eRuntimeOnly"].extendsFrom(configurations.runtimeOnly.get())
+}
+
+idea {
+  module {
+    testSources.from(sourceSets["test-e2e"].allSource.sourceDirectories)
+    testResources.from(sourceSets["test-e2e"].resources.sourceDirectories)
+    isDownloadJavadoc = true
+    isDownloadSources = true
+  }
+}
+
 kotlin {
   explicitApi()
+  jvmToolchain(17)
 }
+
 
 tasks {
   withType<DokkaTask>().configureEach {
@@ -88,5 +115,20 @@ tasks {
       exceptionFormat = FULL
       events = setOf(SKIPPED, FAILED, STANDARD_ERROR)
     }
+    jvmArgs("--add-opens", "java.base/java.util=ALL-UNNAMED")
+  }
+
+  task<Test>("e2eTest") {
+    description = "Runs e2e tests."
+    group = "verification"
+    testClassesDirs = sourceSets["test-e2e"].output.classesDirs
+    classpath = sourceSets["test-e2e"].runtimeClasspath
+
+    useJUnitPlatform()
+    reports {
+      junitXml.required.set(true)
+      html.required.set(true)
+    }
+    jvmArgs("--add-opens", "java.base/java.util=ALL-UNNAMED")
   }
 }

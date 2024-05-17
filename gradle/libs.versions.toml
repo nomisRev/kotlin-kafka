@@ -11,6 +11,8 @@ slf4j = "2.0.12"
 spotless="6.25.0"
 publish="0.28.0"
 power-assert="0.13.0"
+stove = "1.0.0-SNAPSHOT"
+jackson = "2.17.1"
 
 [libraries]
 kotest-property = { module = "io.kotest:kotest-property", version.ref = "kotest" }
@@ -25,6 +27,18 @@ kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-t
 testcontainers-kafka = { module = "org.testcontainers:kafka", version.ref = "testcontainers-kafka" }
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
+
+jackson-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
+jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
+logback-classic = { module = "ch.qos.logback:logback-classic", version = "1.5.6" }
+
+# Testing
+stove-testing = { module = "com.trendyol:stove-testing-e2e", version.ref = "stove" }
+stove-ktor-testing = { module = "com.trendyol:stove-ktor-testing-e2e", version.ref = "stove" }
+stove-testing-kafka = { module = "com.trendyol:stove-testing-e2e-kafka", version.ref = "stove" }
+kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
+kotest-framework-api = { module = "io.kotest:kotest-framework-api", version.ref = "kotest" }
+
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
