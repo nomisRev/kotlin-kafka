@@ -19,7 +19,7 @@ import kotlin.time.toJavaDuration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart.LAZY
 import kotlinx.coroutines.CoroutineStart.UNDISPATCHED
-import kotlinx.coroutines.Dispatchers.Default
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.cancelAndJoin
@@ -44,6 +44,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import kotlin.coroutines.CoroutineContext
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 private val logger: Logger =
   LoggerFactory.getLogger(EventLoop::class.java)
@@ -83,7 +84,7 @@ internal class EventLoop<K, V>(
     channel.consumeAsFlow()
       .onStart {
         if (topicNames.isNotEmpty()) subscribe(topicNames)
-        withContext(scope.coroutineContext) { poll() }
+        schedulePoll()
         commitManager.start()
       }.onCompletion {
         commitBatchSignal.close()
@@ -120,8 +121,20 @@ internal class EventLoop<K, V>(
     return pausedNow
   }
 
+  private val scheduled = AtomicBoolean(false)
+  private fun schedulePoll() {
+    if (scheduled.compareAndSet(false, true)) {
+      scope.launch {
+        scheduled.set(false)
+        @OptIn(DelicateCoroutinesApi::class)
+        if (!channel.isClosedForSend) poll()
+      }
+    }
+  }
+
   @ConsumerThread
   private fun poll() {
+    checkConsumerThread("poll")
     try {
       runCommitIfRequired(false)
 
@@ -164,32 +177,35 @@ internal class EventLoop<K, V>(
         ConsumerRecords.empty()
       }
 
-      if (!records.isEmpty) {
+      if (records.isEmpty) {
+        schedulePoll()
+      } else {
         if (settings.maxDeferredCommits > 0) {
           commitBatch.addUncommitted(records)
         }
         logger.debug("Attempting to send ${records.count()} records to Channel")
         channel.trySend(records)
-          .onSuccess { poll() }
+          .onSuccess { schedulePoll() }
           .onClosed { error -> logger.error("Channel closed when trying to send records.", error) }
           .onFailure { error ->
             if (error != null) {
               logger.error("Channel send failed when trying to send records.", error)
               closeChannel(error)
-            } else logger.debug("Back-pressuring kafka consumer. Might pause KafkaConsumer on next poll tick.")
+            } else {
+              logger.debug("Back-pressuring kafka consumer. Might pause KafkaConsumer on next poll tick.")
 
-            isPolling.set(false)
-
-            scope.launch(outerContext) {
-              /* Send the records down,
-               * when send returns we attempt to send and empty set of records down to test the backpressure.
-               * If our "backpressure test" returns we start requesting/polling again. */
-              channel.send(records)
-              if (isPaused.get()) {
-                consumer.wakeup()
+              isPolling.set(false)
+              scope.launch(outerContext) {
+                /* Send the records down,
+                 * when send returns we attempt to send and empty set of records down to test the backpressure.
+                 * If our "backpressure test" returns we start requesting/polling again. */
+                channel.send(records)
+                if (isPaused.get()) {
+                  consumer.wakeup()
+                }
+                isPolling.set(true)
+                schedulePoll()
               }
-              isPolling.set(true)
-              poll()
             }
           }
       }
@@ -567,7 +583,7 @@ private annotation class ConsumerThread
 private const val DEBUG: Boolean = true
 
 private fun checkConsumerThread(msg: String): Unit =
-  if (DEBUG) require(
+  if (DEBUG) check(
     Thread.currentThread().name.startsWith("kotlin-kafka-")
   ) { "$msg => should run on kotlin-kafka thread, but found ${Thread.currentThread().name}" }
   else Unit
