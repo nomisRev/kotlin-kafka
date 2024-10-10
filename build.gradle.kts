@@ -1,22 +1,18 @@
-import com.bnorm.power.PowerAssertGradleExtension
 import kotlinx.knit.KnitPluginExtension
-import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat.*
-import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED
-import org.gradle.api.tasks.testing.logging.TestLogEvent.PASSED
 import org.gradle.api.tasks.testing.logging.TestLogEvent.SKIPPED
 import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_ERROR
-import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_OUT
 import org.jetbrains.dokka.gradle.DokkaTask
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
 
 plugins {
   alias(libs.plugins.kotlin.jvm)
+  alias(libs.plugins.kotlin.assert)
   alias(libs.plugins.dokka)
   alias(libs.plugins.spotless)
   alias(libs.plugins.knit)
   alias(libs.plugins.publish)
-  alias(libs.plugins.power.assert)
 }
 
 repositories {
@@ -38,9 +34,14 @@ dependencies {
   testImplementation(libs.kotlinx.coroutines.test)
 }
 
-configure<PowerAssertGradleExtension> {
+@Suppress("OPT_IN_USAGE")
+powerAssert {
   functions = listOf("kotlin.test.assertEquals")
 }
+
+//configure<PowerAssertGradleExtension> {
+//  functions = listOf("kotlin.test.assertEquals")
+//}
 
 configure<KnitPluginExtension> {
   siteRoot = "https://nomisrev.github.io/kotlin-kafka/"
@@ -54,6 +55,10 @@ configure<JavaPluginExtension> {
 
 kotlin {
   explicitApi()
+  compilerOptions {
+    languageVersion.set(KOTLIN_2_0)
+    apiVersion.set(KOTLIN_2_0)
+  }
 }
 
 tasks {
