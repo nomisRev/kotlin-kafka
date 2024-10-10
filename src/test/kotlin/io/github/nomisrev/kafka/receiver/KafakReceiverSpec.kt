@@ -8,8 +8,10 @@ import io.github.nomisrev.kafka.mapIndexed
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectIndexed
+import kotlinx.coroutines.flow.count
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flattenMerge
 import kotlinx.coroutines.flow.flowOf
@@ -19,7 +21,9 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.toSet
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
+import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -51,6 +55,75 @@ class KafakReceiverSpec : KafkaSpec() {
         .toSet(),
       produced.toSet()
     )
+  }
+
+  @Test
+  fun `All records produced while consuming are received`() = withTopic {
+    launch { publishToKafka(topic, produced) }
+    assertEquals(
+      KafkaReceiver()
+        .receive(topic.name())
+        .map { record ->
+          Pair(record.key(), record.value())
+            .also { record.offset.acknowledge() }
+        }.take(count)
+        .toSet(),
+      produced.toSet()
+    )
+  }
+
+  @Test
+  fun `Continuous receiving does not overflow stack`() = withTopic {
+    val largeCount = 20_000 // when it _was_ overflowing stack, it only took ~4095 messages.
+    publishScope {
+      repeat(largeCount) {
+        offer(ProducerRecord(topic.name(), "key-$it", "value-$it"))
+      }
+    }
+    val settings = receiverSetting().copy(
+      maxDeferredCommits = largeCount + 1,
+      commitStrategy = CommitStrategy.BySize(largeCount + 1),
+      properties = mapOf(ConsumerConfig.MAX_POLL_RECORDS_CONFIG to "1").toProperties()
+    )
+    assertEquals(
+      KafkaReceiver(settings)
+        .receive(topic.name())
+        .buffer(largeCount)
+        .take(largeCount)
+        .count(),
+      largeCount
+    )
+  }
+
+  @Test
+  fun `Can consume after backpressure`() = withTopic {
+    publishToKafka(topic, produced)
+    assertEquals(
+      KafkaReceiver()
+        .receive(topic.name())
+        .map { record ->
+          yield()
+          Pair(record.key(), record.value())
+            .also { record.offset.acknowledge() }
+        }.take(count)
+        .toSet(),
+      produced.toSet()
+    )
+  }
+
+  @Test
+  fun `Concurrent commits while receiving`() = withTopic {
+    publishToKafka(topic, produced)
+    val receiver = KafkaReceiver(
+      receiverSetting().copy(
+        commitStrategy = CommitStrategy.BySize(count / 2)
+      )
+    )
+    receiver.receive(topic.name())
+      .take(count)
+      .collect { it.offset.acknowledge() }
+
+    assertEquals(receiver.committedCount(topic.name()), count.toLong())
   }
 
   @Test
