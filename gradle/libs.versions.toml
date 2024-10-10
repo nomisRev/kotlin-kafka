@@ -10,7 +10,6 @@ testcontainers-kafka = "1.19.7"
 slf4j = "2.0.12"
 spotless="6.25.0"
 publish="0.28.0"
-power-assert="0.13.0"
 
 [libraries]
 kotest-property = { module = "io.kotest:kotest-property", version.ref = "kotest" }
@@ -28,9 +27,9 @@ slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-assert = { id = "org.jetbrains.kotlin.plugin.power-assert", version.ref="kotlin" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 publish = { id = "com.vanniktech.maven.publish", version.ref="publish" }
 knit = { id = "org.jetbrains.kotlinx.knit", version.ref="knit" }
-power-assert = { id = "com.bnorm.power.kotlin-power-assert", version.ref="power-assert" }
