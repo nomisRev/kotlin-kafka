@@ -175,6 +175,19 @@ internal class EventLoop<K, V>(
       } catch (e: WakeupException) {
         logger.debug("Consumer woken")
         ConsumerRecords.empty()
+      } catch (e: org.apache.kafka.common.errors.RetriableException) {
+        // In Kafka 3.7.0, certain group coordination failures (e.g. CoordinatorNotAvailableException)
+        // can surface from poll as RetriableException on the first attempts. We should not terminate
+        // the loop on such exceptions; instead, schedule another poll to allow the consumer to retry
+        // coordinator discovery/metadata refresh just like previous versions did.
+        logger.debug("Retriable exception during poll; will retry", e)
+        schedulePoll()
+        return
+      } catch (e: org.apache.kafka.common.errors.CoordinatorNotAvailableException) {
+        // Some environments might throw this concrete exception instead of RetriableException
+        logger.debug("Coordinator not available during poll; will retry", e)
+        schedulePoll()
+        return
       }
 
       if (records.isEmpty) {
