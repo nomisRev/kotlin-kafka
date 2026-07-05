@@ -1,0 +1,26 @@
+// This file was automatically generated from ${file.name} by Knit tool. Do not edit.
+package ${test.package}
+
+import org.junit.jupiter.api.Test
+import kotlinx.knit.test.*
+import com.ginsberg.junit.exit.ExpectSystemExitWithStatus
+
+class ${test.name} {
+<#list cases as case><#assign method = test["mode.${case.param}"]!"custom">
+    @Test
+    @ExpectSystemExitWithStatus(0)
+    fun test${case.name}() {
+        captureOutput("${case.name}") { ${case.knit.package}.${case.knit.name}.main() }<#if method != "custom">.${method}(
+<#list case.lines as line>
+            "${line?j_string}"<#sep>,</#sep>
+</#list>
+        )
+<#else>.also { lines ->
+            check(${case.param})
+        }
+</#if>
+    }
+<#sep>
+
+</#list>
+}
