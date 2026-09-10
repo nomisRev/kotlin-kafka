@@ -16,12 +16,14 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 import kotlin.time.toJavaDuration
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart.LAZY
 import kotlinx.coroutines.CoroutineStart.UNDISPATCHED
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.InternalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.onClosed
@@ -79,6 +81,17 @@ internal class EventLoop<K, V>(
   private val pausedPartitionsByUser: MutableSet<TopicPartition> = HashSet()
   private val commitBatchSignal = Channel<Unit>(Channel.RENDEZVOUS)
   private val utmostOnceOffsets = UtmostOnceOffsets()
+
+  /* The context the back pressured send in [poll] runs in: everything the collector brought
+   * along - its dispatcher, CoroutineName, ... - except its Job.
+   *
+   * Keeping the collector's dispatcher applies back pressure on the thread that does the
+   * downstream work, but keeping its Job makes the send a *child of the collector*:
+   * the send is then owned by the collector rather than by the receiver that started it, so
+   * closing the receiver neither cancels nor waits for it, and any failure it does not handle
+   * itself is propagated into the collector's job, cancelling the user's scope from the outside
+   * where no operator on the receive flow can observe it. */
+  private val backPressureContext: CoroutineContext = outerContext.minusKey(Job)
 
   internal fun receive(): Flow<ConsumerRecords<K, V>> =
     channel.consumeAsFlow()
@@ -195,16 +208,28 @@ internal class EventLoop<K, V>(
               logger.debug("Back-pressuring kafka consumer. Might pause KafkaConsumer on next poll tick.")
 
               isPolling.set(false)
-              scope.launch(outerContext) {
-                /* Send the records down,
-                 * when send returns we attempt to send and empty set of records down to test the backpressure.
-                 * If our "backpressure test" returns we start requesting/polling again. */
-                channel.send(records)
-                if (isPaused.get()) {
-                  consumer.wakeup()
+              scope.launch(backPressureContext) {
+                try {
+                  /* Send the records down,
+                   * when send returns we attempt to send and empty set of records down to test the backpressure.
+                   * If our "backpressure test" returns we start requesting/polling again. */
+                  channel.send(records)
+                  if (isPaused.get()) {
+                    consumer.wakeup()
+                  }
+                  isPolling.set(true)
+                  schedulePoll()
+                } catch (e: CancellationException) {
+                  throw e
+                } catch (e: Throwable) {
+                  /* Every failure in here has to travel through the channel,
+                   * otherwise it never reaches the operators the collector put on the receive Flow.
+                   * `close` answers atomically whether we were the ones to close it. If we were
+                   * not, the collector already has the cause it was closed with, and only ever
+                   * sees that one - so this failure is logged rather than dropped silently. */
+                  if (channel.close(e)) logger.error("Back pressured send failed, closing the channel.", e)
+                  else logger.warn("Back pressured send failed after the channel was closed.", e)
                 }
-                isPolling.set(true)
-                schedulePoll()
               }
             }
           }
