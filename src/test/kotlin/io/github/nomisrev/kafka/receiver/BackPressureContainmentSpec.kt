@@ -63,8 +63,8 @@ class BackPressureContainmentSpec {
 
     val collecting = collector.scope.launch {
       val loop = EventLoop(
-        topicNames = setOf(TOPIC),
-        settings = settings(),
+        topicNames = setOf(BACK_PRESSURE_TOPIC),
+        settings = backPressureSettings(),
         consumer = consumer,
         scope = receiver.scope,
         outerContext = currentCoroutineContext(),
@@ -118,7 +118,7 @@ class BackPressureContainmentSpec {
     val commitFailure = KafkaException("commit raced a group rebalance")
     val heldCommit = CompletableDeferred<HeldCommit>()
     val consumer = holdingTheFirstCommit(heldCommit).seededWith(recordCount = 2)
-    val collecting = startCollecting(consumer)
+    val collecting = startBackPressuredCollecting(consumer)
     val bystander = collecting.collector.scope.launch { delay(60.seconds) }
 
     try {
@@ -160,7 +160,7 @@ class BackPressureContainmentSpec {
       }
     }.seededWith(recordCount = 2)
 
-    val collecting = startCollecting(consumer)
+    val collecting = startBackPressuredCollecting(consumer)
     val bystander = collecting.collector.scope.launch { delay(60.seconds) }
     try {
       withTimeout(30.seconds) { collecting.backPressureTheSecondBatch() }
@@ -186,7 +186,7 @@ class BackPressureContainmentSpec {
 
   @Test
   fun `the pending send belongs to the receiver, not to the collector`() = runBlocking {
-    val collecting = startCollecting(BackPressuredConsumer().seededWith(recordCount = 2))
+    val collecting = startBackPressuredCollecting(BackPressuredConsumer().seededWith(recordCount = 2))
     try {
       withTimeout(30.seconds) { collecting.backPressureTheSecondBatch() }
 
@@ -214,7 +214,7 @@ class BackPressureContainmentSpec {
 
   @Test
   fun `cancelling the collector while a send is pending is not a failure`() = runBlocking {
-    val collecting = startCollecting(BackPressuredConsumer().seededWith(recordCount = 2))
+    val collecting = startBackPressuredCollecting(BackPressuredConsumer().seededWith(recordCount = 2))
     try {
       withTimeout(30.seconds) {
         collecting.backPressureTheSecondBatch()
@@ -240,8 +240,8 @@ class BackPressureContainmentSpec {
 
     val collecting = collector.scope.launch {
       val loop = EventLoop(
-        topicNames = setOf(TOPIC),
-        settings = settings(),
+        topicNames = setOf(BACK_PRESSURE_TOPIC),
+        settings = backPressureSettings(),
         consumer = consumer,
         scope = receiver.scope,
         outerContext = currentCoroutineContext(),
@@ -274,15 +274,15 @@ class BackPressureContainmentSpec {
   }
 }
 
-private const val TOPIC = "back-pressure-topic"
+private const val BACK_PRESSURE_TOPIC = "back-pressure-topic"
 private const val COLLECTOR_THREAD = "back-pressure-collector"
 
 /* The event loop asserts that it runs on a thread named like the library's own dispatcher. */
 private const val RECEIVER_THREAD = "kotlin-kafka-back-pressure-group"
 
-private val PARTITION = TopicPartition(TOPIC, 0)
+private val BACK_PRESSURE_PARTITION = TopicPartition(BACK_PRESSURE_TOPIC, 0)
 
-private fun settings(): ReceiverSettings<String, String> =
+private fun backPressureSettings(): ReceiverSettings<String, String> =
   ReceiverSettings(
     bootstrapServers = "unused:9092",
     keyDeserializer = StringDeserializer(),
@@ -337,16 +337,24 @@ private class HeldCommit(
 }
 
 private fun <A : MockConsumer<String, String>> A.seededWith(recordCount: Int): A = apply {
-  updateBeginningOffsets(mapOf(PARTITION to 0L))
+  updateBeginningOffsets(mapOf(BACK_PRESSURE_PARTITION to 0L))
   repeat(recordCount) { offset ->
     schedulePollTask {
-      if (offset == 0) rebalance(listOf(PARTITION))
-      addRecord(ConsumerRecord(TOPIC, PARTITION.partition(), offset.toLong(), "key-$offset", "value-$offset"))
+      if (offset == 0) rebalance(listOf(BACK_PRESSURE_PARTITION))
+      addRecord(
+        ConsumerRecord(
+          BACK_PRESSURE_TOPIC,
+          BACK_PRESSURE_PARTITION.partition(),
+          offset.toLong(),
+          "key-$offset",
+          "value-$offset",
+        )
+      )
     }
   }
 }
 
-private class Collecting(
+private class BackPressureCollecting(
   val consumer: BackPressuredConsumer,
   val receiver: DispatcherScope,
   val collector: DispatcherScope,
@@ -382,7 +390,7 @@ private class Collecting(
  * Collects an [EventLoop] on [consumer] in a way that forces back pressure: the collector holds on
  * to the first batch, so every batch after it can only reach the collector through the send.
  */
-private fun startCollecting(consumer: BackPressuredConsumer): Collecting {
+private fun startBackPressuredCollecting(consumer: BackPressuredConsumer): BackPressureCollecting {
   val receiver = dispatcherScope(RECEIVER_THREAD)
   val collector = dispatcherScope(COLLECTOR_THREAD)
   val flowFailure = CompletableDeferred<Throwable>()
@@ -393,8 +401,8 @@ private fun startCollecting(consumer: BackPressuredConsumer): Collecting {
 
   val job = collector.scope.launch {
     val loop = EventLoop(
-      topicNames = setOf(TOPIC),
-      settings = settings(),
+      topicNames = setOf(BACK_PRESSURE_TOPIC),
+      settings = backPressureSettings(),
       consumer = consumer,
       scope = receiver.scope,
       outerContext = currentCoroutineContext(),
@@ -410,7 +418,7 @@ private fun startCollecting(consumer: BackPressuredConsumer): Collecting {
       }
   }
 
-  return Collecting(
+  return BackPressureCollecting(
     consumer = consumer,
     receiver = receiver,
     collector = collector,
