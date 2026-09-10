@@ -57,7 +57,7 @@ class RebalanceDuringBackPressureSpec {
       override fun poll(timeout: JavaDuration): ConsumerRecords<String, String> {
         if (rebalanceNow.compareAndSet(true, false)) {
           try {
-            listener.getCompleted().onPartitionsAssigned(mutableListOf(PARTITIONS[0]))
+            listener.getCompleted().onPartitionsAssigned(mutableListOf(REPAUSE_PARTITIONS[0]))
           } finally {
             rebalanceHappened.complete(Unit)
           }
@@ -70,20 +70,20 @@ class RebalanceDuringBackPressureSpec {
       override fun pause(partitions: MutableCollection<TopicPartition>) {
         super.pause(partitions)
         /* Only the loop's own "pause everything" completes this, not the probe's user pause. */
-        if (partitions.size == PARTITIONS.size) backPressured.complete(Unit)
+        if (partitions.size == REPAUSE_PARTITIONS.size) backPressured.complete(Unit)
       }
     }
 
-    consumer.updateBeginningOffsets(PARTITIONS.associateWith { 0L })
+    consumer.updateBeginningOffsets(REPAUSE_PARTITIONS.associateWith { 0L })
     var record = 0L
     repeat(2) {
       consumer.schedulePollTask {
         if (record == 0L) {
-          consumer.rebalance(PARTITIONS)
+          consumer.rebalance(REPAUSE_PARTITIONS)
           /* Two partitions the user paused: the loop remembers them when it back pressures. */
-          consumer.pause(PARTITIONS.drop(1).toMutableList())
+          consumer.pause(REPAUSE_PARTITIONS.drop(1).toMutableList())
         }
-        consumer.addRecord(ConsumerRecord(TOPIC, 0, record, "key-$record", "value-$record"))
+        consumer.addRecord(ConsumerRecord(REPAUSE_TOPIC, 0, record, "key-$record", "value-$record"))
         record++
       }
     }
@@ -100,8 +100,8 @@ class RebalanceDuringBackPressureSpec {
 
     val collecting = collectorScope.launch {
       val loop = EventLoop(
-        topicNames = setOf(TOPIC),
-        settings = settings(),
+        topicNames = setOf(REPAUSE_TOPIC),
+        settings = repauseSettings(),
         consumer = consumer,
         scope = scope,
         outerContext = currentCoroutineContext(),
@@ -142,10 +142,10 @@ class RebalanceDuringBackPressureSpec {
   }
 }
 
-private const val TOPIC = "probe-topic"
-private val PARTITIONS = listOf(0, 1, 2).map { TopicPartition(TOPIC, it) }
+private const val REPAUSE_TOPIC = "probe-topic"
+private val REPAUSE_PARTITIONS = listOf(0, 1, 2).map { TopicPartition(REPAUSE_TOPIC, it) }
 
-private fun settings(): ReceiverSettings<String, String> =
+private fun repauseSettings(): ReceiverSettings<String, String> =
   ReceiverSettings(
     bootstrapServers = "unused:9092",
     keyDeserializer = StringDeserializer(),
