@@ -250,13 +250,13 @@ internal class EventLoop<K, V>(
 
     /* It is necessary to re-pause any user-paused partitions that are re-assigned after the rebalance.
      * Also remove any revoked partitions that the user paused from the userPaused collection. */
-    private fun partitionsToRepause(partitions: Collection<TopicPartition>): List<TopicPartition> =
-      buildList {
-        pausedPartitionsByUser.forEach { tp ->
-          if (partitions.contains(tp)) add(tp)
-          else pausedPartitionsByUser.remove(tp)
-        }
-      }
+    private fun partitionsToRepause(partitions: Collection<TopicPartition>): List<TopicPartition> {
+      /* Dropping the revoked ones with `retainAll` rather than removing them while iterating:
+       * the loop this replaces removed from the very set it was walking, which throws a
+       * ConcurrentModificationException as soon as more than one partition is revoked. */
+      pausedPartitionsByUser.retainAll(partitions.toSet())
+      return pausedPartitionsByUser.toList()
+    }
   }
 
   @ConsumerThread
