@@ -49,13 +49,13 @@ class RebalanceRacingCommitSpec {
   @Test
   fun `a commit racing a rebalance is retried instead of failing the receive flow`() = runBlocking {
     val consumer = failingCommitsWith(RebalanceInProgressException("commit raced the rebalance"))
-    val collecting = collect(consumer)
+    val collecting = collectCommitRace(consumer)
 
     try {
       withTimeout(30.seconds) {
         while (consumer.successfulCommits.isEmpty()) delay(20)
       }
-      assertEquals(1L, consumer.successfulCommits.first()[PARTITION]?.offset())
+      assertEquals(1L, consumer.successfulCommits.first()[COMMIT_RACE_PARTITION]?.offset())
       assertNull(
         collecting.flowFailure.takeIf { it.isCompleted }?.await(),
         "a commit that raced a rebalance must not fail the receive flow"
@@ -68,13 +68,13 @@ class RebalanceRacingCommitSpec {
   @Test
   fun `a commit the broker asks to retry is still retried`() = runBlocking {
     val consumer = failingCommitsWith(RetriableCommitFailedException("try again"))
-    val collecting = collect(consumer)
+    val collecting = collectCommitRace(consumer)
 
     try {
       withTimeout(30.seconds) {
         while (consumer.successfulCommits.isEmpty()) delay(20)
       }
-      assertEquals(1L, consumer.successfulCommits.first()[PARTITION]?.offset())
+      assertEquals(1L, consumer.successfulCommits.first()[COMMIT_RACE_PARTITION]?.offset())
       assertNull(
         collecting.flowFailure.takeIf { it.isCompleted }?.await(),
         "the retry the broker asked for must not fail the receive flow"
@@ -88,7 +88,7 @@ class RebalanceRacingCommitSpec {
   fun `a commit that keeps racing rebalances gives up after maxCommitAttempts`() = runBlocking {
     val race = RebalanceInProgressException("commit raced the rebalance")
     val consumer = failingCommitsWith(race, times = Int.MAX_VALUE)
-    val collecting = collect(consumer, maxCommitAttempts = 3)
+    val collecting = collectCommitRace(consumer, maxCommitAttempts = 3)
 
     try {
       /* Retrying is right for as long as the rebalance can still complete, but it has to end:
@@ -111,7 +111,7 @@ class RebalanceRacingCommitSpec {
   fun `a commit failure that will not resolve on its own still fails the receive flow`() = runBlocking {
     val fatal = TopicAuthorizationException("not allowed to commit")
     val consumer = failingCommitsWith(fatal)
-    val collecting = collect(consumer)
+    val collecting = collectCommitRace(consumer)
 
     try {
       val failure = withTimeout(30.seconds) { collecting.flowFailure.await() }
@@ -130,10 +130,10 @@ class RebalanceRacingCommitSpec {
   }
 }
 
-private const val TOPIC = "commit-race-topic"
-private val PARTITION = TopicPartition(TOPIC, 0)
+private const val COMMIT_RACE_TOPIC = "commit-race-topic"
+private val COMMIT_RACE_PARTITION = TopicPartition(COMMIT_RACE_TOPIC, 0)
 
-private fun settings(maxCommitAttempts: Int = 100): ReceiverSettings<String, String> =
+private fun commitRaceSettings(maxCommitAttempts: Int = 100): ReceiverSettings<String, String> =
   ReceiverSettings(
     bootstrapServers = "unused:9092",
     keyDeserializer = StringDeserializer(),
@@ -148,10 +148,10 @@ private fun settings(maxCommitAttempts: Int = 100): ReceiverSettings<String, Str
 /** Fails the first [times] commits with [error], and lets every commit after them succeed. */
 private fun failingCommitsWith(error: Exception, times: Int = 1): CommitFailingConsumer =
   CommitFailingConsumer(error, times).apply {
-    updateBeginningOffsets(mapOf(PARTITION to 0L))
+    updateBeginningOffsets(mapOf(COMMIT_RACE_PARTITION to 0L))
     schedulePollTask {
-      rebalance(listOf(PARTITION))
-      addRecord(ConsumerRecord(TOPIC, PARTITION.partition(), 0L, "key", "value"))
+      rebalance(listOf(COMMIT_RACE_PARTITION))
+      addRecord(ConsumerRecord(COMMIT_RACE_TOPIC, COMMIT_RACE_PARTITION.partition(), 0L, "key", "value"))
     }
   }
 
@@ -175,7 +175,7 @@ private class CommitFailingConsumer(private val error: Exception, private val ti
   }
 }
 
-private class Collecting(
+private class CommitRaceCollecting(
   private val job: Job,
   private val scope: CoroutineScope,
   private val dispatcher: ExecutorCoroutineDispatcher,
@@ -188,7 +188,10 @@ private class Collecting(
   }
 }
 
-private fun collect(consumer: MockConsumer<String, String>, maxCommitAttempts: Int = 100): Collecting {
+private fun collectCommitRace(
+  consumer: MockConsumer<String, String>,
+  maxCommitAttempts: Int = 100,
+): CommitRaceCollecting {
   /* The event loop asserts that it runs on a thread named like the library's own dispatcher. */
   val dispatcher = Executors.newSingleThreadExecutor { runnable ->
     Thread(runnable, "kotlin-kafka-commit-race-group")
@@ -198,8 +201,8 @@ private fun collect(consumer: MockConsumer<String, String>, maxCommitAttempts: I
 
   val job = scope.launch {
     val loop = EventLoop(
-      topicNames = setOf(TOPIC),
-      settings = settings(maxCommitAttempts),
+      topicNames = setOf(COMMIT_RACE_TOPIC),
+      settings = commitRaceSettings(maxCommitAttempts),
       consumer = consumer,
       scope = scope,
       outerContext = currentCoroutineContext(),
@@ -211,5 +214,5 @@ private fun collect(consumer: MockConsumer<String, String>, maxCommitAttempts: I
       }
   }
 
-  return Collecting(job, scope, dispatcher, flowFailure)
+  return CommitRaceCollecting(job, scope, dispatcher, flowFailure)
 }
