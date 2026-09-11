@@ -248,6 +248,27 @@ internal class EventLoop<K, V>(
       commitBatch.onPartitionsRevoked(partitions)
     }
 
+    /**
+     * Kafka calls this instead of [onPartitionsRevoked] once the member has already left the group -
+     * after a session timeout, or when the coordinator fenced it.
+     *
+     * The interface's default implementation forwards here to [onPartitionsRevoked], which commits. That commit
+     * cannot succeed: the member no longer owns these partitions, so the broker answers with
+     * [org.apache.kafka.clients.consumer.CommitFailedException], which is not a
+     * [org.apache.kafka.clients.consumer.RetriableCommitFailedException] and therefore ends the receive flow.
+     * Losing the group is recoverable - the consumer rejoins - but the commit attempt turns it into a terminal
+     * failure of the whole subscription.
+     *
+     * So the offsets are dropped rather than committed: they belong to a generation that is gone, and their
+     * records are redelivered to whoever holds the partitions now.
+     */
+    @ConsumerThread
+    override fun onPartitionsLost(partitions: Collection<TopicPartition>) {
+      checkConsumerThread("RebalanceListener.onPartitionsLost")
+      logger.debug("onPartitionsLost {}", partitions)
+      commitBatch.onPartitionsRevoked(partitions)
+    }
+
     /* It is necessary to re-pause any user-paused partitions that are re-assigned after the rebalance.
      * Also remove any revoked partitions that the user paused from the userPaused collection. */
     private fun partitionsToRepause(partitions: Collection<TopicPartition>): List<TopicPartition> =
