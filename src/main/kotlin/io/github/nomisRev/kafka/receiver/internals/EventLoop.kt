@@ -266,7 +266,7 @@ internal class EventLoop<K, V>(
     override fun onPartitionsLost(partitions: Collection<TopicPartition>) {
       checkConsumerThread("RebalanceListener.onPartitionsLost")
       logger.debug("onPartitionsLost {}", partitions)
-      commitBatch.onPartitionsRevoked(partitions)
+      commitBatch.onPartitionsLost(partitions)
     }
 
     /* It is necessary to re-pause any user-paused partitions that are re-assigned after the rebalance.

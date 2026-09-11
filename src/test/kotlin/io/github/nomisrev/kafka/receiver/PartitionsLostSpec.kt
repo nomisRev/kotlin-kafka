@@ -59,6 +59,34 @@ class PartitionsLostSpec {
   }
 
   @Test
+  fun `losing partitions does not commit them on a later tick either`() = runBlocking {
+    val consumer = ListenerCapturingConsumer().seededWithOneRecord()
+    val collecting = collectAcknowledging(consumer)
+
+    try {
+      withTimeout(30.seconds) { consumer.firstRecordAcknowledged.await() }
+
+      consumer.callListenerOnConsumerThread { it.onPartitionsLost(mutableListOf(LOST_PARTITION)) }
+
+      /* Not committing *during* the callback is only half of it: the acknowledged offsets stay in the batch
+       * until they are dropped, and the periodic commit of `ByTime` is what would send them afterwards. */
+      delay(COMMIT_INTERVAL * 3)
+
+      assertEquals(
+        emptyList(),
+        consumer.committedOffsets.toList(),
+        "a commit after the partitions were lost must not carry them either"
+      )
+      assertNull(
+        collecting.flowFailure.takeIf { it.isCompleted }?.await(),
+        "losing partitions must not end the receive flow"
+      )
+    } finally {
+      collecting.close()
+    }
+  }
+
+  @Test
   fun `revoking partitions still commits them`() = runBlocking {
     val consumer = ListenerCapturingConsumer().seededWithOneRecord()
     val collecting = collectAcknowledging(consumer)
@@ -79,6 +107,7 @@ class PartitionsLostSpec {
 }
 
 private const val LOST_TOPIC = "partitions-lost-topic"
+private val COMMIT_INTERVAL = 1.seconds
 private val LOST_PARTITION = TopicPartition(LOST_TOPIC, 0)
 private const val LOST_RECEIVER_THREAD = "kotlin-kafka-partitions-lost-group"
 
@@ -88,8 +117,7 @@ private fun lostSettings(): ReceiverSettings<String, String> =
     keyDeserializer = StringDeserializer(),
     valueDeserializer = StringDeserializer(),
     groupId = "partitions-lost-group",
-    // only an explicit rebalance callback should trigger a commit in these tests
-    commitStrategy = CommitStrategy.ByTime(1.seconds),
+    commitStrategy = CommitStrategy.ByTime(COMMIT_INTERVAL),
     closeTimeout = 5.seconds,
   )
 
