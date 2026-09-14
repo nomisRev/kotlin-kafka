@@ -23,10 +23,15 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.toSet
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
+import org.apache.kafka.clients.consumer.Consumer
 import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.clients.consumer.ConsumerRecords
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.junit.jupiter.api.Test
+import java.time.Duration
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 data class KeyValue(val key: String, val value: String)
 
@@ -71,6 +76,61 @@ class KafkaReceiverSpec : KafkaSpec() {
         .toSet(),
       produced.toSet()
     )
+  }
+
+  @Test
+  fun `A custom createConsumer is used for receiving`() = withTopic {
+    val messageCount = 10
+    publishToKafka(topic, produced(0, messageCount))
+    val pollCount = AtomicInteger(0)
+    val base = receiverSetting()
+    val settings = base.copy(
+      createConsumer = { s ->
+        val delegate = base.createConsumer(s)
+        object : Consumer<String, String> by delegate {
+          override fun poll(timeout: Duration): ConsumerRecords<String, String> =
+            delegate.poll(timeout).also { pollCount.incrementAndGet() }
+        }
+      }
+    )
+    assertEquals(
+      KafkaReceiver(settings)
+        .receive(topic.name())
+        .map { record ->
+          KeyValue(record.key(), record.value())
+            .also { record.offset.acknowledge() }
+        }.take(messageCount)
+        .toSet(),
+      produced(0, messageCount).toSet()
+    )
+    assertTrue(pollCount.get() > 0, "Expected the decorated consumer to be polled")
+  }
+
+  @Test
+  fun `A custom createConsumer is used for receiving with auto-ack`() = withTopic {
+    val messageCount = 10
+    publishToKafka(topic, produced(0, messageCount))
+    val pollCount = AtomicInteger(0)
+    val base = receiverSetting()
+    val settings = base.copy(
+      createConsumer = { s ->
+        val delegate = base.createConsumer(s)
+        object : Consumer<String, String> by delegate {
+          override fun poll(timeout: Duration): ConsumerRecords<String, String> =
+            delegate.poll(timeout).also { pollCount.incrementAndGet() }
+        }
+      }
+    )
+    assertEquals(
+      KafkaReceiver(settings)
+        .receiveAutoAck(topic.name())
+        .flattenConcat()
+        .map { record -> KeyValue(record.key(), record.value()) }
+        .take(messageCount)
+        .toSet(),
+      produced(0, messageCount).toSet()
+    )
+    assertTrue(pollCount.get() > 0, "Expected the decorated consumer to be polled")
   }
 
   @Test

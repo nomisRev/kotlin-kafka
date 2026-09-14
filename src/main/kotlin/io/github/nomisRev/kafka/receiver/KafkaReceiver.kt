@@ -3,6 +3,7 @@ package io.github.nomisRev.kafka.receiver
 import io.github.nomisRev.kafka.receiver.internals.EventLoop
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import org.apache.kafka.clients.consumer.Consumer
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.slf4j.Logger
@@ -83,14 +84,14 @@ private class DefaultKafkaReceiver<K, V>(private val settings: ReceiverSettings<
   @OptIn(ExperimentalCoroutinesApi::class)
   private fun <A> consumer(
     groupId: String,
-    block: suspend (CoroutineScope, KafkaConsumer<K, V>) -> Flow<A>
+    block: suspend (CoroutineScope, Consumer<K, V>) -> Flow<A>
   ): Flow<A> = flow {
     kafkaConsumerDispatcher(groupId).use { dispatcher: ExecutorCoroutineDispatcher ->
       val job = Job()
       val scope = CoroutineScope(job + dispatcher + defaultCoroutineExceptionHandler)
       try {
         withContext(dispatcher) {
-          KafkaConsumer(settings.toProperties(), settings.keyDeserializer, settings.valueDeserializer)
+          settings.createConsumer(settings)
         }.use { emit(block(scope, it)) }
       } finally {
         job.cancelAndJoin()
