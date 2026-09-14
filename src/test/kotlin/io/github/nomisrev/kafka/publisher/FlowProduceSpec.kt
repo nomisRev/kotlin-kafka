@@ -1,5 +1,6 @@
 package io.github.nomisrev.kafka.publisher
 
+import io.github.nomisRev.kafka.publisher.PublisherSettings
 import io.github.nomisRev.kafka.publisher.produce
 import io.github.nomisRev.kafka.publisher.produceOrThrow
 import io.github.nomisrev.kafka.KafkaSpec
@@ -15,10 +16,16 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.toList
+import org.apache.kafka.clients.producer.Callback
+import org.apache.kafka.clients.producer.Producer
+import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.Future
 import org.junit.jupiter.api.Test
 import kotlin.test.Ignore
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class FlowProduceSpec : KafkaSpec() {
   @Test
@@ -171,6 +178,42 @@ class FlowProduceSpec : KafkaSpec() {
 
     assertEquals(Boom, error.await())
     topic.assertHasRecords(records.toMutableList().apply { removeAt(5) })
+  }
+
+  /* Once the flow is COMPLETE it reports a record as dropped - so it must not publish that same record.
+   * The drop branch used to fall through into the send below, which both dropped and sent it. */
+  @Test
+  fun `produceOrThrow - a record reported as dropped is not sent`() = withTopic {
+    val sent = CopyOnWriteArrayList<String>()
+    val dropped = CopyOnWriteArrayList<String>()
+    val failing = stubProducer(failOnNumber = 2)
+
+    val recording: suspend (PublisherSettings<String, String>) -> Producer<String, String> = { settings ->
+      val delegate = failing(settings)
+      object : Producer<String, String> by delegate {
+        override fun send(record: ProducerRecord<String, String>, callback: Callback): Future<RecordMetadata> {
+          sent.add(record.key())
+          return delegate.send(record, callback)
+        }
+      }
+    }
+
+    produce(10)
+      .asFlow()
+      // slow enough that the stub's delayed error callback lands mid-collection: that is what puts the
+      // flow into COMPLETE while records are still arriving, which is the case under test
+      .onEach { delay(25) }
+      .flowOn(Dispatchers.IO)
+      .produceOrThrow(
+        publisherSettings().copy(createProducer = recording),
+        onPublisherRecordDropped = { _, record -> dropped.add(record.key()) }
+      )
+      .catch { }
+      .flowOn(Dispatchers.Default)
+      .collect()
+
+    assertTrue(dropped.isNotEmpty(), "the error never reached the collector, so nothing was dropped and this proves nothing")
+    assertEquals(emptyList(), sent.filter { it in dropped }, "records reported as dropped were published anyway")
   }
 
   @Test

@@ -239,14 +239,15 @@ private fun <Key, Value> Flow<ProducerRecord<Key, Value>>.produceImpl(
       if (state.get() == COMPLETE) {
         val dropped = onPublisherRecordDropped ?: settings.onPublisherRecordDropped
         dropped(log, record)
-      }
-      try {
-        runInterruptible(producerContext) {
-          inFlight.incrementAndGet()
-          producer.send(record, callback)
+      } else {
+        try {
+          runInterruptible(producerContext) {
+            inFlight.incrementAndGet()
+            producer.send(record, callback)
+          }
+        } catch (e: Exception) {
+          callback.onCompletion(null, e)
         }
-      } catch (e: Exception) {
-        callback.onCompletion(null, e)
       }
     }
 
