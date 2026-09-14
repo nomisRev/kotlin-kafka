@@ -77,6 +77,27 @@ internal class CommittableBatch {
     })
   }
   
+  /**
+   * Drops everything held for partitions the consumer has *lost*, so that no later commit carries them.
+   *
+   * [onPartitionsRevoked] alone is not enough: it clears only the out-of-order bookkeeping, while the offsets a
+   * commit is actually built from live in [consumedOffsets]. A revoked partition is committed on the way out and
+   * emptied by that commit; a lost one is never committed, so it has to be dropped here or the next commit would
+   * still carry it.
+   */
+  // Called from ConsumerRebalanceListener, thus from our single threaded kafka dispatcher
+  @Synchronized
+  fun onPartitionsLost(lost: Collection<TopicPartition>) {
+    onPartitionsRevoked(lost)
+    lost.forEach(Consumer { part: TopicPartition ->
+      consumedOffsets.remove(part)
+      latestOffsets.remove(part)
+    })
+    /* batchSize counts updates rather than partitions, so what these offsets contributed to it cannot be
+     * subtracted. Left too high it can only bring the next commit of the remaining partitions forward, and a
+     * commit that ends up with no offsets at all completes without a broker round trip. */
+  }
+  
   // Called from suspend poll, and getAndClearOffsets
   @Synchronized
   fun deferredCount(): Int {
