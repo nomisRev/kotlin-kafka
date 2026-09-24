@@ -39,6 +39,7 @@ import kotlinx.coroutines.selects.whileSelect
 import kotlinx.coroutines.withContext
 import org.apache.kafka.clients.consumer.*
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.errors.RebalanceInProgressException
 import org.apache.kafka.common.errors.WakeupException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -69,8 +70,7 @@ internal class EventLoop<K, V>(
   private val outerContext: CoroutineContext,
   private val awaitingTransaction: AtomicBoolean = AtomicBoolean(false),
   private val ackMode: AckMode = MANUAL_ACK,
-  private val isRetryableCommit: (Throwable) -> Boolean =
-    { e -> e is RetriableCommitFailedException },
+  private val isRetryableCommit: (Throwable) -> Boolean = ::isTransientCommitFailure,
 ) {
   private val isPolling = AtomicBoolean(true)
   private val isPaused = AtomicBoolean(false)
@@ -388,11 +388,14 @@ internal class EventLoop<K, V>(
   private fun commitFailure(commitArgs: CommittableBatch.CommitArgs, exception: Throwable) {
     checkConsumerThread("commitFailure")
     logger.warn("Commit failed", exception)
-    if (
-      !isRetryableCommit(exception) &&
-      consecutiveCommitFailures.incrementAndGet() < settings.maxCommitAttempts
-    ) {
-      logger.debug("Commit failed with exception $exception, zero retries remaining")
+    /* Counting the failure has to happen on the retryable path, otherwise [maxCommitAttempts] is
+     * never reached by the very failures it is meant to bound and they are retried forever.
+     * Mirrors ConsumerEventLoop.CommitEvent.handleFailure in reactor-kafka, where this originates. */
+    val mayRetry =
+      isRetryableCommit(exception) &&
+        consecutiveCommitFailures.incrementAndGet() < settings.maxCommitAttempts
+    if (!mayRetry) {
+      logger.debug("Cannot retry commit, it failed with $exception")
       schedulePollAfterRetrying()
       val continuations = commitArgs.continuations
       if (continuations.isNullOrEmpty()) {
@@ -587,3 +590,14 @@ private fun checkConsumerThread(msg: String): Unit =
     Thread.currentThread().name.startsWith("kotlin-kafka-")
   ) { "$msg => should run on kotlin-kafka thread, but found ${Thread.currentThread().name}" }
   else Unit
+
+/**
+ * Commit failures that resolve on their own and are therefore safe to retry:
+ * - [RetriableCommitFailedException]: the broker explicitly asks for a retry,
+ * - [RebalanceInProgressException]: the commit raced a group rebalance; once the rebalance completes
+ *   the commit can simply be retried. Failing the receive flow instead turns every commit that races
+ *   a routine rebalance (scaling, deployments, member restarts) into a fatal error - reactor-kafka,
+ *   where this commit logic originates, re-enqueues these commits as well.
+ */
+internal fun isTransientCommitFailure(exception: Throwable): Boolean =
+  exception is RetriableCommitFailedException || exception is RebalanceInProgressException
