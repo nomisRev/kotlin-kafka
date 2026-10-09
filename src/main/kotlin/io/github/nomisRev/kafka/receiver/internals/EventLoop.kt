@@ -192,7 +192,7 @@ internal class EventLoop<K, V>(
               logger.error("Channel send failed when trying to send records.", error)
               closeChannel(error)
             } else {
-              logger.debug("Back-pressuring kafka consumer. Might pause KafkaConsumer on next poll tick.")
+              logger.debug("Back-pressuring kafka consumer. Pausing KafkaConsumer on next poll tick.")
 
               isPolling.set(false)
               scope.launch(outerContext) {
@@ -206,6 +206,11 @@ internal class EventLoop<K, V>(
                 isPolling.set(true)
                 schedulePoll()
               }
+              /* Keep polling while the records above wait for downstream. With isPolling unset the next tick
+               * pauses every assigned partition, so these polls fetch nothing, but they keep the consumer in
+               * its group. Without them a collector that is slower than max.poll.interval.ms gets the consumer
+               * kicked out, and its partitions handed to another member. */
+              schedulePoll()
             }
           }
       }
