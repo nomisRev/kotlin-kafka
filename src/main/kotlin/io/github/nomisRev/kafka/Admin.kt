@@ -2,6 +2,7 @@
 
 package io.github.nomisRev.kafka
 
+import io.github.nomisRev.kafka.internal.requireString
 import java.util.Properties
 import org.apache.kafka.clients.admin.Admin
 import org.apache.kafka.clients.admin.AdminClientConfig
@@ -104,3 +105,15 @@ public data class AdminSettings(
       put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer)
     }
 }
+
+/**
+ * Alternative constructor for [AdminSettings] that reads all parameters from [properties].
+ * [AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG] is required.
+ *
+ * @throws IllegalArgumentException when a required property is missing or invalid.
+ */
+public fun AdminSettings(properties: Properties): AdminSettings =
+  AdminSettings(
+    bootstrapServer = properties.requireString(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG),
+    props = properties,
+  )

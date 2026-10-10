@@ -1,6 +1,8 @@
 package io.github.nomisRev.kafka.publisher
 
 import io.github.nomisRev.kafka.NothingSerializer
+import io.github.nomisRev.kafka.internal.optionalEnum
+import io.github.nomisRev.kafka.internal.requireString
 import io.github.nomisRev.kafka.publisher.PublisherSettings.ProducerListener
 import io.github.nomisRev.kafka.receiver.isPosNonZero
 import org.apache.kafka.clients.producer.KafkaProducer
@@ -112,5 +114,36 @@ public fun <Value> PublisherSettings(
     createProducer,
     properties
   )
+
+/**
+ * Alternative constructor for [PublisherSettings] that reads all parameters from [properties].
+ * [ProducerConfig.BOOTSTRAP_SERVERS_CONFIG] is required,
+ * and [ProducerConfig.ACKS_CONFIG] is used for [PublisherSettings.acknowledgments] when present.
+ * Other [PublisherSettings] parameters can be changed using [PublisherSettings.copy].
+ *
+ * @throws IllegalArgumentException when a required property is missing or invalid.
+ */
+public fun <Key, Value> PublisherSettings(
+  properties: Properties,
+  keySerializer: Serializer<Key>,
+  valueSerializer: Serializer<Value>,
+): PublisherSettings<Key, Value> =
+  PublisherSettings(
+    bootstrapServers = properties.requireString(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG),
+    keySerializer = keySerializer,
+    valueSerializer = valueSerializer,
+    acknowledgments = properties.optionalEnum(ProducerConfig.ACKS_CONFIG, Acks.entries) { it.value }
+      // "-1" is an alias for "all"
+      ?.let { if (it.value == "-1") Acks.All else it }
+      ?: Acks.All,
+    properties = properties,
+  )
+
+/** Alternative constructor for [PublisherSettings] without a key that reads all parameters from [properties]. */
+public fun <Value> PublisherSettings(
+  properties: Properties,
+  valueSerializer: Serializer<Value>,
+): PublisherSettings<Nothing, Value> =
+  PublisherSettings(properties, NothingSerializer, valueSerializer)
 
 private object NoOpProducerListener : ProducerListener
