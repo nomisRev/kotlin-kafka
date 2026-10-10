@@ -1,6 +1,8 @@
 package io.github.nomisRev.kafka.receiver
 
 import io.github.nomisRev.kafka.NothingDeserializer
+import io.github.nomisRev.kafka.internal.optionalEnum
+import io.github.nomisRev.kafka.internal.requireString
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.serialization.Deserializer
 import java.util.Properties
@@ -83,3 +85,33 @@ public fun <V> ReceiverSettings(
     closeTimeout,
     properties
   )
+
+/**
+ * Alternative constructor for [ReceiverSettings] that reads all parameters from [properties].
+ * [ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG] and [ConsumerConfig.GROUP_ID_CONFIG] are required,
+ * and [ConsumerConfig.AUTO_OFFSET_RESET_CONFIG] is used for [ReceiverSettings.autoOffsetReset] when present.
+ * Other [ReceiverSettings] parameters can be changed using [ReceiverSettings.copy].
+ *
+ * @throws IllegalArgumentException when a required property is missing or invalid.
+ */
+public fun <K, V> ReceiverSettings(
+  properties: Properties,
+  keyDeserializer: Deserializer<K>,
+  valueDeserializer: Deserializer<V>,
+): ReceiverSettings<K, V> =
+  ReceiverSettings(
+    bootstrapServers = properties.requireString(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG),
+    keyDeserializer = keyDeserializer,
+    valueDeserializer = valueDeserializer,
+    groupId = properties.requireString(ConsumerConfig.GROUP_ID_CONFIG),
+    autoOffsetReset = properties.optionalEnum(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, AutoOffsetReset.entries) { it.value }
+      ?: AutoOffsetReset.Earliest,
+    properties = properties,
+  )
+
+/** Alternative constructor for [ReceiverSettings] without a key that reads all parameters from [properties]. */
+public fun <V> ReceiverSettings(
+  properties: Properties,
+  valueDeserializer: Deserializer<V>,
+): ReceiverSettings<Nothing, V> =
+  ReceiverSettings(properties, NothingDeserializer, valueDeserializer)
