@@ -35,6 +35,7 @@ import org.apache.kafka.common.MetricName
 import org.apache.kafka.common.PartitionInfo
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.Uuid
+import org.apache.kafka.common.metrics.KafkaMetric
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.junit.jupiter.api.AfterAll
@@ -85,7 +86,8 @@ abstract class KafkaSpec {
           "KAFKA_TRANSACTION_ABORT_TIMED_OUT_TRANSACTION_CLEANUP_INTERVAL_MS",
           transactionTimeoutInterval.inWholeMilliseconds.toString()
         )
-        withEnv("KAFKA_AUTHORIZER_CLASS_NAME", "kafka.security.authorizer.AclAuthorizer")
+        // KRaft mode does not support the ZooKeeper-based AclAuthorizer, use the KRaft-native one
+        withEnv("KAFKA_AUTHORIZER_CLASS_NAME", "org.apache.kafka.metadata.authorizer.StandardAuthorizer")
         withEnv("KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND", "true")
         withReuse(true)
       }
@@ -138,7 +140,7 @@ abstract class KafkaSpec {
     val publisherSettings = publisherSettings()
     return publisherSettings().copy(
       acknowledgments = acknowledgments,
-      properties = Properties().apply {
+      properties = Properties(publisherSettings.properties).apply {
         properties()
         put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, publisherSettings.bootstrapServers)
         put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, publisherSettings.keySerializer::class.qualifiedName)
@@ -294,9 +296,9 @@ abstract class KafkaSpec {
         override fun clientInstanceId(p0: Duration?): Uuid =
           producer.clientInstanceId(p0)
 
-        override fun close() {}
+        override fun close() = producer.close()
 
-        override fun close(timeout: Duration?) {}
+        override fun close(timeout: Duration?) = producer.close(timeout)
 
         override fun initTransactions() =
           producer.initTransactions()
@@ -304,16 +306,16 @@ abstract class KafkaSpec {
         override fun beginTransaction() =
           producer.beginTransaction()
 
-        @Suppress("OVERRIDE_DEPRECATION")
-        override fun sendOffsetsToTransaction(
-          offsets: MutableMap<TopicPartition, OffsetAndMetadata>?,
-          consumerGroupId: String?
-        ) = producer.sendOffsetsToTransaction(offsets, ConsumerGroupMetadata(consumerGroupId))
-
         override fun sendOffsetsToTransaction(
           offsets: MutableMap<TopicPartition, OffsetAndMetadata>?,
           groupMetadata: ConsumerGroupMetadata?
         ) = producer.sendOffsetsToTransaction(offsets, groupMetadata)
+
+        override fun registerMetricForSubscription(metric: KafkaMetric) =
+          producer.registerMetricForSubscription(metric)
+
+        override fun unregisterMetricFromSubscription(metric: KafkaMetric) =
+          producer.unregisterMetricFromSubscription(metric)
 
         override fun commitTransaction() =
           producer.commitTransaction()

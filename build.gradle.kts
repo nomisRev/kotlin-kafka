@@ -1,4 +1,5 @@
 import kotlinx.knit.KnitPluginExtension
+import java.time.Duration
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat.*
 import org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED
 import org.gradle.api.tasks.testing.logging.TestLogEvent.SKIPPED
@@ -43,7 +44,7 @@ configure<KnitPluginExtension> {
 
 configure<JavaPluginExtension> {
   toolchain {
-    languageVersion.set(JavaLanguageVersion.of(8))
+    languageVersion.set(JavaLanguageVersion.of(11))
   }
 }
 

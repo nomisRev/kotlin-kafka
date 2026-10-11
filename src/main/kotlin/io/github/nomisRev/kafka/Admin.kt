@@ -35,7 +35,7 @@ import org.apache.kafka.clients.admin.TopicDescription
  *   val settings = AdminSettings(
  *     Kafka.container.bootstrapServers,
  *     Properties().apply {
- *       put(CLIENT_DNS_LOOKUP_CONFIG, ClientDnsLookup.USE_ALL_DNS_IPS)
+ *       put(CLIENT_DNS_LOOKUP_CONFIG, ClientDnsLookup.USE_ALL_DNS_IPS.toString())
  *     }
  *   )
  *   Admin(settings).use { admin ->

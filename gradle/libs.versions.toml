@@ -1,13 +1,13 @@
 [versions]
 kotlin = "2.4.0"
-kafka = "3.9.0"
+kafka = "4.3.1"
 kotlinx-coroutines = "1.10.1"
 dokka = "2.0.0"
 knit = "0.5.0"
 kover = "0.9.1"
-testcontainers-kafka = "1.20.4"
+testcontainers-kafka = "1.21.4"
 slf4j = "2.0.16"
-spotless = "7.0.2"
+spotless = "8.8.0"
 publish = "0.30.0"
 
 [libraries]

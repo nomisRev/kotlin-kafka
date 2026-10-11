@@ -1,4 +1,4 @@
-import org.testcontainers.containers.KafkaContainer
+import org.testcontainers.kafka.ConfluentKafkaContainer
 import org.testcontainers.utility.DockerImageName
 import java.lang.System.getProperty
 
@@ -25,29 +25,11 @@ import java.lang.System.getProperty
  * @see https://www.testcontainers.org/test_framework_integration/manual_lifecycle_control/
  * @see https://pawelpluta.com/optimise-testcontainers-for-better-tests-performance/
  */
-class Kafka private constructor(imageName: DockerImageName) : KafkaContainer(imageName) {
-  
+class Kafka : ConfluentKafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.6.12")) {
+
   companion object {
-    private val image: DockerImageName =
-      if (getProperty("os.arch") == "aarch64") DockerImageName.parse("niciqy/cp-kafka-arm64:7.0.1")
-        .asCompatibleSubstituteFor("confluentinc/cp-kafka")
-      else DockerImageName.parse("confluentinc/cp-kafka:6.2.1")
-    
-    val container: KafkaContainer by lazy {
-      Kafka(image).also { it.start() }
+    val container: ConfluentKafkaContainer by lazy {
+      Kafka().also { it.start() }
     }
   }
-  
-  // override fun containerIsStarted(containerInfo: InspectContainerResponse?, reused: Boolean) {
-  //   super.containerIsStarted(containerInfo, reused)
-  //   // If we're reusing the container, we want to reset the state of the container. We do this by
-  //   // deleting all topics.
-  //   //    if (reused)
-  //   runBlocking<Unit> {
-  //     Admin(AdminSettings(bootstrapServers)).use { admin ->
-  //       val names = admin.listTopics().listings().await()
-  //       admin.deleteTopics(names.map { it.name() }).all().await()
-  //     }
-  //   }
-  // }
 }
